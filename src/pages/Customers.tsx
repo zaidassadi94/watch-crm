@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   PlusCircle, Search, Filter, UserPlus, Download, 
@@ -25,6 +24,13 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface Customer {
   id: number;
@@ -135,7 +141,6 @@ interface Column<T> {
   cell?: (item: T) => React.ReactNode;
 }
 
-// Customer form schema
 const customerFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address").optional().or(z.literal('')),
@@ -170,7 +175,6 @@ const Customers = () => {
     }, 100);
   }, []);
 
-  // Update form when selected customer changes
   useEffect(() => {
     if (selectedCustomer) {
       form.reset({
@@ -197,7 +201,6 @@ const Customers = () => {
   );
 
   const onSubmit = (data: CustomerFormValues) => {
-    // In a real app, this would save to a database
     toast({
       title: selectedCustomer ? "Customer Updated" : "Customer Added",
       description: `${data.name} has been ${selectedCustomer ? 'updated' : 'added'} successfully.`,
@@ -219,7 +222,6 @@ const Customers = () => {
   };
 
   const handleDeleteCustomer = (id: number) => {
-    // In a real app, this would delete from a database
     toast({
       title: "Customer Deleted",
       description: "Customer has been deleted successfully.",
@@ -388,7 +390,6 @@ const Customers = () => {
         </CardContent>
       </Card>
 
-      {/* Customer Add/Edit Sheet */}
       <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
         <SheetContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
           <SheetHeader>
