@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -56,7 +56,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
       estimated_completion: service?.estimated_completion 
         ? new Date(service.estimated_completion).toISOString().split('T')[0] 
         : '',
-      price: service?.price !== null ? Number(service.price) : null,
+      price: service?.price !== undefined && service?.price !== null ? Number(service.price) : null,
     }
   });
 

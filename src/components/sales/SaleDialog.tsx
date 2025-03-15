@@ -11,7 +11,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sale } from '@/pages/Sales';
 import { useAuth } from '@/hooks/useAuth';
 import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
-import { saleFormSchema, SaleFormValues, calculateTotal } from './saleFormSchema';
+import { saleFormSchema, SaleFormValues, calculateTotal, SaleItemInternal } from './saleFormSchema';
 import { CustomerForm } from './CustomerForm';
 import { SaleItemForm } from './SaleItemForm';
 import { useSuggestions } from './useSuggestions';
@@ -134,11 +134,15 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     
     try {
       setIsSubmitting(true);
-      const totalAmount = calculateTotal(data.items.map(item => ({
+      
+      // Ensure items have all required properties for SaleItemInternal
+      const saleItems: SaleItemInternal[] = data.items.map(item => ({
         product_name: item.product_name,
         quantity: item.quantity,
         price: item.price
-      })));
+      }));
+      
+      const totalAmount = calculateTotal(saleItems);
 
       if (sale) {
         const { error } = await supabase

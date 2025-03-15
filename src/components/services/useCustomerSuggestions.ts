@@ -10,17 +10,17 @@ export function useCustomerSuggestions(user: User | null) {
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    if (searchTerm.length < 2) return;
+    if (searchTerm.length < 2 || !user || !showCustomerSuggestions) {
+      return;
+    }
     
     const loadCustomerSuggestions = async () => {
-      if (!user) return;
-      
       try {
         const { data: serviceData, error: serviceError } = await supabase
           .from('service_requests')
           .select('customer_name, customer_email, customer_phone, watch_brand, watch_model, serial_number')
           .eq('user_id', user.id)
-          .ilike('customer_phone', `%${searchTerm}%`)
+          .or(`customer_name.ilike.%${searchTerm}%,customer_phone.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%`)
           .order('created_at', { ascending: false });
           
         if (serviceError) throw serviceError;
@@ -29,7 +29,7 @@ export function useCustomerSuggestions(user: User | null) {
           .from('sales')
           .select('customer_name, customer_email, customer_phone')
           .eq('user_id', user.id)
-          .ilike('customer_phone', `%${searchTerm}%`)
+          .or(`customer_name.ilike.%${searchTerm}%,customer_phone.ilike.%${searchTerm}%,customer_email.ilike.%${searchTerm}%`)
           .order('created_at', { ascending: false });
           
         if (salesError) throw salesError;
@@ -39,6 +39,8 @@ export function useCustomerSuggestions(user: User | null) {
         
         combinedData.forEach(item => {
           const existingCustomer = uniqueCustomers.find(c => 
+            c.name === item.customer_name &&
+            c.email === item.customer_email &&
             c.phone === item.customer_phone
           );
           
@@ -96,14 +98,13 @@ export function useCustomerSuggestions(user: User | null) {
         });
         
         setCustomerSuggestions(uniqueCustomers);
-        setShowCustomerSuggestions(uniqueCustomers.length > 0);
       } catch (error) {
         console.error("Error fetching customer suggestions:", error);
       }
     };
     
     loadCustomerSuggestions();
-  }, [searchTerm, user]);
+  }, [searchTerm, user, showCustomerSuggestions]); // Added showCustomerSuggestions to dependency array
 
   return {
     customerSuggestions,

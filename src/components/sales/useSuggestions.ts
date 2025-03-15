@@ -11,6 +11,7 @@ export function useSuggestions(userId: string | undefined) {
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
 
+  // Product suggestions
   useEffect(() => {
     const index = showProductSuggestions;
     if (index === null || !productSearchTerms[index] || productSearchTerms[index].length < 2 || !userId) {
@@ -39,9 +40,9 @@ export function useSuggestions(userId: string | undefined) {
     loadProductSuggestions();
   }, [showProductSuggestions, productSearchTerms, userId]);
 
+  // Customer suggestions - fixed dependency array to prevent infinite loop
   useEffect(() => {
-    if (customerSearchTerm.length < 2 || !userId) {
-      setCustomerSuggestions([]);
+    if (customerSearchTerm.length < 2 || !userId || !showCustomerSuggestions) {
       return;
     }
     
@@ -85,14 +86,13 @@ export function useSuggestions(userId: string | undefined) {
         });
         
         setCustomerSuggestions(uniqueCustomers);
-        setShowCustomerSuggestions(uniqueCustomers.length > 0);
       } catch (error) {
         console.error("Error fetching customer suggestions:", error);
       }
     };
     
     loadCustomerSuggestions();
-  }, [customerSearchTerm, userId]);
+  }, [customerSearchTerm, userId, showCustomerSuggestions]); // Added showCustomerSuggestions to dependency array
 
   const handleProductSearch = (value: string, index: number) => {
     const newSearchTerms = [...productSearchTerms];
