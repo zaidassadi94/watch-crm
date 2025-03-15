@@ -76,14 +76,14 @@ export function SalesContent() {
 
       <InvoiceDialog
         open={isInvoiceDialogOpen}
-        onOpenChange={setIsInvoiceDialogOpen}
+        setOpen={setIsInvoiceDialogOpen}
         sale={selectedSale}
         saleItems={invoiceSaleItems}
       />
 
       <ReturnDialog
         open={isReturnDialogOpen}
-        onOpenChange={setIsReturnDialogOpen}
+        setOpen={setIsReturnDialogOpen}
         onComplete={fetchSales}
       />
     </div>

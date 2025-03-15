@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,7 +6,7 @@ import { Sale } from '@/types/sales';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { updateInventoryStock } from '../hooks/useSaleDataAccess';
+import { updateInventoryStock } from '../hooks/sale-data';
 
 interface SaleItem {
   id: string;

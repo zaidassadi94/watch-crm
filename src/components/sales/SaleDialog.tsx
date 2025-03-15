@@ -1,6 +1,6 @@
-import React from 'react';
-import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
-import { SaleForm } from './SaleForm';
+
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from '@/components/ui/dialog';
 import { Sale } from '@/types/sales';
 import { useAuth } from '@/hooks/useAuth';
 import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
@@ -118,13 +118,29 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           </DialogDescription>
         </DialogHeader>
         
-        <SaleForm 
-          form={form}
-          customerSuggestions={customerSuggestions}
-          showCustomerSuggestions={showCustomerSuggestions}
-          setCustomerSearchTerm={setCustomerSearchTerm}
-          selectCustomer={selectCustomer}
-        />
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+          <CustomerForm 
+            form={form}
+            customerSuggestions={customerSuggestions}
+            showCustomerSuggestions={showCustomerSuggestions}
+            setCustomerSearchTerm={setCustomerSearchTerm}
+            selectCustomer={selectCustomer}
+          />
+          <SaleItemForm
+            form={form}
+            productSuggestions={productSuggestions}
+            showProductSuggestions={showProductSuggestions}
+            productSearchTerms={productSearchTerms}
+            handleProductSearch={handleProductSearch}
+            selectProduct={selectProduct}
+          />
+          <SaleNotesField form={form} />
+          <SaleDialogActions
+            form={form}
+            isSubmitting={isSubmitting}
+            onCancel={handleCancel}
+          />
+        </form>
       </DialogContent>
     </Dialog>
   );

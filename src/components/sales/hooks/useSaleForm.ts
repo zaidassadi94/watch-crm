@@ -1,11 +1,10 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/components/ui/use-toast';
 import { Sale } from '@/types/sales';
 import { saleFormSchema, SaleFormValues } from '../saleFormSchema';
-import { loadSaleItems, saveSale } from './useSaleDataAccess';
+import { loadSaleItems, saveSale } from './sale-data';
 
 export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuccess: () => void, onCancel: () => void) {
   const { toast } = useToast();
