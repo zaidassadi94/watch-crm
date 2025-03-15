@@ -213,6 +213,8 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
             
             if (newStockLevel > 0 && inventoryData.stock_status === 'out_of_stock') {
               newStockStatus = newStockLevel <= 5 ? 'low_stock' : 'in_stock';
+            } else if (newStockLevel > 5 && inventoryData.stock_status === 'low_stock') {
+              newStockStatus = 'in_stock';
             }
             
             await supabase
@@ -223,6 +225,8 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
                 updated_at: new Date().toISOString()
               })
               .eq('id', item.inventory_id);
+              
+            console.log(`Updated inventory for ${item.product_name}: new stock level = ${newStockLevel}`);
           }
         }
       }

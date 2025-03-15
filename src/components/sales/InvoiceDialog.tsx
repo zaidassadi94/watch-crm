@@ -35,7 +35,7 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
         variant: "destructive",
       });
     },
-    contentRef: invoiceRef,
+    contentRef: invoiceRef, // Changed from 'content' to 'contentRef'
   });
 
   const handleShare = async () => {
@@ -60,13 +60,16 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
 
   if (!sale) return null;
 
+  // Only allow printing for completed sales
+  const isPrintable = sale.status === 'completed';
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Invoice #{sale.invoice_number || sale.id.substring(0, 8)}</DialogTitle>
           <DialogDescription>
-            View and print invoice for {sale.customer_name}
+            View {isPrintable ? 'and print ' : ''}invoice for {sale.customer_name}
           </DialogDescription>
         </DialogHeader>
 
@@ -83,10 +86,12 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
-          <Button onClick={handlePrint}>
-            <Printer className="w-4 h-4 mr-2" />
-            Print Invoice
-          </Button>
+          {isPrintable && (
+            <Button onClick={handlePrint}>
+              <Printer className="w-4 h-4 mr-2" />
+              Print Invoice
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

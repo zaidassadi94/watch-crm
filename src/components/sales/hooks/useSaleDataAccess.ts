@@ -68,8 +68,9 @@ export async function saveSale(
   // Update existing sale
   if (existingSale) {
     let originalItems: SaleItemWithInventory[] = [];
+    let originalStatus = existingSale.status;
     
-    if (existingSale.status !== 'completed' && data.status === 'completed') {
+    if (originalStatus !== 'completed' && data.status === 'completed') {
       try {
         const { data: itemsData } = await supabase
           .from('sale_items')
@@ -126,7 +127,7 @@ export async function saveSale(
     if (itemsError) throw itemsError;
     
     // Update inventory if status changed to completed
-    if (existingSale.status !== 'completed' && data.status === 'completed') {
+    if (originalStatus !== 'completed' && data.status === 'completed') {
       for (const item of data.items) {
         if (item.inventory_id && item.product_name) {
           await updateInventoryStock({

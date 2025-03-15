@@ -27,11 +27,13 @@ export async function generateInvoiceNumber(supabase: any) {
     
     if (error) throw error;
     
-    const invoiceNumber = `INV-${String(data).padStart(8, '0')}`;
+    // Format the number as a 4-digit string with leading zeros
+    const invoiceNumber = `#${String(data).padStart(4, '0')}`;
     return invoiceNumber;
   } catch (error) {
     console.error('Error generating invoice number:', error);
-    return `INV-${Date.now()}`;
+    // Fallback invoice number in case of error
+    return `#${Date.now().toString().substr(-4)}`;
   }
 }
 
@@ -81,4 +83,3 @@ export function getStockStatusBasedOnLevel(level: number): string {
   if (level <= 5) return 'low_stock';
   return 'in_stock';
 }
-

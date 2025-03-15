@@ -3,9 +3,10 @@ import React from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { UseFormReturn } from 'react-hook-form';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { SaleFormValues } from './saleFormSchema';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { CustomerSuggestion } from '@/types/inventory';
+import { SaleFormValues } from './saleFormSchema';
+import { Search } from 'lucide-react';
 
 interface CustomerFormProps {
   form: UseFormReturn<SaleFormValues>;
@@ -15,135 +16,116 @@ interface CustomerFormProps {
   selectCustomer: (customer: CustomerSuggestion) => void;
 }
 
-export function CustomerForm({ 
-  form, 
-  customerSuggestions, 
-  showCustomerSuggestions, 
-  setCustomerSearchTerm, 
-  selectCustomer 
+export function CustomerForm({
+  form,
+  customerSuggestions,
+  showCustomerSuggestions,
+  setCustomerSearchTerm,
+  selectCustomer,
 }: CustomerFormProps) {
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-medium">Customer Information</h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <FormField
-          control={form.control}
-          name="customer_name"
-          render={({ field }) => (
-            <FormItem className="relative">
-              <FormLabel>Customer Name *</FormLabel>
-              <FormControl>
-                <Input 
-                  placeholder="Enter customer name" 
-                  {...field} 
-                  onChange={(e) => {
-                    field.onChange(e);
-                    setCustomerSearchTerm(e.target.value);
-                  }}
-                />
-              </FormControl>
-              {showCustomerSuggestions && customerSuggestions.length > 0 && (
-                <div className="absolute z-50 bg-popover border rounded-md w-full mt-1 shadow-md">
-                  <div className="max-h-60 overflow-auto py-1">
-                    {customerSuggestions.map((customer, idx) => (
-                      <div
-                        key={idx}
-                        className="px-2 py-1.5 hover:bg-accent cursor-pointer"
-                        onClick={() => selectCustomer(customer)}
-                      >
-                        <div className="font-medium">{customer.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {customer.phone} {customer.email ? `• ${customer.email}` : ''}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="customer_email"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="customer@example.com" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="customer_phone"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone</FormLabel>
-              <FormControl>
-                <Input placeholder="(123) 456-7890" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="status"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="payment_method"
-          render={({ field }) => (
-            <FormItem className="col-span-1 sm:col-span-2 md:col-span-1">
-              <FormLabel>Payment Method</FormLabel>
-              <Select 
-                onValueChange={field.onChange} 
-                defaultValue={field.value}
+      
+      {/* Customer Name with Suggestions */}
+      <FormField
+        control={form.control}
+        name="customer_name"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Customer Name *</FormLabel>
+            <div className="relative">
+              <Popover
+                open={showCustomerSuggestions}
+                onOpenChange={(open) => {
+                  if (open && field.value) {
+                    setCustomerSearchTerm(field.value);
+                  }
+                }}
               >
-                <FormControl>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                </FormControl>
-                <SelectContent>
-                  <SelectItem value="credit_card">Credit Card</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="check">Check</SelectItem>
-                  <SelectItem value="upi">UPI</SelectItem>
-                </SelectContent>
-              </Select>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-      </div>
+                <PopoverTrigger asChild>
+                  <FormControl>
+                    <div className="relative w-full">
+                      <Input
+                        placeholder="Customer name"
+                        {...field}
+                        className="pr-8"
+                        onChange={(e) => {
+                          field.onChange(e);
+                          setCustomerSearchTerm(e.target.value);
+                        }}
+                      />
+                      <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
+                    </div>
+                  </FormControl>
+                </PopoverTrigger>
+                <PopoverContent className="p-0 w-[300px]" align="start">
+                  {customerSuggestions.length > 0 ? (
+                    <div className="max-h-60 overflow-auto">
+                      {customerSuggestions.map((customer, index) => (
+                        <div
+                          key={index}
+                          className="flex flex-col px-2 py-1.5 hover:bg-accent cursor-pointer"
+                          onClick={() => selectCustomer(customer)}
+                        >
+                          <div className="font-medium">{customer.name}</div>
+                          {customer.email && (
+                            <div className="text-xs text-muted-foreground">
+                              {customer.email}
+                            </div>
+                          )}
+                          {customer.phone && (
+                            <div className="text-xs text-muted-foreground">
+                              {customer.phone}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-2 text-center text-sm text-muted-foreground">
+                      {field.value?.length > 0 
+                        ? 'No customers found' 
+                        : 'Type to search customers'}
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            </div>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Customer Email */}
+      <FormField
+        control={form.control}
+        name="customer_email"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Email</FormLabel>
+            <FormControl>
+              <Input placeholder="customer@example.com" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
+
+      {/* Customer Phone */}
+      <FormField
+        control={form.control}
+        name="customer_phone"
+        render={({ field }) => (
+          <FormItem>
+            <FormLabel>Phone</FormLabel>
+            <FormControl>
+              <Input placeholder="+1234567890" {...field} />
+            </FormControl>
+            <FormMessage />
+          </FormItem>
+        )}
+      />
     </div>
   );
 }

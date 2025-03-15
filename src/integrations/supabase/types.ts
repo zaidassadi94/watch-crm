@@ -412,7 +412,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      nextval: {
+        Args: {
+          seq_name: string
+        }
+        Returns: number
+      }
     }
     Enums: {
       [_ in never]: never
