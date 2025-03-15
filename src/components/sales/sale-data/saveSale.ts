@@ -4,7 +4,7 @@ import { Sale } from '@/types/sales';
 import { SaleFormValues } from '../saleFormSchema';
 import { SaleItemInternal } from '../saleFormSchema';
 import { calculateSaleTotals, generateInvoiceNumber } from '../hooks/calculations';
-import { SaleItemWithInventory } from './loadSaleItems';
+import { loadSaleItems, SaleItemWithInventory } from './loadSaleItems';
 import { updateInventoryStock } from './updateInventoryStock';
 
 /**
