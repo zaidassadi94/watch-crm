@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { DataTable } from '@/components/ui-custom/DataTable';
+import { DataTable, Column } from '@/components/ui-custom/DataTable';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -140,15 +140,15 @@ const Inventory = () => {
     return ((sellingPrice - costPrice) / sellingPrice) * 100;
   };
 
-  const columns = [
+  const columns: Column<InventoryItem>[] = [
     {
       header: 'Product',
-      cell: (item: InventoryItem) => (
+      cell: ({ row }: { row: { original: InventoryItem } }) => (
         <div className="flex items-center gap-3">
-          {item.image_url ? (
+          {row.original.image_url ? (
             <img 
-              src={item.image_url} 
-              alt={item.name} 
+              src={row.original.image_url} 
+              alt={row.original.name} 
               className="w-10 h-10 object-cover rounded border border-border"
             />
           ) : (
@@ -157,8 +157,8 @@ const Inventory = () => {
             </div>
           )}
           <div>
-            <p className="font-medium">{item.name}</p>
-            <p className="text-xs text-muted-foreground">{item.brand}</p>
+            <p className="font-medium">{row.original.name}</p>
+            <p className="text-xs text-muted-foreground">{row.original.brand}</p>
           </div>
         </div>
       ),
@@ -169,44 +169,44 @@ const Inventory = () => {
     },
     {
       header: 'Category',
-      cell: (item: InventoryItem) => (
-        <div>{formatCategory(item.category)}</div>
+      cell: ({ row }: { row: { original: InventoryItem } }) => (
+        <div>{formatCategory(row.original.category)}</div>
       ),
     },
     {
       header: 'Stock',
-      cell: (item: InventoryItem) => (
+      cell: ({ row }: { row: { original: InventoryItem } }) => (
         <div className="flex items-center gap-2">
           <Badge 
             variant="outline"
             className={cn(
               "rounded-full flex gap-1 items-center",
-              getStockStatusColor(item.stock_status)
+              getStockStatusColor(row.original.stock_status)
             )}
           >
-            {item.stock_status === 'low_stock' && <AlertTriangle className="h-3 w-3" />}
-            {getStockStatusText(item.stock_status)}
+            {row.original.stock_status === 'low_stock' && <AlertTriangle className="h-3 w-3" />}
+            {getStockStatusText(row.original.stock_status)}
           </Badge>
-          <span className="text-xs text-muted-foreground">{item.stock_level} units</span>
+          <span className="text-xs text-muted-foreground">{row.original.stock_level} units</span>
         </div>
       ),
     },
     {
       header: 'Cost Price',
-      cell: (item: InventoryItem) => (
-        <div className="font-medium text-muted-foreground">{currencySymbol}{item.cost_price?.toLocaleString() || '0'}</div>
+      cell: ({ row }: { row: { original: InventoryItem } }) => (
+        <div className="font-medium text-muted-foreground">{currencySymbol}{row.original.cost_price?.toLocaleString() || '0'}</div>
       ),
     },
     {
       header: 'MRP',
-      cell: (item: InventoryItem) => (
-        <div className="font-medium">{currencySymbol}{item.price.toLocaleString()}</div>
+      cell: ({ row }: { row: { original: InventoryItem } }) => (
+        <div className="font-medium">{currencySymbol}{row.original.price.toLocaleString()}</div>
       ),
     },
     {
       header: 'Margin',
-      cell: (item: InventoryItem) => {
-        const margin = calculateProfitMargin(item.cost_price || 0, item.price);
+      cell: ({ row }: { row: { original: InventoryItem } }) => {
+        const margin = calculateProfitMargin(row.original.cost_price || 0, row.original.price);
         return (
           <div className={cn(
             "font-medium",
@@ -221,7 +221,7 @@ const Inventory = () => {
     },
     {
       header: 'Actions',
-      cell: (item: InventoryItem) => (
+      cell: ({ row }: { row: { original: InventoryItem } }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -231,12 +231,12 @@ const Inventory = () => {
           <DropdownMenuContent align="end" className="w-[160px]">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleEditItem(item)}>
+            <DropdownMenuItem onClick={() => handleEditItem(row.original)}>
               <Edit className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem 
-              onClick={() => handleDelete(item.id)}
+              onClick={() => handleDelete(row.original.id)}
               className="text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" /> Delete

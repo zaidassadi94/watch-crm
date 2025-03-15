@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { PlusCircle, UserPlus, Edit, Trash2, MoreHorizontal, Eye } from 'lucide-react';
-import { DataTable } from '@/components/ui-custom/DataTable';
+import { DataTable, Column } from '@/components/ui-custom/DataTable';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
@@ -41,20 +41,20 @@ export function CustomersList({
     });
   };
 
-  const columns = [
+  const columns: Column<Customer>[] = [
     {
       header: 'Customer',
-      cell: (customer: Customer) => (
+      cell: ({ row }: { row: { original: Customer } }) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 border border-border">
-            <AvatarImage src={customer.avatarUrl} alt={customer.name} />
+            <AvatarImage src={row.original.avatarUrl} alt={row.original.name} />
             <AvatarFallback className="bg-primary/10 text-primary">
-              {customer.name.split(' ').map(n => n[0]).join('')}
+              {row.original.name.split(' ').map(n => n[0]).join('')}
             </AvatarFallback>
           </Avatar>
           <div>
-            <p className="font-medium">{customer.name}</p>
-            <p className="text-xs text-muted-foreground">{customer.email}</p>
+            <p className="font-medium">{row.original.name}</p>
+            <p className="text-xs text-muted-foreground">{row.original.email}</p>
           </div>
         </div>
       ),
@@ -65,45 +65,45 @@ export function CustomersList({
     },
     {
       header: 'Type',
-      cell: (customer: Customer) => (
+      cell: ({ row }: { row: { original: Customer } }) => (
         <Badge 
-          variant={customer.type === 'VIP' ? 'default' : 'outline'}
-          className={customer.type === 'VIP' ? 'bg-brand-500' : ''}
+          variant={row.original.type === 'VIP' ? 'default' : 'outline'}
+          className={row.original.type === 'VIP' ? 'bg-brand-500' : ''}
         >
-          {customer.type}
+          {row.original.type}
         </Badge>
       ),
     },
     {
       header: 'Total Spent',
-      cell: (customer: Customer) => (
-        <div className="font-medium">₹{customer.totalSpent.toLocaleString()}</div>
+      cell: ({ row }: { row: { original: Customer } }) => (
+        <div className="font-medium">₹{row.original.totalSpent.toLocaleString()}</div>
       ),
     },
     {
       header: 'Last Purchase',
-      cell: (customer: Customer) => (
-        <div>{new Date(customer.lastPurchase).toLocaleDateString()}</div>
+      cell: ({ row }: { row: { original: Customer } }) => (
+        <div>{new Date(row.original.lastPurchase).toLocaleDateString()}</div>
       ),
     },
     {
       header: 'Status',
-      cell: (customer: Customer) => (
+      cell: ({ row }: { row: { original: Customer } }) => (
         <Badge 
           variant="outline"
           className={cn(
-            customer.status === 'Active' 
+            row.original.status === 'Active' 
               ? 'border-green-500 text-green-600 bg-green-50'
               : 'border-gray-300 text-gray-600 bg-gray-50'
           )}
         >
-          {customer.status}
+          {row.original.status}
         </Badge>
       ),
     },
     {
       header: 'Actions',
-      cell: (customer: Customer) => (
+      cell: ({ row }: { row: { original: Customer } }) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -118,14 +118,14 @@ export function CustomersList({
             </DropdownMenuItem>
             <DropdownMenuItem className="cursor-pointer" onClick={(e) => {
               e.stopPropagation();
-              onEditCustomer(customer);
+              onEditCustomer(row.original);
             }}>
               <Edit className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem className="cursor-pointer text-destructive" onClick={(e) => {
               e.stopPropagation();
-              handleDeleteCustomer(customer.id);
+              handleDeleteCustomer(row.original.id);
             }}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete
             </DropdownMenuItem>
