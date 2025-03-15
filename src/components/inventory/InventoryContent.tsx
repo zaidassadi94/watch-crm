@@ -15,6 +15,8 @@ import { useSettings } from '@/hooks/useSettings';
 export function InventoryContent() {
   const { inventory, isLoading, isLoaded, fetchInventory, handleDelete } = useInventoryData();
   const [searchTerm, setSearchTerm] = useState('');
+  const [category, setCategory] = useState('');
+  const [stockStatus, setStockStatus] = useState('');
   const { currencySymbol } = useSettings();
   
   const {
@@ -31,11 +33,17 @@ export function InventoryContent() {
     currencySymbol
   });
 
-  const filteredItems = inventory.filter(item => 
-    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.sku.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredItems = inventory.filter(item => {
+    const matchesSearch = 
+      item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesCategory = category === '' || item.category === category;
+    const matchesStockStatus = stockStatus === '' || item.stock_status === stockStatus;
+    
+    return matchesSearch && matchesCategory && matchesStockStatus;
+  });
 
   return (
     <div 
@@ -54,6 +62,10 @@ export function InventoryContent() {
           <InventorySearch 
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
+            category={category}
+            setCategory={setCategory}
+            stockStatus={stockStatus}
+            setStockStatus={setStockStatus}
           />
 
           <DataTable 

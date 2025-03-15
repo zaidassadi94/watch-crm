@@ -15,6 +15,8 @@ import { Sale } from '@/types/sales';
 export function SalesContent() {
   const { sales, isLoading, isLoaded, fetchSales, handleDelete } = useSalesData();
   const [searchTerm, setSearchTerm] = useState("");
+  const [status, setStatus] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
   
   const {
     selectedSale,
@@ -97,10 +99,16 @@ export function SalesContent() {
     }
   ];
 
-  const filteredSales = sales.filter(sale => 
-    sale.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (sale.customer_email && sale.customer_email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredSales = sales.filter(sale => {
+    const matchesSearch = 
+      sale.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (sale.customer_email && sale.customer_email.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesStatus = status === '' || sale.status === status;
+    const matchesPaymentMethod = paymentMethod === '' || sale.payment_method === paymentMethod;
+    
+    return matchesSearch && matchesStatus && matchesPaymentMethod;
+  });
 
   return (
     <div 
@@ -117,7 +125,11 @@ export function SalesContent() {
 
       <SaleSearch 
         searchTerm={searchTerm} 
-        onSearchChange={setSearchTerm} 
+        onSearchChange={setSearchTerm}
+        status={status}
+        onStatusChange={setStatus}
+        paymentMethod={paymentMethod}
+        onPaymentMethodChange={setPaymentMethod}
       />
 
       <DataTable

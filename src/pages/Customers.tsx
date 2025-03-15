@@ -6,7 +6,7 @@ import { CustomerPageHeader } from '@/components/customers/CustomerPageHeader';
 import { CustomersList } from '@/components/customers/CustomersList';
 import { CustomerDialog } from '@/components/customers/CustomerDialog';
 import { useCustomerManagement } from '@/components/customers/useCustomerManagement';
-import { memo, useCallback } from 'react';
+import { memo, useCallback, useState } from 'react';
 
 // Memoize the CustomersList component to prevent unnecessary re-renders
 const MemoizedCustomersList = memo(CustomersList);
@@ -20,11 +20,25 @@ const Customers = () => {
     isDialogOpen,
     setIsDialogOpen,
     selectedCustomer,
-    filteredCustomers,
+    customers,
     handleOpenDialog,
     handleCloseDialog,
     handleSaved
   } = useCustomerManagement();
+
+  const [customerType, setCustomerType] = useState('');
+  const [customerStatus, setCustomerStatus] = useState('');
+
+  // Apply all filters
+  const filteredCustomers = customers.filter(customer => {
+    const matchesSearch = customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                        (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesType = customerType === '' || customer.type === customerType;
+    const matchesStatus = customerStatus === '' || customer.status === customerStatus;
+    
+    return matchesSearch && matchesType && matchesStatus;
+  });
 
   return (
     <div className={cn(
@@ -41,6 +55,10 @@ const Customers = () => {
           <CustomerSearchToolbar 
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
+            customerType={customerType}
+            onCustomerTypeChange={setCustomerType}
+            customerStatus={customerStatus}
+            onCustomerStatusChange={setCustomerStatus}
           />
 
           <MemoizedCustomersList 

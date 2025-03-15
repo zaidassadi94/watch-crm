@@ -13,6 +13,8 @@ import { getServiceTableColumns } from '@/components/services/ServiceTableColumn
 export function ServicesContent() {
   const { services, isLoading, isLoaded, fetchServices, handleDelete } = useServiceData();
   const [searchTerm, setSearchTerm] = useState("");
+  const [status, setStatus] = useState("");
+  const [serviceType, setServiceType] = useState("");
   
   const {
     isDialogOpen,
@@ -27,12 +29,18 @@ export function ServicesContent() {
     onDelete: handleDelete
   });
 
-  const filteredServices = services.filter(service => 
-    service.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    service.watch_brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (service.watch_model && service.watch_model.toLowerCase().includes(searchTerm.toLowerCase())) ||
-    (service.customer_email && service.customer_email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredServices = services.filter(service => {
+    const matchesSearch = 
+      service.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      service.watch_brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (service.watch_model && service.watch_model.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (service.customer_email && service.customer_email.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesStatus = status === '' || service.status === status;
+    const matchesType = serviceType === '' || service.service_type === serviceType;
+    
+    return matchesSearch && matchesStatus && matchesType;
+  });
 
   return (
     <div 
@@ -49,6 +57,10 @@ export function ServicesContent() {
       <ServiceSearch 
         searchTerm={searchTerm}
         setSearchTerm={setSearchTerm}
+        status={status}
+        setStatus={setStatus}
+        serviceType={serviceType}
+        setServiceType={setServiceType}
       />
 
       <DataTable

@@ -1,13 +1,44 @@
 
-import { Search } from 'lucide-react';
+import { useState } from 'react';
+import { Search, Filter, ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 interface ServiceSearchProps {
   searchTerm: string;
   setSearchTerm: (value: string) => void;
+  status: string;
+  setStatus: (value: string) => void;
+  serviceType: string;
+  setServiceType: (value: string) => void;
 }
 
-export function ServiceSearch({ searchTerm, setSearchTerm }: ServiceSearchProps) {
+export function ServiceSearch({ 
+  searchTerm, 
+  setSearchTerm,
+  status,
+  setStatus,
+  serviceType,
+  setServiceType
+}: ServiceSearchProps) {
+  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  
+  const resetFilters = () => {
+    setStatus('');
+    setServiceType('');
+  };
+
+  const hasActiveFilters = status !== '' || serviceType !== '';
+
   return (
     <div className="flex flex-col md:flex-row gap-4">
       <div className="relative flex-1">
@@ -19,6 +50,67 @@ export function ServiceSearch({ searchTerm, setSearchTerm }: ServiceSearchProps)
           onChange={(e) => setSearchTerm(e.target.value)}
         />
       </div>
+      
+      <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" className="h-10 gap-1">
+            <Filter className="h-4 w-4" /> 
+            Filter
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="ml-1 rounded-full text-xs">
+                {(status !== '' ? 1 : 0) + (serviceType !== '' ? 1 : 0)}
+              </Badge>
+            )}
+            <ChevronDown className="h-3 w-3 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <div className="space-y-4">
+            <h4 className="font-medium">Filter Services</h4>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
+              <Select value={status} onValueChange={setStatus}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Statuses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Statuses</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Service Type</label>
+              <Select value={serviceType} onValueChange={setServiceType}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Types" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Types</SelectItem>
+                  <SelectItem value="repair">Repair</SelectItem>
+                  <SelectItem value="maintenance">Maintenance</SelectItem>
+                  <SelectItem value="battery_replacement">Battery Replacement</SelectItem>
+                  <SelectItem value="assessment">Assessment</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex justify-between">
+              <Button variant="outline" size="sm" onClick={resetFilters}>
+                <X className="mr-1 h-4 w-4" />
+                Reset Filters
+              </Button>
+              <Button size="sm" onClick={() => setIsFilterOpen(false)}>Apply</Button>
+            </div>
+          </div>
+        </PopoverContent>
+      </Popover>
     </div>
   );
 }

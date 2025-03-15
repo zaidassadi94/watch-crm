@@ -47,6 +47,15 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setCustomerSearchTerm
   } = useSuggestions(user?.id);
 
+  // Initialize the form without handlers that could close the dialog
+  const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
+    sale, 
+    user?.id, 
+    () => {}, // We'll handle this separately
+    () => {}  // We'll handle this separately
+  );
+
+  // Safe handlers that won't close the dialog prematurely
   const handleSaved = () => {
     console.log('Sale saved, calling onSaved callback');
     onSaved();
@@ -55,12 +64,12 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       console.log('Closing dialog after save');
       setLocalOpen(false);
       onOpenChange(false);
-    }, 100);
+    }, 300); // Increased timeout to be safer
   };
 
   const handleCancel = () => {
     console.log('Cancelling, setting localOpen to false');
-    if (!isFormSubmitting) {
+    if (!isFormSubmitting && !isSubmitting) {
       setLocalOpen(false);
       onOpenChange(false);
     }
@@ -70,26 +79,39 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const handleFormSubmit = async (data: any) => {
     console.log('Form submitted, setting isFormSubmitting to true');
     setIsFormSubmitting(true);
+    
     try {
-      await onSubmit(data);
+      console.log('Calling onSubmit with data:', data);
+      await formSubmit(data);
       console.log('Form submission completed successfully');
+      handleSaved();
+    } catch (error) {
+      console.error('Error submitting form:', error);
     } finally {
       console.log('Form submission complete, setting isFormSubmitting to false');
       setIsFormSubmitting(false);
     }
   };
 
-  const { form, isSubmitting, onSubmit } = useSaleForm(
-    sale, 
-    user?.id, 
-    handleSaved,
-    handleCancel
-  );
-
   // Update product search terms when form is loaded
   useEffect(() => {
     if (open) {
       console.log('Dialog open, initializing product search terms');
+      
+      // Special case: if the dialog is open but there is no sale to edit,
+      // We need to initialize the form with initial values
+      if (!sale) {
+        form.reset({
+          customer_name: '',
+          customer_email: '',
+          customer_phone: '',
+          payment_method: 'cash',
+          status: 'completed',
+          notes: '',
+          items: [{ product_name: '', quantity: 1, price: 0 }]
+        });
+      }
+      
       if (sale) {
         const fetchSaleItems = async () => {
           try {
@@ -111,7 +133,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         updateProductSearchTerms(['']);
       }
     }
-  }, [sale, updateProductSearchTerms, open]);
+  }, [sale, updateProductSearchTerms, open, form]);
 
   const selectProduct = (product: ProductSuggestion, index: number) => {
     form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name} (${product.sku})`);
