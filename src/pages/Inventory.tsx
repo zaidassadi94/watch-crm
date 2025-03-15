@@ -1,9 +1,7 @@
-
 import { useState, useEffect } from 'react';
 import { 
-  Search, Filter, Download, Package2, 
-  MoreHorizontal, Eye, Edit, Trash2,
-  PlusCircle, AlertTriangle
+  PlusCircle, Search, Filter, Package, Download, 
+  Trash2, Edit, MoreHorizontal, Eye, AlertTriangle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -20,118 +18,126 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
+// Define proper type for inventory items
+interface InventoryItem {
+  id: number;
+  name: string;
+  brand: string;
+  sku: string;
+  category: string;
+  stockLevel: number;
+  stockStatus: string;
+  price: number;
+  dateAdded: string;
+  imageUrl: string;
+}
+
 // Sample data
-const inventory = [
+const inventoryItems: InventoryItem[] = [
   {
     id: 1,
-    name: 'Chronograph Watch XS-200',
-    brand: 'Luxetime',
-    sku: 'LUX-CHR-001',
-    category: 'Chronograph',
-    stockLevel: 24,
+    name: 'Submariner Date',
+    brand: 'Rolex',
+    sku: 'ROL-SUB-001',
+    category: 'Dive Watches',
+    stockLevel: 5,
     stockStatus: 'In Stock',
-    price: 1250,
-    dateAdded: '2023-10-05',
+    price: 9500,
+    dateAdded: '2023-10-15',
     imageUrl: '',
   },
   {
     id: 2,
-    name: 'Diver Pro 300M',
-    brand: 'AquaTime',
-    sku: 'AQT-DIV-005',
-    category: 'Diver',
-    stockLevel: 8,
+    name: 'Speedmaster Moonwatch',
+    brand: 'Omega',
+    sku: 'OME-SPE-002',
+    category: 'Chronographs',
+    stockLevel: 2,
     stockStatus: 'Low Stock',
-    price: 2750,
+    price: 7200,
     dateAdded: '2023-09-20',
     imageUrl: '',
   },
   {
     id: 3,
-    name: 'Classic Automatic',
-    brand: 'Heritage',
-    sku: 'HER-CLA-012',
-    category: 'Dress',
+    name: 'Navitimer Automatic',
+    brand: 'Breitling',
+    sku: 'BRE-NAV-003',
+    category: 'Pilot Watches',
     stockLevel: 0,
     stockStatus: 'Out of Stock',
-    price: 3850,
-    dateAdded: '2023-08-15',
+    price: 8600,
+    dateAdded: '2023-08-01',
     imageUrl: '',
   },
   {
     id: 4,
-    name: 'Sport Digital G-100',
-    brand: 'ActiveTime',
-    sku: 'ACT-DIG-023',
-    category: 'Sport',
-    stockLevel: 35,
+    name: 'Royal Oak',
+    brand: 'Audemars Piguet',
+    sku: 'AUD-ROA-004',
+    category: 'Luxury Sports',
+    stockLevel: 3,
     stockStatus: 'In Stock',
-    price: 450,
-    dateAdded: '2023-11-01',
+    price: 24500,
+    dateAdded: '2023-07-18',
     imageUrl: '',
   },
   {
     id: 5,
-    name: 'Skeleton Mechanical',
-    brand: 'Artisan',
-    sku: 'ART-SKL-007',
-    category: 'Luxury',
-    stockLevel: 5,
+    name: 'Pasha de Cartier',
+    brand: 'Cartier',
+    sku: 'CAR-PAS-005',
+    category: 'Dress Watches',
+    stockLevel: 1,
     stockStatus: 'Low Stock',
-    price: 5250,
-    dateAdded: '2023-09-12',
+    price: 6800,
+    dateAdded: '2023-06-05',
     imageUrl: '',
   },
   {
     id: 6,
-    name: 'Pilot Chronometer',
-    brand: 'Skyline',
-    sku: 'SKY-PLT-019',
-    category: 'Pilot',
-    stockLevel: 12,
+    name: 'Big Pilot\'s Watch',
+    brand: 'IWC Schaffhausen',
+    sku: 'IWC-BIG-006',
+    category: 'Pilot Watches',
+    stockLevel: 4,
     stockStatus: 'In Stock',
-    price: 1850,
-    dateAdded: '2023-10-18',
+    price: 12300,
+    dateAdded: '2023-05-22',
     imageUrl: '',
   },
   {
     id: 7,
-    name: 'Tourbillon Excellence',
-    brand: 'Majestic',
-    sku: 'MAJ-TRB-003',
-    category: 'Luxury',
-    stockLevel: 2,
-    stockStatus: 'Low Stock',
-    price: 12500,
-    dateAdded: '2023-07-30',
+    name: 'Luminor Marina',
+    brand: 'Panerai',
+    sku: 'PAN-LUM-007',
+    category: 'Dive Watches',
+    stockLevel: 0,
+    stockStatus: 'Out of Stock',
+    price: 7900,
+    dateAdded: '2023-04-10',
     imageUrl: '',
   },
   {
     id: 8,
-    name: 'Field Watch Tactical',
-    brand: 'Ranger',
-    sku: 'RNG-FLD-031',
-    category: 'Field',
-    stockLevel: 18,
+    name: 'Oyster Perpetual',
+    brand: 'Rolex',
+    sku: 'ROL-OYS-008',
+    category: 'Everyday Watches',
+    stockLevel: 6,
     stockStatus: 'In Stock',
-    price: 850,
-    dateAdded: '2023-10-25',
+    price: 5900,
+    dateAdded: '2023-03-28',
     imageUrl: '',
   },
 ];
 
-const getStockStatusColor = (status: string) => {
-  switch (status) {
-    case 'In Stock':
-      return 'border-green-500 text-green-600 bg-green-50';
-    case 'Low Stock':
-      return 'border-orange-500 text-orange-600 bg-orange-50';
-    case 'Out of Stock':
-      return 'border-red-500 text-red-600 bg-red-50';
-    default:
-      return 'border-gray-300 text-gray-600 bg-gray-50';
-  }
-};
+// Define column type
+interface Column<T> {
+  header: string;
+  accessorKey?: keyof T;
+  cell?: (item: T) => React.ReactNode;
+}
 
 const Inventory = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -143,28 +149,28 @@ const Inventory = () => {
     }, 100);
   }, []);
 
-  const filteredInventory = inventory.filter(item => 
+  const filteredItems = inventoryItems.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const columns = [
+  const columns: Column<InventoryItem>[] = [
     {
       header: 'Product',
-      cell: (item: typeof inventory[0]) => (
+      cell: (item) => (
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-muted rounded-md flex items-center justify-center">
-            {item.imageUrl ? (
-              <img 
-                src={item.imageUrl} 
-                alt={item.name} 
-                className="w-full h-full object-cover rounded-md" 
-              />
-            ) : (
-              <Package2 className="h-5 w-5 text-muted-foreground" />
-            )}
-          </div>
+          {item.imageUrl ? (
+            <img 
+              src={item.imageUrl} 
+              alt={item.name} 
+              className="w-10 h-10 object-cover rounded border border-border"
+            />
+          ) : (
+            <div className="w-10 h-10 bg-muted rounded border border-border flex items-center justify-center">
+              <Package className="h-5 w-5 text-muted-foreground" />
+            </div>
+          )}
           <div>
             <p className="font-medium">{item.name}</p>
             <p className="text-xs text-muted-foreground">{item.brand}</p>
@@ -181,37 +187,42 @@ const Inventory = () => {
       accessorKey: 'category',
     },
     {
-      header: 'Price',
-      cell: (item: typeof inventory[0]) => (
-        <div className="font-medium">${item.price.toLocaleString()}</div>
-      ),
-    },
-    {
       header: 'Stock',
-      cell: (item: typeof inventory[0]) => (
+      cell: (item) => (
         <div className="flex items-center gap-2">
           <Badge 
             variant="outline"
-            className={cn(getStockStatusColor(item.stockStatus))}
+            className={cn(
+              "rounded-full flex gap-1 items-center",
+              item.stockStatus === 'In Stock' 
+                ? 'border-green-500 text-green-600 bg-green-50'
+                : item.stockStatus === 'Low Stock'
+                ? 'border-amber-500 text-amber-600 bg-amber-50'
+                : 'border-red-500 text-red-600 bg-red-50'
+            )}
           >
+            {item.stockStatus === 'Low Stock' && <AlertTriangle className="h-3 w-3" />}
             {item.stockStatus}
           </Badge>
-          <span className="text-sm">{item.stockLevel}</span>
-          {item.stockStatus === 'Low Stock' && (
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          )}
+          <span className="text-xs text-muted-foreground">{item.stockLevel} units</span>
         </div>
       ),
     },
     {
-      header: 'Added',
-      cell: (item: typeof inventory[0]) => (
+      header: 'Price',
+      cell: (item) => (
+        <div className="font-medium">${item.price.toLocaleString()}</div>
+      ),
+    },
+    {
+      header: 'Date Added',
+      cell: (item) => (
         <div>{new Date(item.dateAdded).toLocaleDateString()}</div>
       ),
     },
     {
       header: 'Actions',
-      cell: (item: typeof inventory[0]) => (
+      cell: (item) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -248,28 +259,12 @@ const Inventory = () => {
         <div>
           <h1 className="text-2xl font-bold mb-1">Inventory</h1>
           <p className="text-muted-foreground">
-            Manage your watch inventory and stock levels
+            Manage watch inventory and stock levels
           </p>
         </div>
         <Button className="w-full md:w-auto gap-2">
           <PlusCircle className="h-4 w-4" /> Add Product
         </Button>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        {[
-          { title: 'Total Products', value: '165', color: 'bg-blue-50 border-blue-200 text-blue-700' },
-          { title: 'Low Stock Items', value: '27', color: 'bg-orange-50 border-orange-200 text-orange-700' },
-          { title: 'Out of Stock', value: '15', color: 'bg-red-50 border-red-200 text-red-700' },
-        ].map((item, i) => (
-          <Card key={i} className={cn("border", item.color)}>
-            <CardContent className="p-4">
-              <p className="text-sm font-medium">{item.title}</p>
-              <p className="text-2xl font-bold mt-1">{item.value}</p>
-            </CardContent>
-          </Card>
-        ))}
       </div>
 
       <Card>
@@ -297,12 +292,12 @@ const Inventory = () => {
 
           <DataTable 
             columns={columns} 
-            data={filteredInventory}
+            data={filteredItems}
             onRowClick={(item) => console.log('Clicked on item:', item.name)}
             emptyState={
               <div className="flex flex-col items-center justify-center py-8">
                 <div className="bg-muted/30 rounded-full p-3 mb-3">
-                  <Package2 className="h-6 w-6 text-muted-foreground" />
+                  <Package className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <h3 className="text-lg font-medium mb-1">No products found</h3>
                 <p className="text-sm text-muted-foreground mb-4">

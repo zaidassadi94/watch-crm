@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { 
   PlusCircle, Search, Filter, UserPlus, Download, 
@@ -20,8 +19,19 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 
-// Sample data
-const customers = [
+interface Customer {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  type: string;
+  totalSpent: number;
+  lastPurchase: string;
+  status: string;
+  avatarUrl: string;
+}
+
+const customers: Customer[] = [
   {
     id: 1,
     name: 'Alex Johnson',
@@ -112,6 +122,12 @@ const customers = [
   },
 ];
 
+interface Column<T> {
+  header: string;
+  accessorKey?: keyof T;
+  cell?: (item: T) => React.ReactNode;
+}
+
 const Customers = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -127,10 +143,10 @@ const Customers = () => {
     customer.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const columns = [
+  const columns: Column<Customer>[] = [
     {
       header: 'Customer',
-      cell: (customer: typeof customers[0]) => (
+      cell: (customer) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 border border-border">
             <AvatarImage src={customer.avatarUrl} alt={customer.name} />
@@ -151,7 +167,7 @@ const Customers = () => {
     },
     {
       header: 'Type',
-      cell: (customer: typeof customers[0]) => (
+      cell: (customer) => (
         <Badge 
           variant={customer.type === 'VIP' ? 'default' : 'outline'}
           className={customer.type === 'VIP' ? 'bg-brand-500' : ''}
@@ -162,19 +178,19 @@ const Customers = () => {
     },
     {
       header: 'Total Spent',
-      cell: (customer: typeof customers[0]) => (
+      cell: (customer) => (
         <div className="font-medium">${customer.totalSpent.toLocaleString()}</div>
       ),
     },
     {
       header: 'Last Purchase',
-      cell: (customer: typeof customers[0]) => (
+      cell: (customer) => (
         <div>{new Date(customer.lastPurchase).toLocaleDateString()}</div>
       ),
     },
     {
       header: 'Status',
-      cell: (customer: typeof customers[0]) => (
+      cell: (customer) => (
         <Badge 
           variant="outline"
           className={cn(
@@ -189,7 +205,7 @@ const Customers = () => {
     },
     {
       header: 'Actions',
-      cell: (customer: typeof customers[0]) => (
+      cell: (customer) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
