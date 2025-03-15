@@ -17,6 +17,7 @@ export function SaleDialogActions({ isSubmitting, onCancel, isEditMode }: SaleDi
         variant="outline" 
         onClick={(e) => {
           e.preventDefault();
+          e.stopPropagation();
           if (!isSubmitting) {
             onCancel();
           }
@@ -25,7 +26,14 @@ export function SaleDialogActions({ isSubmitting, onCancel, isEditMode }: SaleDi
       >
         Cancel
       </Button>
-      <Button type="submit" disabled={isSubmitting}>
+      <Button 
+        type="submit" 
+        disabled={isSubmitting}
+        onClick={(e) => {
+          // Prevent event bubbling which can cause issues with dialog closing
+          e.stopPropagation();
+        }}
+      >
         {isSubmitting 
           ? 'Saving...' 
           : isEditMode 

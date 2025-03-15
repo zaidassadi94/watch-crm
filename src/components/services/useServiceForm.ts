@@ -104,6 +104,7 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
         });
       }
 
+      // Call the onSaved callback after the operation is complete
       onSaved();
     } catch (error: any) {
       toast({
@@ -116,18 +117,10 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
     }
   };
 
-  const handleCancel = () => {
-    // Only allow cancellation if not submitting
-    if (!isSubmitting) {
-      onCancel();
-    }
-  };
-
   return {
     form,
     isSubmitting,
     onSubmit,
-    handleCancel,
     isEditMode: !!service
   };
 }

@@ -1,5 +1,5 @@
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -27,6 +27,12 @@ interface ServiceDialogProps {
 
 export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceDialogProps) {
   const { user } = useAuth();
+  const [localOpen, setLocalOpen] = useState(false);
+  
+  useEffect(() => {
+    // Control local state based on props
+    setLocalOpen(open);
+  }, [open]);
   
   const { 
     customerSuggestions, 
@@ -35,49 +41,67 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     setSearchTerm 
   } = useCustomerSuggestions(user);
 
-  const handleDialogClose = () => {
-    // Safe dialog close - only if not submitting
-    if (!isSubmitting) {
-      onOpenChange(false);
-    }
+  const handleSaved = () => {
+    onSaved();
+    // Ensure safe dialog close
+    setLocalOpen(false);
+    onOpenChange(false);
+  };
+
+  const handleCancel = () => {
+    // Safe cancel handler
+    form.reset();
+    setLocalOpen(false);
+    onOpenChange(false);
   };
 
   const { 
     form, 
     isSubmitting, 
     onSubmit, 
-    handleCancel, 
     isEditMode 
   } = useServiceForm({
     service,
     user,
-    onSaved: () => {
-      onSaved();
-      onOpenChange(false);
-    },
-    onCancel: handleDialogClose
+    onSaved: handleSaved,
+    onCancel: handleCancel
   });
 
   // Reset form values when the dialog opens/closes or service changes
   useEffect(() => {
-    if (open) {
-      // Reset form with service data or empty values
+    if (open && service) {
+      // Reset form with service data
       form.reset({
-        customer_name: service?.customer_name || '',
-        customer_email: service?.customer_email || '',
-        customer_phone: service?.customer_phone || '',
-        watch_brand: service?.watch_brand || '',
-        watch_model: service?.watch_model || '',
-        serial_number: service?.serial_number || '',
-        service_type: service?.service_type || 'repair',
-        description: service?.description || '',
-        status: service?.status || 'pending',
-        estimated_completion: service?.estimated_completion 
+        customer_name: service.customer_name || '',
+        customer_email: service.customer_email || '',
+        customer_phone: service.customer_phone || '',
+        watch_brand: service.watch_brand || '',
+        watch_model: service.watch_model || '',
+        serial_number: service.serial_number || '',
+        service_type: service.service_type || 'repair',
+        description: service.description || '',
+        status: service.status || 'pending',
+        estimated_completion: service.estimated_completion 
           ? new Date(service.estimated_completion).toISOString().split('T')[0] 
           : '',
-        price: service?.price !== undefined && service?.price !== null 
+        price: service.price !== undefined && service.price !== null 
           ? Number(service.price) 
           : null,
+      });
+    } else if (open) {
+      // Reset to empty form
+      form.reset({
+        customer_name: '',
+        customer_email: '',
+        customer_phone: '',
+        watch_brand: '',
+        watch_model: '',
+        serial_number: '',
+        service_type: 'repair',
+        description: '',
+        status: 'pending',
+        estimated_completion: '',
+        price: null,
       });
     }
   }, [service, form, open]);
@@ -97,19 +121,21 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     setShowCustomerSuggestions(false);
   };
 
+  // Use controlled open state to prevent issues when dialog state changes
   return (
     <Dialog 
-      open={open} 
+      open={localOpen} 
       onOpenChange={(newOpen) => {
         if (!newOpen && !isSubmitting) {
           // Only allow closing if not submitting
-          handleDialogClose();
-        } else if (newOpen) {
+          handleCancel();
+        } else {
+          setLocalOpen(newOpen);
           onOpenChange(newOpen);
         }
       }}
     >
-      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>{service ? 'Edit Service Request' : 'Create New Service Request'}</DialogTitle>
           <DialogDescription>

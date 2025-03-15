@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   PlusCircle, Search, Filter, UserPlus, Download, 
@@ -18,6 +19,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { useToast } from '@/components/ui/use-toast';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
 
 interface Customer {
   id: number;
@@ -128,9 +135,34 @@ interface Column<T> {
   cell?: (item: T) => React.ReactNode;
 }
 
+// Customer form schema
+const customerFormSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address").optional().or(z.literal('')),
+  phone: z.string().optional().or(z.literal('')),
+  type: z.enum(["Regular", "VIP"]),
+  status: z.enum(["Active", "Inactive"]),
+});
+
+type CustomerFormValues = z.infer<typeof customerFormSchema>;
+
 const Customers = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const { toast } = useToast();
+
+  const form = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: {
+      name: '',
+      email: '',
+      phone: '',
+      type: 'Regular',
+      status: 'Active',
+    }
+  });
 
   useEffect(() => {
     setTimeout(() => {
@@ -138,10 +170,61 @@ const Customers = () => {
     }, 100);
   }, []);
 
+  // Update form when selected customer changes
+  useEffect(() => {
+    if (selectedCustomer) {
+      form.reset({
+        name: selectedCustomer.name,
+        email: selectedCustomer.email,
+        phone: selectedCustomer.phone,
+        type: selectedCustomer.type as 'Regular' | 'VIP',
+        status: selectedCustomer.status as 'Active' | 'Inactive',
+      });
+    } else {
+      form.reset({
+        name: '',
+        email: '',
+        phone: '',
+        type: 'Regular',
+        status: 'Active',
+      });
+    }
+  }, [selectedCustomer, form]);
+
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     customer.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const onSubmit = (data: CustomerFormValues) => {
+    // In a real app, this would save to a database
+    toast({
+      title: selectedCustomer ? "Customer Updated" : "Customer Added",
+      description: `${data.name} has been ${selectedCustomer ? 'updated' : 'added'} successfully.`,
+    });
+    
+    setIsSheetOpen(false);
+    setSelectedCustomer(null);
+    form.reset();
+  };
+
+  const handleAddCustomer = () => {
+    setSelectedCustomer(null);
+    setIsSheetOpen(true);
+  };
+
+  const handleEditCustomer = (customer: Customer) => {
+    setSelectedCustomer(customer);
+    setIsSheetOpen(true);
+  };
+
+  const handleDeleteCustomer = (id: number) => {
+    // In a real app, this would delete from a database
+    toast({
+      title: "Customer Deleted",
+      description: "Customer has been deleted successfully.",
+    });
+  };
 
   const columns: Column<Customer>[] = [
     {
@@ -215,14 +298,20 @@ const Customers = () => {
           <DropdownMenuContent align="end" className="w-[160px]">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={(e) => e.stopPropagation()}>
               <Eye className="mr-2 h-4 w-4" /> View Details
             </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={(e) => {
+              e.stopPropagation();
+              handleEditCustomer(customer);
+            }}>
               <Edit className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive">
+            <DropdownMenuItem className="cursor-pointer text-destructive" onClick={(e) => {
+              e.stopPropagation();
+              handleDeleteCustomer(customer.id);
+            }}>
               <Trash2 className="mr-2 h-4 w-4" /> Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -245,7 +334,7 @@ const Customers = () => {
             Manage customer profiles and track purchase history
           </p>
         </div>
-        <Button className="w-full md:w-auto gap-2">
+        <Button className="w-full md:w-auto gap-2" onClick={handleAddCustomer}>
           <UserPlus className="h-4 w-4" /> Add Customer
         </Button>
       </div>
@@ -289,7 +378,7 @@ const Customers = () => {
                     : "Get started by adding your first customer"}
                 </p>
                 {!searchTerm && (
-                  <Button size="sm" className="gap-1">
+                  <Button size="sm" className="gap-1" onClick={handleAddCustomer}>
                     <PlusCircle className="h-4 w-4" /> Add Customer
                   </Button>
                 )}
@@ -298,6 +387,126 @@ const Customers = () => {
           />
         </CardContent>
       </Card>
+
+      {/* Customer Add/Edit Sheet */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
+          <SheetHeader>
+            <SheetTitle>{selectedCustomer ? 'Edit Customer' : 'Add New Customer'}</SheetTitle>
+          </SheetHeader>
+          
+          <div className="py-6">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Customer name" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Email</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Email address" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Phone number" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="type"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer Type</FormLabel>
+                      <FormControl>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select type" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Regular">Regular</SelectItem>
+                            <SelectItem value="VIP">VIP</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="status"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <Select 
+                          onValueChange={field.onChange} 
+                          defaultValue={field.value}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Active">Active</SelectItem>
+                            <SelectItem value="Inactive">Inactive</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <div className="flex justify-end space-x-4 pt-4">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setIsSheetOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit">
+                    {selectedCustomer ? 'Update Customer' : 'Add Customer'}
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };

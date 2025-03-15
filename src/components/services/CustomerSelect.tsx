@@ -22,6 +22,12 @@ export function CustomerSelect({
   setSearchTerm,
   selectCustomer
 }: CustomerSelectProps) {
+  const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    form.setValue('customer_name', value);
+    setSearchTerm(value);
+  };
+  
   // Component to handle customer selection
   return (
     <CustomerInfoSection 
@@ -31,6 +37,7 @@ export function CustomerSelect({
       setShowCustomerSuggestions={setShowCustomerSuggestions}
       setSearchTerm={setSearchTerm}
       selectCustomer={selectCustomer}
+      handleCustomerChange={handleCustomerChange}
     />
   );
 }

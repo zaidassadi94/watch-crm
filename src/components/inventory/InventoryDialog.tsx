@@ -1,4 +1,5 @@
-import { useState } from 'react';
+
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -51,22 +52,59 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [localOpen, setLocalOpen] = useState(false);
+  
+  useEffect(() => {
+    // Control local state based on props
+    setLocalOpen(open);
+  }, [open]);
 
-  // Initialize form with default values or item data if editing
+  // Initialize form with default values
   const form = useForm<InventoryFormValues>({
     resolver: zodResolver(inventoryFormSchema),
     defaultValues: {
-      name: item?.name || '',
-      brand: item?.brand || '',
-      sku: item?.sku || '',
-      category: item?.category || '',
-      stock_level: item?.stock_level || 0,
-      stock_status: item?.stock_status || 'in_stock',
-      price: item?.price || 0,
-      description: item?.description || '',
-      image_url: item?.image_url || '',
+      name: '',
+      brand: '',
+      sku: '',
+      category: '',
+      stock_level: 0,
+      stock_status: 'in_stock',
+      price: 0,
+      description: '',
+      image_url: '',
     }
   });
+
+  // Update form when item changes or dialog opens
+  useEffect(() => {
+    if (open && item) {
+      // Populate the form with item data
+      form.reset({
+        name: item.name || '',
+        brand: item.brand || '',
+        sku: item.sku || '',
+        category: item.category || '',
+        stock_level: item.stock_level || 0,
+        stock_status: item.stock_status || 'in_stock',
+        price: item.price || 0,
+        description: item.description || '',
+        image_url: item.image_url || '',
+      });
+    } else if (open) {
+      // Reset form to default values when creating a new item
+      form.reset({
+        name: '',
+        brand: '',
+        sku: '',
+        category: '',
+        stock_level: 0,
+        stock_status: 'in_stock',
+        price: 0,
+        description: '',
+        image_url: '',
+      });
+    }
+  }, [form, item, open]);
 
   const onSubmit = async (data: InventoryFormValues) => {
     if (!user) {
@@ -135,6 +173,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
       }
 
       // Close dialog and refresh inventory list
+      setLocalOpen(false);
       onOpenChange(false);
       onSaved();
     } catch (error: any) {
@@ -148,6 +187,13 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
     }
   };
 
+  const handleCancel = () => {
+    // Safe cancel handler
+    form.reset();
+    setLocalOpen(false);
+    onOpenChange(false);
+  };
+
   const getStockStatusText = (status: string) => {
     switch (status) {
       case 'in_stock': return 'In Stock';
@@ -158,8 +204,18 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+    <Dialog 
+      open={localOpen} 
+      onOpenChange={(newOpen) => {
+        if (!newOpen && !isSubmitting) {
+          handleCancel();
+        } else {
+          setLocalOpen(newOpen);
+          onOpenChange(newOpen);
+        }
+      }}
+    >
+      <DialogContent className="max-w-2xl" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>{item ? 'Edit Product' : 'Add New Product'}</DialogTitle>
         </DialogHeader>
@@ -342,11 +398,20 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
               <Button 
                 type="button" 
                 variant="outline" 
-                onClick={() => onOpenChange(false)}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleCancel();
+                }}
+                disabled={isSubmitting}
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting}
+                onClick={(e) => e.stopPropagation()}
+              >
                 {isSubmitting ? 'Saving...' : item ? 'Update Product' : 'Add Product'}
               </Button>
             </DialogFooter>

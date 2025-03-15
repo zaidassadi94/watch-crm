@@ -22,6 +22,12 @@ interface SaleDialogProps {
 
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { user } = useAuth();
+  const [localOpen, setLocalOpen] = useState(false);
+  
+  useEffect(() => {
+    // Control local state based on props
+    setLocalOpen(open);
+  }, [open]);
   
   const {
     productSuggestions,
@@ -36,18 +42,25 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setCustomerSearchTerm
   } = useSuggestions(user?.id);
 
+  const handleSaved = () => {
+    onSaved();
+    // Ensure safe dialog close
+    setLocalOpen(false);
+    onOpenChange(false);
+  };
+
+  const handleCancel = () => {
+    // Safe cancel handler
+    form.reset();
+    setLocalOpen(false);
+    onOpenChange(false);
+  };
+
   const { form, isSubmitting, onSubmit } = useSaleForm(
     sale, 
     user?.id, 
-    () => {
-      onSaved();
-      onOpenChange(false);
-    },
-    () => {
-      // Ensure proper cleanup on cancel
-      form.reset(); 
-      onOpenChange(false);
-    }
+    handleSaved,
+    handleCancel
   );
 
   useEffect(() => {
@@ -89,25 +102,21 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
-  const handleCancel = () => {
-    // Explicit cancel handler to ensure dialog closes properly
-    form.reset();
-    onOpenChange(false);
-  };
-
+  // Use controlled open state to prevent issues when dialog state changes
   return (
     <Dialog 
-      open={open} 
+      open={localOpen} 
       onOpenChange={(newOpen) => {
-        // Handle dialog close via the X button or clicking outside
+        // If trying to close and not submitting, handle clean close
         if (!newOpen && !isSubmitting) {
           handleCancel();
         } else {
+          setLocalOpen(newOpen);
           onOpenChange(newOpen);
         }
       }}
     >
-      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <DialogHeader>
           <DialogTitle>{sale ? 'Edit Sale' : 'Create New Sale'}</DialogTitle>
           <DialogDescription>
