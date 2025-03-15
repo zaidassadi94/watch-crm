@@ -22,6 +22,7 @@ export function SaleNotesField({ form }: SaleNotesFieldProps) {
               placeholder="Add any additional notes or details" 
               className="min-h-24" 
               {...field} 
+              value={field.value || ''}
             />
           </FormControl>
           <FormMessage />

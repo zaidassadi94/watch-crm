@@ -104,7 +104,7 @@ export function useCustomerSuggestions(user: User | null) {
     };
     
     loadCustomerSuggestions();
-  }, [searchTerm, user, showCustomerSuggestions]); // Added showCustomerSuggestions to dependency array
+  }, [searchTerm, user, showCustomerSuggestions]);
 
   return {
     customerSuggestions,

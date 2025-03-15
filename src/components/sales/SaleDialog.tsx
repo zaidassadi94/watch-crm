@@ -43,7 +43,10 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       onOpenChange(false);
       onSaved();
     },
-    () => onOpenChange(false)
+    () => {
+      // Ensure clean close on cancel
+      onOpenChange(false);
+    }
   );
 
   useEffect(() => {
@@ -83,8 +86,23 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
+  const handleCancel = () => {
+    // Explicit cancel handler to ensure dialog closes properly
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(newOpen) => {
+        // Handle dialog close via the X button or clicking outside
+        if (!newOpen) {
+          handleCancel();
+        } else {
+          onOpenChange(true);
+        }
+      }}
+    >
       <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{sale ? 'Edit Sale' : 'Create New Sale'}</DialogTitle>
@@ -114,7 +132,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             
             <SaleDialogActions 
               isSubmitting={isSubmitting} 
-              onCancel={() => onOpenChange(false)}
+              onCancel={handleCancel}
               isEditMode={!!sale}
             />
           </form>

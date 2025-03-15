@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -7,10 +7,8 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ServiceRequest } from '@/pages/Services';
@@ -20,6 +18,7 @@ import { ServiceFormValues, serviceFormSchema } from './serviceFormSchema';
 import { CustomerInfoSection } from './CustomerInfoSection';
 import { WatchDetailsSection } from './WatchDetailsSection';
 import { ServiceDetailsSection } from './ServiceDetailsSection';
+import { SaleDialogActions } from '../sales/SaleDialogActions';
 import { useCustomerSuggestions } from './useCustomerSuggestions';
 
 interface ServiceDialogProps {
@@ -44,21 +43,56 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: {
-      customer_name: service?.customer_name || '',
-      customer_email: service?.customer_email || '',
-      customer_phone: service?.customer_phone || '',
-      watch_brand: service?.watch_brand || '',
-      watch_model: service?.watch_model || '',
-      serial_number: service?.serial_number || '',
-      service_type: service?.service_type || 'repair',
-      description: service?.description || '',
-      status: service?.status || 'pending',
-      estimated_completion: service?.estimated_completion 
-        ? new Date(service.estimated_completion).toISOString().split('T')[0] 
-        : '',
-      price: service?.price !== undefined && service?.price !== null ? Number(service.price) : null,
+      customer_name: '',
+      customer_email: '',
+      customer_phone: '',
+      watch_brand: '',
+      watch_model: '',
+      serial_number: '',
+      service_type: 'repair',
+      description: '',
+      status: 'pending',
+      estimated_completion: '',
+      price: null,
     }
   });
+
+  // Reset form values when the service prop changes
+  useEffect(() => {
+    if (service) {
+      form.reset({
+        customer_name: service.customer_name || '',
+        customer_email: service.customer_email || '',
+        customer_phone: service.customer_phone || '',
+        watch_brand: service.watch_brand || '',
+        watch_model: service.watch_model || '',
+        serial_number: service.serial_number || '',
+        service_type: service.service_type || 'repair',
+        description: service.description || '',
+        status: service.status || 'pending',
+        estimated_completion: service.estimated_completion 
+          ? new Date(service.estimated_completion).toISOString().split('T')[0] 
+          : '',
+        price: service.price !== undefined && service.price !== null 
+          ? Number(service.price) 
+          : null,
+      });
+    } else {
+      form.reset({
+        customer_name: '',
+        customer_email: '',
+        customer_phone: '',
+        watch_brand: '',
+        watch_model: '',
+        serial_number: '',
+        service_type: 'repair',
+        description: '',
+        status: 'pending',
+        estimated_completion: '',
+        price: null,
+      });
+    }
+  }, [service, form]);
 
   const selectCustomer = (customer: CustomerSuggestion) => {
     form.setValue('customer_name', customer.name);
@@ -152,6 +186,11 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     }
   };
 
+  const handleCancel = () => {
+    // Ensure form is properly reset before closing
+    onOpenChange(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
@@ -174,23 +213,11 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
             
             <ServiceDetailsSection form={form} />
             
-            <DialogFooter className="flex flex-row justify-end gap-2 mt-6">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={() => onOpenChange(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={isSubmitting}>
-                {isSubmitting 
-                  ? 'Saving...' 
-                  : service 
-                    ? 'Update Service'
-                    : 'Create Service'
-                }
-              </Button>
-            </DialogFooter>
+            <SaleDialogActions 
+              isSubmitting={isSubmitting} 
+              onCancel={handleCancel}
+              isEditMode={!!service}
+            />
           </form>
         </Form>
       </DialogContent>
