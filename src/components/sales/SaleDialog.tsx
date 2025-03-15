@@ -21,8 +21,10 @@ interface SaleDialogProps {
 
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { user } = useAuth();
-  const [localOpen, setLocalOpen] = useState(false);
+  // Manage local open state to prevent unwanted closures
+  const [localOpen, setLocalOpen] = useState(open);
   
+  // Sync local state with prop
   useEffect(() => {
     setLocalOpen(open);
   }, [open]);
@@ -88,6 +90,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name} (${product.sku})`);
     form.setValue(`items.${index}.price`, product.price);
     form.setValue(`items.${index}.cost_price`, product.cost_price || 0);
+    form.setValue(`items.${index}.inventory_id`, product.id);
     setShowProductSuggestions(null);
   };
 
@@ -98,19 +101,26 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
+  // Prevent dialog from closing when clicking inside it
+  const handleDialogContentClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <Dialog 
       open={localOpen} 
       onOpenChange={(newOpen) => {
-        if (!newOpen && !isSubmitting) {
-          handleCancel();
-        } else {
+        // Only allow dialog to close when not submitting
+        if (!isSubmitting) {
           setLocalOpen(newOpen);
           onOpenChange(newOpen);
         }
       }}
     >
-      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <DialogContent 
+        className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto" 
+        onClick={handleDialogContentClick}
+      >
         <DialogHeader>
           <DialogTitle>{sale ? 'Edit Sale' : 'Create New Sale'}</DialogTitle>
           <DialogDescription>

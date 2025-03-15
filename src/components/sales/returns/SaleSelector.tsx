@@ -32,7 +32,8 @@ export function SaleSelector({ form }: SaleSelectorProps) {
                 <SelectValue placeholder="Select a sale to return" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">-- Select a sale --</SelectItem>
+                {/* Use a non-empty string for the default item value */}
+                <SelectItem value="_empty">-- Select a sale --</SelectItem>
                 {sales.map(sale => (
                   <SelectItem key={sale.id} value={sale.id}>
                     {sale.customer_name} - {sale.invoice_number || 'No invoice'} - {new Date(sale.created_at).toLocaleDateString()}

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { DataTable, Column } from '@/components/ui-custom/DataTable';
+import { DataTable } from '@/components/ui-custom/DataTable';
 import { cn } from '@/lib/utils';
 import { useSalesData } from '@/hooks/useSalesData';
 import { useSalesDialogs } from '@/hooks/useSalesDialogs';
@@ -8,7 +8,6 @@ import { SaleDialog } from '@/components/sales/SaleDialog';
 import { SaleActions } from '@/components/sales/SaleActions';
 import { SaleSearch } from '@/components/sales/SaleSearch';
 import { SaleEmptyState } from '@/components/sales/SaleEmptyState';
-import { getSaleTableColumns } from '@/components/sales/SaleTableColumns';
 import { InvoiceDialog } from '@/components/sales/InvoiceDialog';
 import { ReturnDialog } from '@/components/sales/returns/ReturnDialog';
 import { Sale } from '@/types/sales';
@@ -32,35 +31,36 @@ export function SalesContent() {
     handleReturn
   } = useSalesDialogs();
 
-  const columns: Column<Sale>[] = [
+  // Define correct column types for DataTable
+  const columns = [
     {
       header: 'Customer',
       accessorKey: 'customer_name',
     },
     {
       header: 'Invoice',
-      cell: (sale) => <div>{sale.invoice_number || '-'}</div>
+      cell: (item) => <div>{item.invoice_number || '-'}</div>
     },
     {
       header: 'Amount',
-      cell: (sale) => <div>${Number(sale.total_amount).toFixed(2)}</div>
+      cell: (item) => <div>${Number(item.total_amount).toFixed(2)}</div>
     },
     {
       header: 'Status',
-      cell: (sale) => <div className="capitalize">{sale.status}</div>
+      cell: (item) => <div className="capitalize">{item.status}</div>
     },
     {
       header: 'Date',
-      cell: (sale) => <div>{new Date(sale.created_at).toLocaleDateString()}</div>
+      cell: (item) => <div>{new Date(item.created_at).toLocaleDateString()}</div>
     },
     {
       header: 'Actions',
-      cell: (sale) => (
+      cell: (item) => (
         <div className="flex space-x-2">
           <button 
             onClick={(e) => { 
               e.stopPropagation(); 
-              handleEditSale(sale);
+              handleEditSale(item);
             }}
             className="text-blue-500 hover:text-blue-700"
           >
@@ -69,17 +69,17 @@ export function SalesContent() {
           <button 
             onClick={(e) => { 
               e.stopPropagation(); 
-              handleDelete(sale.id);
+              handleDelete(item.id);
             }}
             className="text-red-500 hover:text-red-700"
           >
             Delete
           </button>
-          {sale.status === 'completed' && (
+          {item.status === 'completed' && (
             <button 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                handleViewInvoice(sale);
+                handleViewInvoice(item);
               }}
               className="text-green-500 hover:text-green-700"
             >
@@ -138,7 +138,7 @@ export function SalesContent() {
 
       <ReturnDialog
         open={isReturnDialogOpen}
-        setOpen={setIsReturnDialogOpen}
+        onOpenChange={setIsReturnDialogOpen}
         onComplete={fetchSales}
       />
     </div>

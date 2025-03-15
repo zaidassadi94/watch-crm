@@ -8,7 +8,7 @@ import { SaleSelector } from './SaleSelector';
 import { ReturnItemsList } from './ReturnItemsList';
 import { ReturnReason } from './ReturnReason';
 import { Button } from '@/components/ui/button';
-import { Sale } from '@/types/sales'; // Fix import to use the types file
+import { Sale } from '@/types/sales';
 
 function ReturnDialogContent({ onClose }: { onClose: () => void }) {
   const { 
@@ -58,19 +58,25 @@ function ReturnDialogContent({ onClose }: { onClose: () => void }) {
 
 export function ReturnDialog({
   open,
-  setOpen,
+  onOpenChange,
   onComplete
 }: {
   open: boolean;
-  setOpen: (open: boolean) => void;
+  onOpenChange: (open: boolean) => void;
   onComplete: () => void;
 }) {
   const handleClose = () => {
-    setOpen(false);
+    onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={setOpen => {
+      // Only allow closing if user explicitly clicks close button
+      // This prevents issues with the dialog disappearing unexpectedly
+      if (!setOpen) {
+        onOpenChange(false);
+      }
+    }}>
       <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Process Return</DialogTitle>

@@ -1,6 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { getStockStatusBasedOnLevel } from '../hooks/calculations/getStockStatus';
+import { getStockStatusBasedOnLevel } from '../hooks/calculations';
 
 /**
  * Update inventory stock when a sale is completed or returned

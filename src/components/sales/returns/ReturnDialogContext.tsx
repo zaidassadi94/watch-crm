@@ -25,7 +25,7 @@ interface ReturnDialogContextProps {
   form: ReturnFormReturn;
   selectedSale: Sale | null;
   selectedSaleItems: SaleItemWithInventory[];
-  sales: Sale[]; // Added sales property to the interface
+  sales: Sale[]; // Ensure this property is defined
   isSubmitting: boolean;
   fetchSales: () => Promise<void>;
   handleSaleChange: (saleId: string) => Promise<void>;
@@ -206,7 +206,7 @@ export function ReturnDialogProvider({
     form,
     selectedSale,
     selectedSaleItems,
-    sales, // Added sales to the context value
+    sales, // Make sure to include sales in context value
     isSubmitting,
     fetchSales,
     handleSaleChange,

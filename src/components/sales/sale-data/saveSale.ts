@@ -43,12 +43,7 @@ export async function saveSale(
     
     if (originalStatus !== 'completed' && data.status === 'completed') {
       try {
-        const { data: itemsData } = await supabase
-          .from('sale_items')
-          .select('*')
-          .eq('sale_id', existingSale.id);
-          
-        originalItems = itemsData || [];
+        originalItems = await loadSaleItems(existingSale.id);
       } catch (error) {
         console.error('Error fetching original sale items:', error);
       }

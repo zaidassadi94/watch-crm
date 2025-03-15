@@ -16,7 +16,7 @@ export interface SaleItemWithInventory {
 /**
  * Loads sale items for a given sale
  */
-export async function loadSaleItems(saleId: string) {
+export async function loadSaleItems(saleId: string): Promise<SaleItemWithInventory[]> {
   try {
     const { data, error } = await supabase
       .from('sale_items')
