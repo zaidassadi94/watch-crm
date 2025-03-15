@@ -1,38 +1,21 @@
 
 import { useState, useEffect } from 'react';
-import { useForm, useFieldArray } from 'react-hook-form';
+import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
-import { X, PlusCircle, Trash2, Search } from 'lucide-react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Form } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Sale } from '@/pages/Sales';
 import { useAuth } from '@/hooks/useAuth';
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { ProductSuggestion, CustomerSuggestion, SaleItem } from '@/types/inventory';
+import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
+import { saleFormSchema, SaleFormValues, calculateTotal } from './saleFormSchema';
+import { CustomerForm } from './CustomerForm';
+import { SaleItemForm } from './SaleItemForm';
+import { useSuggestions } from './useSuggestions';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 
 interface SaleDialogProps {
   open: boolean;
@@ -41,38 +24,23 @@ interface SaleDialogProps {
   onSaved: () => void;
 }
 
-const saleFormSchema = z.object({
-  customer_name: z.string().min(2, 'Customer name is required'),
-  customer_email: z.string().email('Invalid email').optional().or(z.literal('')),
-  customer_phone: z.string().optional(),
-  status: z.string(),
-  payment_method: z.string().optional(),
-  notes: z.string().optional(),
-  items: z.array(z.object({
-    product_name: z.string().min(1, 'Product name is required'),
-    quantity: z.number().min(1, 'Quantity must be at least 1'),
-    price: z.number().min(0, 'Price must be 0 or higher'),
-  })).min(1, 'At least one item is required'),
-});
-
-type SaleFormValues = z.infer<typeof saleFormSchema>;
-
-interface SaleItemInternal {
-  product_name: string;
-  quantity: number;
-  price: number;
-}
-
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [productSuggestions, setProductSuggestions] = useState<ProductSuggestion[]>([]);
-  const [showProductSuggestions, setShowProductSuggestions] = useState<number | null>(null);
-  const [productSearchTerms, setProductSearchTerms] = useState<string[]>([]);
-  const [customerSuggestions, setCustomerSuggestions] = useState<CustomerSuggestion[]>([]);
-  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
-  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  
+  const {
+    productSuggestions,
+    showProductSuggestions,
+    setShowProductSuggestions,
+    productSearchTerms,
+    updateProductSearchTerms,
+    handleProductSearch,
+    customerSuggestions,
+    showCustomerSuggestions,
+    setCustomerSearchTerm,
+    setShowCustomerSuggestions
+  } = useSuggestions(user?.id);
 
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
@@ -87,11 +55,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         { product_name: '', quantity: 1, price: 0 }
       ],
     }
-  });
-
-  const { fields, append, remove } = useFieldArray({
-    control: form.control,
-    name: "items",
   });
 
   useEffect(() => {
@@ -119,7 +82,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             })) || []
           });
 
-          setProductSearchTerms(data?.map(() => "") || []);
+          updateProductSearchTerms(data?.map(() => "") || []);
         } catch (error: any) {
           toast({
             title: "Error loading sale details",
@@ -142,96 +105,9 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           { product_name: '', quantity: 1, price: 0 }
         ],
       });
-      setProductSearchTerms(['']);
+      updateProductSearchTerms(['']);
     }
-  }, [sale, form]);
-
-  useEffect(() => {
-    const index = showProductSuggestions;
-    if (index === null || !productSearchTerms[index] || productSearchTerms[index].length < 2) {
-      setProductSuggestions([]);
-      return;
-    }
-    
-    const loadProductSuggestions = async () => {
-      if (!user) return;
-      
-      try {
-        const searchTerm = productSearchTerms[index];
-        const { data, error } = await supabase
-          .from('inventory')
-          .select('*')
-          .eq('user_id', user.id)
-          .or(`name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`)
-          .order('name', { ascending: true });
-          
-        if (error) throw error;
-        
-        setProductSuggestions(data || []);
-      } catch (error) {
-        console.error("Error fetching product suggestions:", error);
-      }
-    };
-    
-    loadProductSuggestions();
-  }, [showProductSuggestions, productSearchTerms, user]);
-
-  useEffect(() => {
-    if (customerSearchTerm.length < 2) {
-      setCustomerSuggestions([]);
-      return;
-    }
-    
-    const loadCustomerSuggestions = async () => {
-      if (!user) return;
-      
-      try {
-        const { data: salesData, error: salesError } = await supabase
-          .from('sales')
-          .select('customer_name, customer_email, customer_phone')
-          .eq('user_id', user.id)
-          .or(`customer_name.ilike.%${customerSearchTerm}%,customer_phone.ilike.%${customerSearchTerm}%,customer_email.ilike.%${customerSearchTerm}%`)
-          .order('created_at', { ascending: false });
-          
-        if (salesError) throw salesError;
-        
-        const { data: serviceData, error: serviceError } = await supabase
-          .from('service_requests')
-          .select('customer_name, customer_email, customer_phone')
-          .eq('user_id', user.id)
-          .or(`customer_name.ilike.%${customerSearchTerm}%,customer_phone.ilike.%${customerSearchTerm}%,customer_email.ilike.%${customerSearchTerm}%`)
-          .order('created_at', { ascending: false });
-          
-        if (serviceError) throw serviceError;
-        
-        const combinedData = [...(salesData || []), ...(serviceData || [])];
-        const uniqueCustomers: CustomerSuggestion[] = [];
-        
-        combinedData.forEach(item => {
-          const exists = uniqueCustomers.some(c => 
-            c.name === item.customer_name && 
-            c.email === item.customer_email && 
-            c.phone === item.customer_phone
-          );
-          
-          if (!exists) {
-            uniqueCustomers.push({
-              name: item.customer_name,
-              email: item.customer_email,
-              phone: item.customer_phone
-            });
-          }
-        });
-        
-        setCustomerSuggestions(uniqueCustomers);
-        setShowCustomerSuggestions(uniqueCustomers.length > 0);
-      } catch (error) {
-        console.error("Error fetching customer suggestions:", error);
-      }
-    };
-    
-    loadCustomerSuggestions();
-  }, [customerSearchTerm, user]);
+  }, [sale, form, updateProductSearchTerms, toast]);
 
   const selectProduct = (product: ProductSuggestion, index: number) => {
     form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name} (${product.sku})`);
@@ -246,16 +122,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
-  const handleProductSearch = (value: string, index: number) => {
-    const newSearchTerms = [...productSearchTerms];
-    newSearchTerms[index] = value;
-    setProductSearchTerms(newSearchTerms);
-  };
-
-  const calculateTotal = (items: SaleItemInternal[]) => {
-    return items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  };
-
   const onSubmit = async (data: SaleFormValues) => {
     if (!user) {
       toast({
@@ -268,7 +134,11 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     
     try {
       setIsSubmitting(true);
-      const totalAmount = calculateTotal(data.items);
+      const totalAmount = calculateTotal(data.items.map(item => ({
+        product_name: item.product_name,
+        quantity: item.quantity,
+        price: item.price
+      })));
 
       if (sale) {
         const { error } = await supabase
@@ -363,14 +233,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     }
   };
 
-  const total = calculateTotal(
-    form.watch('items').map(item => ({
-      product_name: item.product_name || '',
-      quantity: Number(item.quantity) || 1,
-      price: Number(item.price) || 0
-    }))
-  );
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl">
@@ -380,265 +242,23 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="customer_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Customer Name *</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Enter customer name" 
-                        {...field} 
-                        onChange={(e) => {
-                          field.onChange(e);
-                          setCustomerSearchTerm(e.target.value);
-                        }}
-                      />
-                    </FormControl>
-                    {showCustomerSuggestions && customerSuggestions.length > 0 && (
-                      <div className="absolute z-50 bg-popover border rounded-md w-full mt-1 shadow-md">
-                        <div className="max-h-60 overflow-auto py-1">
-                          {customerSuggestions.map((customer, idx) => (
-                            <div
-                              key={idx}
-                              className="px-2 py-1.5 hover:bg-accent cursor-pointer"
-                              onClick={() => selectCustomer(customer)}
-                            >
-                              <div className="font-medium">{customer.name}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {customer.phone} {customer.email ? `• ${customer.email}` : ''}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="customer_email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="customer@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="customer_phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Phone</FormLabel>
-                    <FormControl>
-                      <Input placeholder="(123) 456-7890" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Status</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="cancelled">Cancelled</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="payment_method"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Payment Method</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select payment method" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="credit_card">Credit Card</SelectItem>
-                        <SelectItem value="cash">Cash</SelectItem>
-                        <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                        <SelectItem value="check">Check</SelectItem>
-                        <SelectItem value="upi">UPI</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <CustomerForm 
+              form={form}
+              customerSuggestions={customerSuggestions}
+              showCustomerSuggestions={showCustomerSuggestions}
+              setCustomerSearchTerm={setCustomerSearchTerm}
+              selectCustomer={selectCustomer}
+            />
             
-            <div>
-              <h3 className="text-sm font-medium mb-2">Items *</h3>
-              <div className="space-y-2">
-                {fields.map((field, index) => (
-                  <div key={field.id} className="flex items-end gap-2 relative">
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.product_name`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                            Product
-                          </FormLabel>
-                          <Popover
-                            open={showProductSuggestions === index}
-                            onOpenChange={(open) => setShowProductSuggestions(open ? index : null)}
-                          >
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <div className="relative">
-                                  <Input 
-                                    placeholder="Product name or SKU" 
-                                    {...field} 
-                                    onChange={(e) => {
-                                      field.onChange(e);
-                                      handleProductSearch(e.target.value, index);
-                                    }}
-                                  />
-                                  <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                                </div>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="p-0" align="start">
-                              {productSuggestions.length > 0 ? (
-                                <div className="max-h-60 overflow-auto">
-                                  {productSuggestions.map((product) => (
-                                    <div
-                                      key={product.id}
-                                      className="flex flex-col px-2 py-1.5 hover:bg-accent cursor-pointer"
-                                      onClick={() => selectProduct(product, index)}
-                                    >
-                                      <div className="font-medium">{product.brand} {product.name}</div>
-                                      <div className="flex justify-between text-xs text-muted-foreground">
-                                        <span>SKU: {product.sku}</span>
-                                        <span>₹{product.price.toLocaleString()}</span>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : (
-                                <div className="p-2 text-center text-sm text-muted-foreground">
-                                  No products found
-                                </div>
-                              )}
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.quantity`}
-                      render={({ field }) => (
-                        <FormItem className="w-20">
-                          <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                            Qty
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              min={1} 
-                              {...field}
-                              onChange={e => field.onChange(parseInt(e.target.value) || 1)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name={`items.${index}.price`}
-                      render={({ field }) => (
-                        <FormItem className="w-28">
-                          <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                            Price (₹)
-                          </FormLabel>
-                          <FormControl>
-                            <Input 
-                              type="number" 
-                              step="0.01" 
-                              min="0" 
-                              {...field}
-                              onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      className="mb-2"
-                      onClick={() => remove(index)}
-                      disabled={fields.length === 1}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
-              </div>
-              
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                className="mt-2"
-                onClick={() => {
-                  append({ product_name: '', quantity: 1, price: 0 });
-                  setProductSearchTerms([...productSearchTerms, '']);
-                }}
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Item
-              </Button>
-              
-              <div className="flex justify-end mt-2">
-                <div className="text-right">
-                  <span className="text-sm font-medium">Total: </span>
-                  <span className="text-lg font-bold">₹{total.toFixed(2)}</span>
-                </div>
-              </div>
-            </div>
+            <SaleItemForm 
+              form={form}
+              productSuggestions={productSuggestions}
+              showProductSuggestions={showProductSuggestions}
+              setShowProductSuggestions={setShowProductSuggestions}
+              productSearchTerms={productSearchTerms}
+              handleProductSearch={handleProductSearch}
+              selectProduct={selectProduct}
+            />
             
             <FormField
               control={form.control}
