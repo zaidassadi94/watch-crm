@@ -21,19 +21,27 @@ export function useSuggestions(userId: string | undefined) {
     newSearchTerms[index] = term;
     setProductSearchTerms(newSearchTerms);
     
-    if (!userId || term.length < 2) {
+    if (!userId) {
       setProductSuggestions([]);
       return;
     }
     
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('inventory')
         .select('id, name, brand, sku, price, cost_price, stock_level, stock_status, category')
         .eq('user_id', userId)
-        .or(`name.ilike.%${term}%,sku.ilike.%${term}%,brand.ilike.%${term}%`)
-        .order('name')
-        .limit(10);
+        .order('name');
+        
+      // If search term provided, filter results
+      if (term && term.length >= 2) {
+        query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%,brand.ilike.%${term}%`);
+      }
+      
+      // Limit results for better performance
+      query = query.limit(50);
+        
+      const { data, error } = await query;
         
       if (error) throw error;
       

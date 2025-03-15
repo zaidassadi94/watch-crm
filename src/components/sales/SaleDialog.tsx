@@ -32,13 +32,13 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     onOpenChange(false);
   };
   
-  // Handle successful save - defining this before using it
+  // Handle successful save
   const handleSaved = () => {
     onSaved();
     onOpenChange(false);
   };
   
-  // Initialize form with error handling - now handleSaved is defined before it's used
+  // Initialize form with error handling
   const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
     sale, 
     user?.id, 
@@ -46,7 +46,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     handleCancel
   );
   
-  // Set up suggestions
+  // Set up suggestions with proper initialization
   const {
     productSuggestions,
     showProductSuggestions,
@@ -83,7 +83,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   // Initialize form data when sale changes
   useEffect(() => {
     if (!sale) {
-      // Initialize new sale form
+      // Initialize new sale form with empty values (not null)
       form.reset({
         customer_name: '',
         customer_email: '',
@@ -105,17 +105,51 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             
           if (error) throw error;
             
-          if (data) {
+          if (data && data.length > 0) {
+            form.reset({
+              customer_name: sale.customer_name || '',
+              customer_email: sale.customer_email || '',
+              customer_phone: sale.customer_phone || '',
+              status: sale.status,
+              payment_method: sale.payment_method || '',
+              notes: sale.notes || '',
+              invoice_number: sale.invoice_number || '',
+              items: data.map(item => ({
+                product_name: item.product_name || '',
+                quantity: item.quantity || 1,
+                price: Number(item.price) || 0,
+                cost_price: Number(item.cost_price) || 0,
+                inventory_id: item.inventory_id || undefined
+              }))
+            });
             updateProductSearchTerms(Array(data.length).fill(""));
+          } else {
+            // If no items found, initialize with one empty item
+            form.reset({
+              customer_name: sale.customer_name || '',
+              customer_email: sale.customer_email || '',
+              customer_phone: sale.customer_phone || '',
+              status: sale.status,
+              payment_method: sale.payment_method || '',
+              notes: sale.notes || '',
+              invoice_number: sale.invoice_number || '',
+              items: [{ product_name: '', quantity: 1, price: 0, cost_price: 0 }]
+            });
+            updateProductSearchTerms(['']);
           }
         } catch (error) {
           console.error("Error fetching sale items:", error);
+          toast({
+            title: "Error loading sale details",
+            description: "Could not load sale items. Please try again.",
+            variant: "destructive",
+          });
         }
       };
       
       fetchSaleItems();
     }
-  }, [sale, updateProductSearchTerms, form]);
+  }, [sale, updateProductSearchTerms, form, toast]);
 
   // Product selection handler
   const selectProduct = (product: ProductSuggestion, index: number) => {

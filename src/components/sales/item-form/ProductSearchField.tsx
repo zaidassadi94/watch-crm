@@ -1,13 +1,15 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { UseFormReturn } from 'react-hook-form';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Search } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Search, ChevronDown } from 'lucide-react';
 import { ProductSuggestion } from '@/types/inventory';
 import { SaleFormValues } from '../saleFormSchema';
 import { useSettings } from '@/hooks/useSettings';
+import { useInventoryData } from '@/hooks/useInventoryData';
 
 interface ProductSearchFieldProps {
   form: UseFormReturn<SaleFormValues>;
@@ -33,6 +35,15 @@ export function ProductSearchField({
   productSearchTerms
 }: ProductSearchFieldProps) {
   const { currencySymbol } = useSettings();
+  const { inventory } = useInventoryData();
+
+  // Load all inventory items when dropdown is opened
+  useEffect(() => {
+    if (showProductSuggestions === index && productSearchTerms[index] === '') {
+      // Show all products when dropdown is opened with empty search
+      handleProductSearch('', index);
+    }
+  }, [showProductSuggestions, index, handleProductSearch, productSearchTerms]);
 
   return (
     <FormField
@@ -48,35 +59,49 @@ export function ProductSearchField({
               open={showProductSuggestions === index}
               onOpenChange={(open) => {
                 setShowProductSuggestions(open ? index : null);
-                // If opening, trigger search with current value
-                if (open && field.value) {
-                  handleProductSearch(field.value, index);
+                // If opening, show all products
+                if (open) {
+                  handleProductSearch('', index);
                 }
               }}
             >
               <PopoverTrigger asChild>
-                <FormControl>
-                  <div className="relative w-full">
+                <div className="relative flex w-full">
+                  <FormControl>
                     <Input 
-                      placeholder="Search product name or SKU" 
+                      placeholder="Select a product" 
                       {...field} 
-                      className="pr-8"
+                      className="pr-16 flex-grow"
                       onChange={(e) => {
                         field.onChange(e);
                         handleProductSearch(e.target.value, index);
                       }}
                       onClick={() => {
-                        if (field.value) {
-                          handleProductSearch(field.value, index);
-                        }
                         setShowProductSuggestions(index);
                       }}
                     />
-                    <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                  </div>
-                </FormControl>
+                  </FormControl>
+                  <Button 
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-0 top-0 h-full"
+                    onClick={() => setShowProductSuggestions(index)}
+                  >
+                    <ChevronDown className="h-4 w-4" />
+                  </Button>
+                </div>
               </PopoverTrigger>
-              <PopoverContent className="p-0 w-[300px]" align="start">
+              <PopoverContent className="p-0 w-[320px]" align="start">
+                <div className="p-2">
+                  <Input
+                    placeholder="Search product name or SKU"
+                    value={productSearchTerms[index] || ''}
+                    onChange={(e) => handleProductSearch(e.target.value, index)}
+                    className="mb-2"
+                  />
+                </div>
+                
                 {productSuggestions.length > 0 ? (
                   <div className="max-h-60 overflow-auto">
                     {productSuggestions.map((product) => (
@@ -115,7 +140,7 @@ export function ProductSearchField({
                   <div className="p-2 text-center text-sm text-muted-foreground">
                     {productSearchTerms[index]?.length > 0 
                       ? 'No products found' 
-                      : 'Type to search products'}
+                      : 'Loading products...'}
                   </div>
                 )}
               </PopoverContent>

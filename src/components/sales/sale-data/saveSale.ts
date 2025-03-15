@@ -19,6 +19,13 @@ export async function saveSale(
     throw new Error('User ID is required to save a sale');
   }
   
+  console.log("Saving sale:", { 
+    isUpdate: !!existingSale,
+    userId,
+    itemsCount: data.items.length,
+    status: data.status
+  });
+  
   const saleItems: SaleItemInternal[] = data.items.map(item => ({
     product_name: item.product_name,
     quantity: item.quantity,
@@ -38,15 +45,17 @@ export async function saveSale(
 
   // Update existing sale
   if (existingSale) {
+    console.log("Updating existing sale:", existingSale.id);
+    
+    // Load original items and status before updating
     let originalItems: SaleItemWithInventory[] = [];
     let originalStatus = existingSale.status;
     
-    if (originalStatus !== 'completed' && data.status === 'completed') {
-      try {
-        originalItems = await loadSaleItems(existingSale.id);
-      } catch (error) {
-        console.error('Error fetching original sale items:', error);
-      }
+    try {
+      originalItems = await loadSaleItems(existingSale.id);
+      console.log("Original items:", originalItems);
+    } catch (error) {
+      console.error('Error fetching original sale items:', error);
     }
     
     const { error } = await supabase
@@ -65,7 +74,10 @@ export async function saveSale(
       })
       .eq('id', existingSale.id);
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error updating sale:", error);
+      throw error;
+    }
 
     // Delete existing items
     const { error: deleteError } = await supabase
@@ -73,7 +85,10 @@ export async function saveSale(
       .delete()
       .eq('sale_id', existingSale.id);
 
-    if (deleteError) throw deleteError;
+    if (deleteError) {
+      console.error("Error deleting sale items:", deleteError);
+      throw deleteError;
+    }
 
     // Insert new items
     const { error: itemsError } = await supabase
@@ -90,12 +105,18 @@ export async function saveSale(
         }))
       );
 
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      console.error("Error inserting sale items:", itemsError);
+      throw itemsError;
+    }
     
-    // Update inventory if status changed to completed
+    // If status changed to completed, update inventory
     if (originalStatus !== 'completed' && data.status === 'completed') {
+      console.log("Sale status changed to completed, updating inventory");
+      
       for (const item of data.items) {
         if (item.inventory_id && item.product_name) {
+          console.log("Updating inventory for item:", item);
           await updateInventoryStock({
             product_name: item.product_name,
             quantity: item.quantity,
@@ -103,6 +124,8 @@ export async function saveSale(
             cost_price: item.cost_price || 0,
             inventory_id: item.inventory_id
           }, true);
+        } else {
+          console.log("Skipping inventory update for item without inventory_id:", item);
         }
       }
     }
@@ -110,6 +133,8 @@ export async function saveSale(
     return existingSale.id;
   } else {
     // Create new sale
+    console.log("Creating new sale");
+    
     const { data: newSale, error } = await supabase
       .from('sales')
       .insert({
@@ -127,7 +152,12 @@ export async function saveSale(
       .select()
       .single();
 
-    if (error) throw error;
+    if (error) {
+      console.error("Error creating sale:", error);
+      throw error;
+    }
+
+    console.log("New sale created:", newSale);
 
     // Insert new items
     const { error: itemsError } = await supabase
@@ -144,12 +174,18 @@ export async function saveSale(
         }))
       );
 
-    if (itemsError) throw itemsError;
+    if (itemsError) {
+      console.error("Error inserting sale items:", itemsError);
+      throw itemsError;
+    }
     
     // Update inventory if new sale is completed
     if (data.status === 'completed') {
+      console.log("New sale is completed, updating inventory");
+      
       for (const item of data.items) {
         if (item.inventory_id && item.product_name) {
+          console.log("Updating inventory for item:", item);
           await updateInventoryStock({
             product_name: item.product_name,
             quantity: item.quantity,
@@ -157,6 +193,8 @@ export async function saveSale(
             cost_price: item.cost_price || 0,
             inventory_id: item.inventory_id
           }, true);
+        } else {
+          console.log("Skipping inventory update for item without inventory_id:", item);
         }
       }
     }

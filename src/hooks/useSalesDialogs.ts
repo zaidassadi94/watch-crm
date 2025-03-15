@@ -17,7 +17,7 @@ export function useSalesDialogs() {
   const safeSetIsDialogOpen = useCallback((open: boolean) => {
     setIsDialogOpen(open);
     
-    // Reset selected sale after dialog closes with a delay
+    // Reset selected sale after dialog closes with a delay to prevent UI freeze
     if (!open) {
       setTimeout(() => {
         setSelectedSale(null);
