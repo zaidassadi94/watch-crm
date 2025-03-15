@@ -20,7 +20,7 @@ const Customers = () => {
     isDialogOpen,
     setIsDialogOpen,
     selectedCustomer,
-    customers,
+    customers, // Using the customers property that's now properly exposed
     handleOpenDialog,
     handleCloseDialog,
     handleSaved

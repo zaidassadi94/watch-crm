@@ -46,12 +46,6 @@ export function useCustomerManagement() {
     handleCloseDialog();
   }, [refreshCustomers, handleCloseDialog]);
 
-  // Filter customers based on search term
-  const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
-
   return {
     isLoaded,
     isLoading,
@@ -60,7 +54,7 @@ export function useCustomerManagement() {
     isDialogOpen,
     setIsDialogOpen,
     selectedCustomer,
-    filteredCustomers,
+    customers, // Ensure we're returning the actual customers array
     handleOpenDialog,
     handleCloseDialog,
     handleSaved
