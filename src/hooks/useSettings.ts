@@ -2,19 +2,12 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-export interface UserSettings {
-  company_name: string;
-  currency: string;
-  language: string;
-  date_format: string;
-  enable_notifications: boolean;
-  enable_dark_mode: boolean;
-}
+import { UserSettings } from '@/types/inventory';
 
 export function useSettings() {
   const { user } = useAuth();
   const [settings, setSettings] = useState<UserSettings>({
+    user_id: '',
     company_name: 'Watch CRM',
     currency: 'INR',
     language: 'en',
@@ -45,12 +38,24 @@ export function useSettings() {
         
         if (data) {
           setSettings({
+            ...data,
             company_name: data.company_name || 'Watch CRM',
             currency: data.currency || 'INR',
             language: data.language || 'en',
             date_format: data.date_format || 'DD/MM/YYYY',
             enable_notifications: data.enable_notifications !== false,
             enable_dark_mode: data.enable_dark_mode || false,
+          });
+        } else {
+          // Set default settings if none found
+          setSettings({
+            user_id: user.id,
+            company_name: 'Watch CRM',
+            currency: 'INR',
+            language: 'en',
+            date_format: 'DD/MM/YYYY',
+            enable_notifications: true,
+            enable_dark_mode: false,
           });
         }
       } catch (error) {

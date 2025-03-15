@@ -28,7 +28,21 @@ export function useInventorySearch() {
           .limit(10);
 
         if (error) throw error;
-        setSuggestions(data as ProductSuggestion[]);
+        
+        // Cast the data to the correct type
+        const typedData: ProductSuggestion[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          brand: item.brand,
+          sku: item.sku,
+          price: item.price,
+          cost_price: item.cost_price || 0,
+          stock_level: item.stock_level,
+          stock_status: item.stock_status,
+          category: item.category
+        }));
+        
+        setSuggestions(typedData);
       } catch (error) {
         console.error('Error fetching inventory suggestions:', error);
         setSuggestions([]);

@@ -12,6 +12,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { UserSettings } from "@/types/inventory";
 
 const generalSettingsSchema = z.object({
   companyName: z.string().min(2, {
@@ -59,7 +60,7 @@ export function GeneralSettings() {
           .from('user_settings')
           .select('*')
           .eq('user_id', user.id)
-          .single();
+          .maybeSingle();
           
         if (error) {
           if (error.code !== 'PGRST116') { // No rows returned
@@ -150,7 +151,14 @@ export function GeneralSettings() {
       
       // Dispatch a custom event to notify other components about settings change
       window.dispatchEvent(new CustomEvent('settings-updated', { 
-        detail: data 
+        detail: {
+          company_name: data.companyName,
+          currency: data.currency,
+          language: data.language,
+          date_format: data.dateFormat,
+          enable_notifications: data.enableNotifications,
+          enable_dark_mode: data.enableDarkMode,
+        }
       }));
       
       toast({

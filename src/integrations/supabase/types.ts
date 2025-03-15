@@ -13,6 +13,7 @@ export type Database = {
         Row: {
           brand: string
           category: string
+          cost_price: number
           date_added: string
           description: string | null
           id: string
@@ -28,6 +29,7 @@ export type Database = {
         Insert: {
           brand: string
           category: string
+          cost_price?: number
           date_added?: string
           description?: string | null
           id?: string
@@ -43,6 +45,7 @@ export type Database = {
         Update: {
           brand?: string
           category?: string
+          cost_price?: number
           date_added?: string
           description?: string | null
           id?: string
@@ -89,6 +92,7 @@ export type Database = {
       }
       sale_items: {
         Row: {
+          cost_price: number | null
           created_at: string
           id: string
           price: number
@@ -98,6 +102,7 @@ export type Database = {
           subtotal: number
         }
         Insert: {
+          cost_price?: number | null
           created_at?: string
           id?: string
           price: number
@@ -107,6 +112,7 @@ export type Database = {
           subtotal: number
         }
         Update: {
+          cost_price?: number | null
           created_at?: string
           id?: string
           price?: number
@@ -136,6 +142,7 @@ export type Database = {
           payment_method: string | null
           status: string
           total_amount: number
+          total_profit: number | null
           updated_at: string
           user_id: string
         }
@@ -149,6 +156,7 @@ export type Database = {
           payment_method?: string | null
           status?: string
           total_amount: number
+          total_profit?: number | null
           updated_at?: string
           user_id: string
         }
@@ -162,6 +170,7 @@ export type Database = {
           payment_method?: string | null
           status?: string
           total_amount?: number
+          total_profit?: number | null
           updated_at?: string
           user_id?: string
         }
@@ -218,6 +227,45 @@ export type Database = {
           user_id?: string
           watch_brand?: string
           watch_model?: string | null
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          company_name: string
+          created_at: string
+          currency: string
+          date_format: string
+          enable_dark_mode: boolean
+          enable_notifications: boolean
+          id: string
+          language: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          company_name?: string
+          created_at?: string
+          currency?: string
+          date_format?: string
+          enable_dark_mode?: boolean
+          enable_notifications?: boolean
+          id?: string
+          language?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          company_name?: string
+          created_at?: string
+          currency?: string
+          date_format?: string
+          enable_dark_mode?: boolean
+          enable_notifications?: boolean
+          id?: string
+          language?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

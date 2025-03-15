@@ -153,6 +153,29 @@ export function SaleItemForm({
                 )}
               />
               
+              {/* Add cost_price field */}
+              <FormField
+                control={form.control}
+                name={`items.${index}.cost_price`}
+                render={({ field }) => (
+                  <FormItem className="w-full sm:w-28">
+                    <FormLabel className={index !== 0 ? "sr-only" : ""}>
+                      Cost ({currencySymbol})
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        min="0" 
+                        {...field}
+                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
               <Button
                 type="button"
                 variant="ghost"

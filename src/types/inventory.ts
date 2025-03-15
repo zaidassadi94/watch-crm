@@ -48,3 +48,17 @@ export interface CustomerSuggestion {
   phone: string | null;
   watches?: CustomerWatchDetails[];
 }
+
+// Add the user settings interface
+export interface UserSettings {
+  id?: string;
+  user_id: string;
+  company_name: string;
+  currency: string;
+  language: string;
+  date_format: string;
+  enable_notifications: boolean;
+  enable_dark_mode: boolean;
+  created_at?: string;
+  updated_at?: string;
+}

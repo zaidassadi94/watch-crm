@@ -56,7 +56,21 @@ const Sales = () => {
 
       if (error) throw error;
       
-      setSales(data || []);
+      // Ensure the data matches the Sale interface
+      const typedSales: Sale[] = data.map(sale => ({
+        id: sale.id,
+        customer_name: sale.customer_name,
+        customer_email: sale.customer_email,
+        customer_phone: sale.customer_phone,
+        total_amount: sale.total_amount,
+        total_profit: sale.total_profit || 0, // Ensure we have a value even if null
+        status: sale.status,
+        payment_method: sale.payment_method,
+        notes: sale.notes,
+        created_at: sale.created_at
+      }));
+      
+      setSales(typedSales);
     } catch (error: any) {
       toast({
         title: "Error fetching sales",
