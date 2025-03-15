@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from '@/components/ui/dialog';
+import { Form } from '@/components/ui/form';
 import { Sale } from '@/types/sales';
 import { useAuth } from '@/hooks/useAuth';
 import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
@@ -38,12 +39,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setCustomerSearchTerm
   } = useSuggestions(user?.id);
 
-  // Handle successful save
-  const handleSaved = () => {
-    onSaved();
-    onOpenChange(false);
-  };
-
   // Create safe cancel handler
   const handleCancel = () => {
     if (isFormSubmitting) return;
@@ -76,6 +71,12 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     } finally {
       setIsFormSubmitting(false);
     }
+  };
+
+  // Handle successful save
+  const handleSaved = () => {
+    onSaved();
+    onOpenChange(false);
   };
 
   // Initialize form data when sale changes
@@ -161,34 +162,36 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-          <CustomerForm 
-            form={form}
-            customerSuggestions={customerSuggestions}
-            showCustomerSuggestions={showCustomerSuggestions}
-            setCustomerSearchTerm={setCustomerSearchTerm}
-            selectCustomer={selectCustomer}
-          />
-          
-          <SaleItemForm
-            form={form}
-            productSuggestions={productSuggestions}
-            showProductSuggestions={showProductSuggestions}
-            setShowProductSuggestions={setShowProductSuggestions}
-            productSearchTerms={productSearchTerms}
-            handleProductSearch={handleProductSearch}
-            selectProduct={selectProduct}
-          />
-          
-          <SaleNotesField form={form} />
-          
-          <SaleDialogActions
-            form={form}
-            isSubmitting={isSubmitting || isFormSubmitting}
-            onCancel={handleCancel}
-            isEditMode={!!sale}
-          />
-        </form>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+            <CustomerForm 
+              form={form}
+              customerSuggestions={customerSuggestions}
+              showCustomerSuggestions={showCustomerSuggestions}
+              setCustomerSearchTerm={setCustomerSearchTerm}
+              selectCustomer={selectCustomer}
+            />
+            
+            <SaleItemForm
+              form={form}
+              productSuggestions={productSuggestions}
+              showProductSuggestions={showProductSuggestions}
+              setShowProductSuggestions={setShowProductSuggestions}
+              productSearchTerms={productSearchTerms}
+              handleProductSearch={handleProductSearch}
+              selectProduct={selectProduct}
+            />
+            
+            <SaleNotesField form={form} />
+            
+            <SaleDialogActions
+              form={form}
+              isSubmitting={isSubmitting || isFormSubmitting}
+              onCancel={handleCancel}
+              isEditMode={!!sale}
+            />
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

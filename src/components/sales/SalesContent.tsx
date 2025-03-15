@@ -14,7 +14,6 @@ import { Sale } from '@/types/sales';
 import { getSaleTableColumns } from '@/components/sales/SaleTableColumns';
 import { ColumnDef } from '@tanstack/react-table';
 import { Column } from '@/components/ui-custom/DataTable';
-import { ReactNode } from 'react';
 
 function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
   return columns.map(col => {
@@ -28,7 +27,7 @@ function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
     if ('accessorKey' in col && typeof col.accessorKey === 'string') {
       accessorKey = col.accessorKey;
     } else if ('id' in col) {
-      // Use id as fallback if accessorFn doesn't exist
+      // Use id as fallback
       accessorKey = String(col.id || '');
     }
     
@@ -95,6 +94,13 @@ export function SalesContent() {
     const matchesPaymentMethod = paymentMethod === '' || sale.payment_method === paymentMethod;
     
     return matchesSearch && matchesStatus && matchesPaymentMethod;
+  });
+
+  console.log("SalesContent rendering:", { 
+    salesCount: sales.length,
+    isDialogOpen,
+    selectedSale,
+    isReturnDialogOpen
   });
 
   return (

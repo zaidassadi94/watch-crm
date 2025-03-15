@@ -29,17 +29,13 @@ export function useSalesDialogs() {
   const handleEditSale = useCallback((sale: Sale) => {
     if (isLoading) return;
     setSelectedSale(sale);
-    setTimeout(() => {
-      safeSetIsDialogOpen(true);
-    }, 50);
+    safeSetIsDialogOpen(true);
   }, [safeSetIsDialogOpen, isLoading]);
 
   const handleCreateSale = useCallback(() => {
     if (isLoading) return;
     setSelectedSale(null);
-    setTimeout(() => {
-      safeSetIsDialogOpen(true);
-    }, 50);
+    safeSetIsDialogOpen(true);
   }, [safeSetIsDialogOpen, isLoading]);
 
   const handleViewInvoice = useCallback(async (sale: Sale) => {
@@ -57,11 +53,8 @@ export function useSalesDialogs() {
       if (error) throw error;
       
       setInvoiceSaleItems(data || []);
-      
-      setTimeout(() => {
-        setIsInvoiceDialogOpen(true);
-        setIsLoading(false);
-      }, 50);
+      setIsInvoiceDialogOpen(true);
+      setIsLoading(false);
     } catch (error: any) {
       setIsLoading(false);
       toast({
