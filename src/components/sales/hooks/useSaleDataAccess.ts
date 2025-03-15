@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Sale } from '@/pages/Sales';
 import { SaleFormValues, SaleItemInternal } from '../saleFormSchema';
-import { calculateSaleTotals, generateInvoiceNumber, updateInventoryStock } from './useSaleCalculations';
+import { calculateSaleTotals, generateInvoiceNumber } from './useSaleCalculations';
 import { useToast } from '@/components/ui/use-toast';
 
 export interface SaleItemWithInventory {
@@ -128,7 +128,15 @@ export async function saveSale(
     // Update inventory if status changed to completed
     if (existingSale.status !== 'completed' && data.status === 'completed') {
       for (const item of data.items) {
-        await updateInventoryStock(supabase, item, true);
+        if (item.inventory_id && item.product_name) {
+          await updateInventoryStock({
+            product_name: item.product_name,
+            quantity: item.quantity,
+            price: item.price,
+            cost_price: item.cost_price || 0,
+            inventory_id: item.inventory_id
+          }, true);
+        }
       }
     }
     
@@ -174,10 +182,67 @@ export async function saveSale(
     // Update inventory if new sale is completed
     if (data.status === 'completed') {
       for (const item of data.items) {
-        await updateInventoryStock(supabase, item, true);
+        if (item.inventory_id && item.product_name) {
+          await updateInventoryStock({
+            product_name: item.product_name,
+            quantity: item.quantity,
+            price: item.price,
+            cost_price: item.cost_price || 0,
+            inventory_id: item.inventory_id
+          }, true);
+        }
       }
     }
     
     return newSale.id;
+  }
+}
+
+/**
+ * Update inventory stock when a sale is completed or returned
+ */
+export async function updateInventoryStock(
+  item: {
+    product_name: string;
+    quantity: number;
+    price: number;
+    cost_price: number;
+    inventory_id?: string;
+  },
+  isSale: boolean
+) {
+  if (!item.inventory_id) return;
+  
+  try {
+    // First, get current stock level
+    const { data: inventoryData, error: inventoryError } = await supabase
+      .from('inventory')
+      .select('stock_level')
+      .eq('id', item.inventory_id)
+      .single();
+      
+    if (inventoryError) throw inventoryError;
+    
+    // If it's a sale, decrease stock. If it's a return, increase stock
+    const newStockLevel = isSale 
+      ? Math.max(0, (inventoryData?.stock_level || 0) - item.quantity)
+      : (inventoryData?.stock_level || 0) + item.quantity;
+      
+    // Update stock level
+    const { error: updateError } = await supabase
+      .from('inventory')
+      .update({
+        stock_level: newStockLevel,
+        stock_status: newStockLevel <= 0 ? 'Out of Stock' : 
+                      newStockLevel <= 5 ? 'Low Stock' : 'In Stock',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', item.inventory_id);
+      
+    if (updateError) throw updateError;
+    
+  } catch (error) {
+    console.error('Error updating inventory stock:', error);
+    // Don't throw here to prevent blocking the sale process
   }
 }

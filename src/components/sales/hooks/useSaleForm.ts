@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/components/ui/use-toast';
 import { Sale } from '@/pages/Sales';
 import { saleFormSchema, SaleFormValues } from '../saleFormSchema';
-import { loadSaleItems, saveSale, SaleItemWithInventory } from './useSaleDataAccess';
+import { loadSaleItems, saveSale } from './useSaleDataAccess';
 
 export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuccess: () => void, onCancel: () => void) {
   const { toast } = useToast();

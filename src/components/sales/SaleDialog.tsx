@@ -10,7 +10,7 @@ import { CustomerForm } from './CustomerForm';
 import { SaleItemForm } from './SaleItemForm';
 import { SaleNotesField } from './SaleNotesField';
 import { SaleDialogActions } from './SaleDialogActions';
-import { useSaleForm } from './useSaleForm';
+import { useSaleForm } from './hooks/useSaleForm';
 import { useSuggestions } from './useSuggestions';
 
 interface SaleDialogProps {

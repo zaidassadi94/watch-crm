@@ -35,7 +35,7 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
         variant: "destructive",
       });
     },
-    content: useCallback(() => invoiceRef.current, []),
+    contentRef: invoiceRef,
   });
 
   const handleShare = async () => {
@@ -83,7 +83,7 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
-          <Button onClick={() => handlePrint()}>
+          <Button onClick={handlePrint}>
             <Printer className="w-4 h-4 mr-2" />
             Print Invoice
           </Button>

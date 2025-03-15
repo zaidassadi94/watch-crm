@@ -34,10 +34,10 @@ export function useCustomers() {
           name: customer.name,
           email: customer.email,
           phone: customer.phone,
-          type: customer.type,
+          type: (customer.type as "Regular" | "VIP") || "Regular",
           totalSpent: 0, // Will be updated below
           lastPurchase: customer.updated_at,
-          status: customer.status,
+          status: (customer.status as "Active" | "Inactive") || "Active",
           avatarUrl: undefined
         }));
         
@@ -105,6 +105,7 @@ export function useCustomers() {
         
         if (!uniqueCustomers.has(key)) {
           const amount = 'total_amount' in item ? Number(item.total_amount) : Number(item.price || 0);
+          const customerType = amount > 5000 ? 'VIP' as const : 'Regular' as const;
           
           uniqueCustomers.set(key, {
             id: key, // Use name as ID for now
@@ -113,8 +114,8 @@ export function useCustomers() {
             phone: item.customer_phone,
             totalSpent: amount,
             lastPurchase: item.created_at,
-            type: amount > 5000 ? 'VIP' : 'Regular',
-            status: 'Active'
+            type: customerType,
+            status: 'Active' as const
           });
         } else {
           // Update existing customer data
