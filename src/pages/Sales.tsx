@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui-custom/DataTable';
 import { cn } from '@/lib/utils';
@@ -12,7 +11,7 @@ import { SaleSearch } from '@/components/sales/SaleSearch';
 import { SaleEmptyState } from '@/components/sales/SaleEmptyState';
 import { getSaleTableColumns } from '@/components/sales/SaleTableColumns';
 import { InvoiceDialog } from '@/components/sales/InvoiceDialog';
-import { ReturnDialog } from '@/components/sales/ReturnDialog';
+import { ReturnDialog } from '@/components/sales/returns/ReturnDialog';
 
 // Type definitions
 export interface Sale {

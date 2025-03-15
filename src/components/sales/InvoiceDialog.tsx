@@ -35,7 +35,7 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
         variant: "destructive",
       });
     },
-    contentRef: invoiceRef, // Changed from 'content' to 'contentRef'
+    content: () => invoiceRef.current, // Fixed to use callback function
   });
 
   const handleShare = async () => {
