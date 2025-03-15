@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   PlusCircle, Search, Filter, UserPlus, Download, 
@@ -18,7 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useToast } from '@/components/ui/use-toast';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
@@ -44,6 +45,7 @@ interface Customer {
   avatarUrl: string;
 }
 
+// Sample data that would be replaced with actual data from database
 const customers: Customer[] = [
   {
     id: 1,
@@ -135,12 +137,6 @@ const customers: Customer[] = [
   },
 ];
 
-interface Column<T> {
-  header: string;
-  accessorKey?: keyof T;
-  cell?: (item: T) => React.ReactNode;
-}
-
 const customerFormSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address").optional().or(z.literal('')),
@@ -154,8 +150,9 @@ type CustomerFormValues = z.infer<typeof customerFormSchema>;
 const Customers = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isSheetOpen, setIsSheetOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
 
   const form = useForm<CustomerFormValues>({
@@ -200,25 +197,45 @@ const Customers = () => {
     customer.email.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const onSubmit = (data: CustomerFormValues) => {
-    toast({
-      title: selectedCustomer ? "Customer Updated" : "Customer Added",
-      description: `${data.name} has been ${selectedCustomer ? 'updated' : 'added'} successfully.`,
-    });
-    
-    setIsSheetOpen(false);
-    setSelectedCustomer(null);
+  const onSubmit = async (data: CustomerFormValues) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      toast({
+        title: selectedCustomer ? "Customer Updated" : "Customer Added",
+        description: `${data.name} has been ${selectedCustomer ? 'updated' : 'added'} successfully.`,
+      });
+      
+      setIsDialogOpen(false);
+      setSelectedCustomer(null);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Something went wrong. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleCloseDialog = () => {
     form.reset();
+    setSelectedCustomer(null);
+    setIsDialogOpen(false);
   };
 
   const handleAddCustomer = () => {
     setSelectedCustomer(null);
-    setIsSheetOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleEditCustomer = (customer: Customer) => {
     setSelectedCustomer(customer);
-    setIsSheetOpen(true);
+    setIsDialogOpen(true);
   };
 
   const handleDeleteCustomer = (id: number) => {
@@ -228,10 +245,10 @@ const Customers = () => {
     });
   };
 
-  const columns: Column<Customer>[] = [
+  const columns = [
     {
       header: 'Customer',
-      cell: (customer) => (
+      cell: (customer: Customer) => (
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 border border-border">
             <AvatarImage src={customer.avatarUrl} alt={customer.name} />
@@ -252,7 +269,7 @@ const Customers = () => {
     },
     {
       header: 'Type',
-      cell: (customer) => (
+      cell: (customer: Customer) => (
         <Badge 
           variant={customer.type === 'VIP' ? 'default' : 'outline'}
           className={customer.type === 'VIP' ? 'bg-brand-500' : ''}
@@ -263,19 +280,19 @@ const Customers = () => {
     },
     {
       header: 'Total Spent',
-      cell: (customer) => (
-        <div className="font-medium">${customer.totalSpent.toLocaleString()}</div>
+      cell: (customer: Customer) => (
+        <div className="font-medium">₹{customer.totalSpent.toLocaleString()}</div>
       ),
     },
     {
       header: 'Last Purchase',
-      cell: (customer) => (
+      cell: (customer: Customer) => (
         <div>{new Date(customer.lastPurchase).toLocaleDateString()}</div>
       ),
     },
     {
       header: 'Status',
-      cell: (customer) => (
+      cell: (customer: Customer) => (
         <Badge 
           variant="outline"
           className={cn(
@@ -290,7 +307,7 @@ const Customers = () => {
     },
     {
       header: 'Actions',
-      cell: (customer) => (
+      cell: (customer: Customer) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -390,11 +407,15 @@ const Customers = () => {
         </CardContent>
       </Card>
 
-      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
-        <SheetContent className="sm:max-w-md" onClick={(e) => e.stopPropagation()}>
-          <SheetHeader>
-            <SheetTitle>{selectedCustomer ? 'Edit Customer' : 'Add New Customer'}</SheetTitle>
-          </SheetHeader>
+      <Dialog open={isDialogOpen} onOpenChange={(open) => {
+        if (!open && !isSubmitting) {
+          handleCloseDialog();
+        }
+      }}>
+        <DialogContent className="sm:max-w-md overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+          <DialogHeader>
+            <DialogTitle>{selectedCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
+          </DialogHeader>
           
           <div className="py-6">
             <Form {...form}>
@@ -451,6 +472,7 @@ const Customers = () => {
                         <Select 
                           onValueChange={field.onChange} 
                           defaultValue={field.value}
+                          value={field.value}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select type" />
@@ -476,6 +498,7 @@ const Customers = () => {
                         <Select 
                           onValueChange={field.onChange} 
                           defaultValue={field.value}
+                          value={field.value}
                         >
                           <SelectTrigger>
                             <SelectValue placeholder="Select status" />
@@ -495,19 +518,35 @@ const Customers = () => {
                   <Button 
                     type="button" 
                     variant="outline" 
-                    onClick={() => setIsSheetOpen(false)}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!isSubmitting) {
+                        handleCloseDialog();
+                      }
+                    }}
+                    disabled={isSubmitting}
                   >
                     Cancel
                   </Button>
-                  <Button type="submit">
-                    {selectedCustomer ? 'Update Customer' : 'Add Customer'}
+                  <Button 
+                    type="submit" 
+                    disabled={isSubmitting}
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {isSubmitting 
+                      ? 'Saving...' 
+                      : selectedCustomer 
+                        ? 'Update Customer' 
+                        : 'Add Customer'
+                    }
                   </Button>
                 </div>
               </form>
             </Form>
           </div>
-        </SheetContent>
-      </Sheet>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

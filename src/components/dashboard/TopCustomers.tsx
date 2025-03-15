@@ -90,7 +90,7 @@ export function TopCustomers() {
                 </div>
               </div>
               <div className="text-right">
-                <p className="font-bold">${customer.totalSpent.toLocaleString()}</p>
+                <p className="font-bold">₹{customer.totalSpent.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground">Last purchase: {customer.lastPurchase}</p>
               </div>
             </div>

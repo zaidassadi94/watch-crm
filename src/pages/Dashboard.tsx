@@ -27,7 +27,7 @@ const Dashboard = () => {
   const stats = [
     {
       title: 'Total Revenue',
-      value: '$48,352',
+      value: '₹48,352',
       icon: <DollarSign className="w-5 h-5" />,
       trend: { value: 12, positive: true },
     },

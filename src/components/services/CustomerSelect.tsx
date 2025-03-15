@@ -28,7 +28,6 @@ export function CustomerSelect({
     setSearchTerm(value);
   };
   
-  // Component to handle customer selection
   return (
     <CustomerInfoSection 
       form={form}
