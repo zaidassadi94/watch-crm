@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -26,12 +26,30 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ServiceRequest } from '@/pages/Services';
 import { useAuth } from '@/hooks/useAuth';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Check, ChevronsUpDown } from "lucide-react";
+import { cn } from '@/lib/utils';
 
 interface ServiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   service: ServiceRequest | null;
   onSaved: () => void;
+}
+
+interface CustomerSuggestion {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  watches?: {
+    brand: string;
+    model: string | null;
+    serial: string | null;
+  }[];
 }
 
 const serviceFormSchema = z.object({
@@ -54,6 +72,9 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   const { toast } = useToast();
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customerSuggestions, setCustomerSuggestions] = useState<CustomerSuggestion[]>([]);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Initialize form with default values or service data if editing
   const form = useForm<ServiceFormValues>({
@@ -74,6 +95,109 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
       price: service?.price !== null ? Number(service.price) : null,
     }
   });
+
+  // Load customer data when searching
+  useEffect(() => {
+    if (searchTerm.length < 2) return;
+    
+    const loadCustomerSuggestions = async () => {
+      if (!user) return;
+      
+      try {
+        // Search in service requests
+        const { data: serviceData, error: serviceError } = await supabase
+          .from('service_requests')
+          .select('customer_name, customer_email, customer_phone, watch_brand, watch_model, serial_number')
+          .eq('user_id', user.id)
+          .ilike('customer_phone', `%${searchTerm}%`)
+          .order('created_at', { ascending: false });
+          
+        if (serviceError) throw serviceError;
+        
+        // Search in sales
+        const { data: salesData, error: salesError } = await supabase
+          .from('sales')
+          .select('customer_name, customer_email, customer_phone')
+          .eq('user_id', user.id)
+          .ilike('customer_phone', `%${searchTerm}%`)
+          .order('created_at', { ascending: false });
+          
+        if (salesError) throw salesError;
+        
+        // Combine and deduplicate results
+        const combinedData = [...(serviceData || []), ...(salesData || [])];
+        const uniqueCustomers: CustomerSuggestion[] = [];
+        
+        combinedData.forEach(item => {
+          const existingCustomer = uniqueCustomers.find(c => 
+            c.phone === item.customer_phone
+          );
+          
+          if (existingCustomer) {
+            // Add watch info if from service data and has watch details
+            if ('watch_brand' in item && item.watch_brand) {
+              if (!existingCustomer.watches) {
+                existingCustomer.watches = [];
+              }
+              
+              const existingWatch = existingCustomer.watches.find(w => 
+                w.brand === item.watch_brand && 
+                w.model === item.watch_model && 
+                w.serial === item.serial_number
+              );
+              
+              if (!existingWatch) {
+                existingCustomer.watches.push({
+                  brand: item.watch_brand,
+                  model: item.watch_model,
+                  serial: item.serial_number
+                });
+              }
+            }
+          } else {
+            const newCustomer: CustomerSuggestion = {
+              name: item.customer_name,
+              email: item.customer_email,
+              phone: item.customer_phone,
+            };
+            
+            if ('watch_brand' in item && item.watch_brand) {
+              newCustomer.watches = [{
+                brand: item.watch_brand,
+                model: item.watch_model,
+                serial: item.serial_number
+              }];
+            }
+            
+            uniqueCustomers.push(newCustomer);
+          }
+        });
+        
+        setCustomerSuggestions(uniqueCustomers);
+        setShowCustomerSuggestions(uniqueCustomers.length > 0);
+      } catch (error) {
+        console.error("Error fetching customer suggestions:", error);
+      }
+    };
+    
+    loadCustomerSuggestions();
+  }, [searchTerm, user]);
+
+  const selectCustomer = (customer: CustomerSuggestion) => {
+    form.setValue('customer_name', customer.name);
+    if (customer.email) form.setValue('customer_email', customer.email);
+    if (customer.phone) form.setValue('customer_phone', customer.phone);
+    
+    // If customer has watches, set the first one's details
+    if (customer.watches && customer.watches.length > 0) {
+      const watch = customer.watches[0];
+      form.setValue('watch_brand', watch.brand);
+      if (watch.model) form.setValue('watch_model', watch.model);
+      if (watch.serial) form.setValue('serial_number', watch.serial);
+    }
+    
+    setShowCustomerSuggestions(false);
+  };
 
   const onSubmit = async (data: ServiceFormValues) => {
     if (!user) {
@@ -199,11 +323,53 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
                   control={form.control}
                   name="customer_phone"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="relative">
                       <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="(123) 456-7890" {...field} />
-                      </FormControl>
+                      <Popover 
+                        open={showCustomerSuggestions} 
+                        onOpenChange={setShowCustomerSuggestions}
+                      >
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <div className="relative">
+                              <Input 
+                                placeholder="(123) 456-7890" 
+                                {...field} 
+                                onChange={(e) => {
+                                  field.onChange(e);
+                                  setSearchTerm(e.target.value);
+                                }}
+                              />
+                              {customerSuggestions.length > 0 && (
+                                <ChevronsUpDown className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                              )}
+                            </div>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <div className="max-h-72 overflow-auto">
+                            {customerSuggestions.map((customer, index) => (
+                              <div
+                                key={index}
+                                className="flex flex-col px-2 py-1.5 hover:bg-accent cursor-pointer"
+                                onClick={() => selectCustomer(customer)}
+                              >
+                                <div className="font-medium">{customer.name}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {customer.phone}
+                                  {customer.email ? ` • ${customer.email}` : ''}
+                                </div>
+                                {customer.watches && customer.watches.length > 0 && (
+                                  <div className="text-xs text-muted-foreground mt-1">
+                                    Previous watch: {customer.watches[0].brand} 
+                                    {customer.watches[0].model ? ` ${customer.watches[0].model}` : ''}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -331,7 +497,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
                   name="price"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Price ($)</FormLabel>
+                      <FormLabel>Price (₹)</FormLabel>
                       <FormControl>
                         <Input 
                           type="number" 

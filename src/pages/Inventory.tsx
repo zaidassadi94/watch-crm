@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { 
   PlusCircle, Search, Filter, Package, Download, 
@@ -17,152 +18,127 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
-
-// Define proper type for inventory items
-interface InventoryItem {
-  id: number;
-  name: string;
-  brand: string;
-  sku: string;
-  category: string;
-  stockLevel: number;
-  stockStatus: string;
-  price: number;
-  dateAdded: string;
-  imageUrl: string;
-}
-
-// Sample data
-const inventoryItems: InventoryItem[] = [
-  {
-    id: 1,
-    name: 'Submariner Date',
-    brand: 'Rolex',
-    sku: 'ROL-SUB-001',
-    category: 'Dive Watches',
-    stockLevel: 5,
-    stockStatus: 'In Stock',
-    price: 9500,
-    dateAdded: '2023-10-15',
-    imageUrl: '',
-  },
-  {
-    id: 2,
-    name: 'Speedmaster Moonwatch',
-    brand: 'Omega',
-    sku: 'OME-SPE-002',
-    category: 'Chronographs',
-    stockLevel: 2,
-    stockStatus: 'Low Stock',
-    price: 7200,
-    dateAdded: '2023-09-20',
-    imageUrl: '',
-  },
-  {
-    id: 3,
-    name: 'Navitimer Automatic',
-    brand: 'Breitling',
-    sku: 'BRE-NAV-003',
-    category: 'Pilot Watches',
-    stockLevel: 0,
-    stockStatus: 'Out of Stock',
-    price: 8600,
-    dateAdded: '2023-08-01',
-    imageUrl: '',
-  },
-  {
-    id: 4,
-    name: 'Royal Oak',
-    brand: 'Audemars Piguet',
-    sku: 'AUD-ROA-004',
-    category: 'Luxury Sports',
-    stockLevel: 3,
-    stockStatus: 'In Stock',
-    price: 24500,
-    dateAdded: '2023-07-18',
-    imageUrl: '',
-  },
-  {
-    id: 5,
-    name: 'Pasha de Cartier',
-    brand: 'Cartier',
-    sku: 'CAR-PAS-005',
-    category: 'Dress Watches',
-    stockLevel: 1,
-    stockStatus: 'Low Stock',
-    price: 6800,
-    dateAdded: '2023-06-05',
-    imageUrl: '',
-  },
-  {
-    id: 6,
-    name: 'Big Pilot\'s Watch',
-    brand: 'IWC Schaffhausen',
-    sku: 'IWC-BIG-006',
-    category: 'Pilot Watches',
-    stockLevel: 4,
-    stockStatus: 'In Stock',
-    price: 12300,
-    dateAdded: '2023-05-22',
-    imageUrl: '',
-  },
-  {
-    id: 7,
-    name: 'Luminor Marina',
-    brand: 'Panerai',
-    sku: 'PAN-LUM-007',
-    category: 'Dive Watches',
-    stockLevel: 0,
-    stockStatus: 'Out of Stock',
-    price: 7900,
-    dateAdded: '2023-04-10',
-    imageUrl: '',
-  },
-  {
-    id: 8,
-    name: 'Oyster Perpetual',
-    brand: 'Rolex',
-    sku: 'ROL-OYS-008',
-    category: 'Everyday Watches',
-    stockLevel: 6,
-    stockStatus: 'In Stock',
-    price: 5900,
-    dateAdded: '2023-03-28',
-    imageUrl: '',
-  },
-];
-
-// Define column type
-interface Column<T> {
-  header: string;
-  accessorKey?: keyof T;
-  cell?: (item: T) => React.ReactNode;
-}
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { InventoryDialog, InventoryItem } from '@/components/inventory/InventoryDialog';
 
 const Inventory = () => {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [isLoaded, setIsLoaded] = useState(false);
+  const [inventory, setInventory] = useState<InventoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
 
   useEffect(() => {
+    fetchInventory();
+    // Add short delay for animation
     setTimeout(() => {
       setIsLoaded(true);
     }, 100);
-  }, []);
+  }, [user]);
 
-  const filteredItems = inventoryItems.filter(item => 
+  const fetchInventory = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true });
+
+      if (error) throw error;
+      
+      setInventory(data || []);
+    } catch (error: any) {
+      toast({
+        title: "Error fetching inventory",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('inventory')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Product deleted",
+        description: "The product has been successfully deleted",
+      });
+      
+      // Refresh inventory list
+      fetchInventory();
+    } catch (error: any) {
+      toast({
+        title: "Error deleting product",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditItem = (item: InventoryItem) => {
+    setSelectedItem(item);
+    setIsDialogOpen(true);
+  };
+
+  const handleCreateItem = () => {
+    setSelectedItem(null);
+    setIsDialogOpen(true);
+  };
+
+  const filteredItems = inventory.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     item.brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
     item.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const columns: Column<InventoryItem>[] = [
+  const formatCategory = (category: string) => {
+    return category.replace(/_/g, ' ').split(' ').map(word => 
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+  };
+
+  const getStockStatusColor = (status: string) => {
+    switch (status) {
+      case 'in_stock': return 'border-green-500 text-green-600 bg-green-50';
+      case 'low_stock': return 'border-amber-500 text-amber-600 bg-amber-50';
+      case 'out_of_stock': return 'border-red-500 text-red-600 bg-red-50';
+      default: return '';
+    }
+  };
+
+  const getStockStatusText = (status: string) => {
+    switch (status) {
+      case 'in_stock': return 'In Stock';
+      case 'low_stock': return 'Low Stock';
+      case 'out_of_stock': return 'Out of Stock';
+      default: return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
+    }
+  };
+
+  const columns = [
     {
       header: 'Product',
-      cell: (item) => (
+      cell: (item: InventoryItem) => (
         <div className="flex items-center gap-3">
-          {item.imageUrl ? (
+          {item.image_url ? (
             <img 
-              src={item.imageUrl} 
+              src={item.image_url} 
               alt={item.name} 
               className="w-10 h-10 object-cover rounded border border-border"
             />
@@ -180,49 +156,47 @@ const Inventory = () => {
     },
     {
       header: 'SKU',
-      accessorKey: 'sku',
+      accessorKey: 'sku' as keyof InventoryItem,
     },
     {
       header: 'Category',
-      accessorKey: 'category',
+      cell: (item: InventoryItem) => (
+        <div>{formatCategory(item.category)}</div>
+      ),
     },
     {
       header: 'Stock',
-      cell: (item) => (
+      cell: (item: InventoryItem) => (
         <div className="flex items-center gap-2">
           <Badge 
             variant="outline"
             className={cn(
               "rounded-full flex gap-1 items-center",
-              item.stockStatus === 'In Stock' 
-                ? 'border-green-500 text-green-600 bg-green-50'
-                : item.stockStatus === 'Low Stock'
-                ? 'border-amber-500 text-amber-600 bg-amber-50'
-                : 'border-red-500 text-red-600 bg-red-50'
+              getStockStatusColor(item.stock_status)
             )}
           >
-            {item.stockStatus === 'Low Stock' && <AlertTriangle className="h-3 w-3" />}
-            {item.stockStatus}
+            {item.stock_status === 'low_stock' && <AlertTriangle className="h-3 w-3" />}
+            {getStockStatusText(item.stock_status)}
           </Badge>
-          <span className="text-xs text-muted-foreground">{item.stockLevel} units</span>
+          <span className="text-xs text-muted-foreground">{item.stock_level} units</span>
         </div>
       ),
     },
     {
       header: 'Price',
-      cell: (item) => (
-        <div className="font-medium">${item.price.toLocaleString()}</div>
+      cell: (item: InventoryItem) => (
+        <div className="font-medium">₹{item.price.toLocaleString()}</div>
       ),
     },
     {
       header: 'Date Added',
-      cell: (item) => (
-        <div>{new Date(item.dateAdded).toLocaleDateString()}</div>
+      cell: (item: InventoryItem) => (
+        <div>{new Date(item.date_added).toLocaleDateString()}</div>
       ),
     },
     {
       header: 'Actions',
-      cell: (item) => (
+      cell: (item: InventoryItem) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
@@ -232,14 +206,14 @@ const Inventory = () => {
           <DropdownMenuContent align="end" className="w-[160px]">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
-              <Eye className="mr-2 h-4 w-4" /> View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem onClick={() => handleEditItem(item)}>
               <Edit className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive">
+            <DropdownMenuItem 
+              onClick={() => handleDelete(item.id)}
+              className="text-destructive"
+            >
               <Trash2 className="mr-2 h-4 w-4" /> Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
@@ -262,7 +236,7 @@ const Inventory = () => {
             Manage watch inventory and stock levels
           </p>
         </div>
-        <Button className="w-full md:w-auto gap-2">
+        <Button className="w-full md:w-auto gap-2" onClick={handleCreateItem}>
           <PlusCircle className="h-4 w-4" /> Add Product
         </Button>
       </div>
@@ -293,7 +267,7 @@ const Inventory = () => {
           <DataTable 
             columns={columns} 
             data={filteredItems}
-            onRowClick={(item) => console.log('Clicked on item:', item.name)}
+            isLoading={isLoading}
             emptyState={
               <div className="flex flex-col items-center justify-center py-8">
                 <div className="bg-muted/30 rounded-full p-3 mb-3">
@@ -306,7 +280,7 @@ const Inventory = () => {
                     : "Get started by adding your first product"}
                 </p>
                 {!searchTerm && (
-                  <Button size="sm" className="gap-1">
+                  <Button size="sm" className="gap-1" onClick={handleCreateItem}>
                     <PlusCircle className="h-4 w-4" /> Add Product
                   </Button>
                 )}
@@ -315,6 +289,13 @@ const Inventory = () => {
           />
         </CardContent>
       </Card>
+
+      <InventoryDialog 
+        open={isDialogOpen} 
+        onOpenChange={setIsDialogOpen}
+        item={selectedItem}
+        onSaved={fetchInventory}
+      />
     </div>
   );
 };
