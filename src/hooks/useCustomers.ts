@@ -3,18 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
-
-interface Customer {
-  id: number | string;
-  name: string;
-  email?: string;
-  phone?: string;
-  type: 'Regular' | 'VIP';
-  totalSpent: number;
-  lastPurchase: string;
-  status: 'Active' | 'Inactive';
-  avatarUrl?: string;
-}
+import { Customer } from '@/components/customers/useCustomerManagement';
 
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);

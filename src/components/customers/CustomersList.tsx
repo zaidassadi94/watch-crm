@@ -15,18 +15,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useToast } from '@/components/ui/use-toast';
-
-interface Customer {
-  id: number | string;
-  name: string;
-  email?: string;
-  phone?: string;
-  type: 'Regular' | 'VIP';
-  totalSpent: number;
-  lastPurchase: string;
-  status: 'Active' | 'Inactive';
-  avatarUrl?: string;
-}
+import { Customer } from '@/components/customers/useCustomerManagement';
 
 interface CustomersListProps {
   customers: Customer[];

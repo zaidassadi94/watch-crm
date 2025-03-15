@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/components/ui/use-toast';
+import { Customer } from './useCustomerManagement';
 
 // Customer form schema
 const customerFormSchema = z.object({
@@ -27,18 +28,6 @@ const customerFormSchema = z.object({
 
 type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
-interface Customer {
-  id: number | string;
-  name: string;
-  email?: string;
-  phone?: string;
-  type: 'Regular' | 'VIP';
-  status: 'Active' | 'Inactive';
-  totalSpent?: number;
-  lastPurchase?: string;
-  avatarUrl?: string;
-}
-
 interface CustomerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -49,13 +38,7 @@ interface CustomerDialogProps {
 export function CustomerDialog({ open, onOpenChange, customer, onSaved }: CustomerDialogProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
-  const [localOpen, setLocalOpen] = useState(false);
   
-  // Track local dialog state to prevent issues when uncontrolled
-  useEffect(() => {
-    setLocalOpen(open);
-  }, [open]);
-
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
@@ -67,7 +50,7 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
     }
   });
 
-  // Reset form when customer changes
+  // Reset form when customer changes or dialog opens
   useEffect(() => {
     if (open) {
       if (customer) {
@@ -75,8 +58,8 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
           name: customer.name,
           email: customer.email || '',
           phone: customer.phone || '',
-          type: customer.type as 'Regular' | 'VIP',
-          status: customer.status as 'Active' | 'Inactive',
+          type: customer.type,
+          status: customer.status,
         });
       } else {
         form.reset({
@@ -90,15 +73,9 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
     }
   }, [customer, form, open]);
 
-  const handleCancel = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    
+  const handleClose = () => {
     if (!isSubmitting) {
       form.reset();
-      setLocalOpen(false);
       onOpenChange(false);
     }
   };
@@ -130,12 +107,11 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
 
   return (
     <Dialog 
-      open={localOpen} 
+      open={open} 
       onOpenChange={(newOpen) => {
         if (!newOpen && !isSubmitting) {
-          handleCancel();
+          handleClose();
         } else {
-          setLocalOpen(newOpen);
           onOpenChange(newOpen);
         }
       }}
@@ -249,7 +225,7 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={handleCancel}
+                  onClick={() => handleClose()}
                   disabled={isSubmitting}
                 >
                   Cancel
