@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { useToast } from '@/components/ui/use-toast';
@@ -57,42 +58,44 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     }
   });
 
-  // Reset form values when the service prop changes
+  // Reset form values when the dialog opens/closes or service changes
   useEffect(() => {
-    if (service) {
-      form.reset({
-        customer_name: service.customer_name || '',
-        customer_email: service.customer_email || '',
-        customer_phone: service.customer_phone || '',
-        watch_brand: service.watch_brand || '',
-        watch_model: service.watch_model || '',
-        serial_number: service.serial_number || '',
-        service_type: service.service_type || 'repair',
-        description: service.description || '',
-        status: service.status || 'pending',
-        estimated_completion: service.estimated_completion 
-          ? new Date(service.estimated_completion).toISOString().split('T')[0] 
-          : '',
-        price: service.price !== undefined && service.price !== null 
-          ? Number(service.price) 
-          : null,
-      });
-    } else {
-      form.reset({
-        customer_name: '',
-        customer_email: '',
-        customer_phone: '',
-        watch_brand: '',
-        watch_model: '',
-        serial_number: '',
-        service_type: 'repair',
-        description: '',
-        status: 'pending',
-        estimated_completion: '',
-        price: null,
-      });
+    if (open) {
+      if (service) {
+        form.reset({
+          customer_name: service.customer_name || '',
+          customer_email: service.customer_email || '',
+          customer_phone: service.customer_phone || '',
+          watch_brand: service.watch_brand || '',
+          watch_model: service.watch_model || '',
+          serial_number: service.serial_number || '',
+          service_type: service.service_type || 'repair',
+          description: service.description || '',
+          status: service.status || 'pending',
+          estimated_completion: service.estimated_completion 
+            ? new Date(service.estimated_completion).toISOString().split('T')[0] 
+            : '',
+          price: service.price !== undefined && service.price !== null 
+            ? Number(service.price) 
+            : null,
+        });
+      } else {
+        form.reset({
+          customer_name: '',
+          customer_email: '',
+          customer_phone: '',
+          watch_brand: '',
+          watch_model: '',
+          serial_number: '',
+          service_type: 'repair',
+          description: '',
+          status: 'pending',
+          estimated_completion: '',
+          price: null,
+        });
+      }
     }
-  }, [service, form]);
+  }, [service, form, open]);
 
   const selectCustomer = (customer: CustomerSuggestion) => {
     form.setValue('customer_name', customer.name);
@@ -173,8 +176,8 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
         });
       }
 
-      onOpenChange(false);
       onSaved();
+      onOpenChange(false);
     } catch (error: any) {
       toast({
         title: service ? "Error updating service" : "Error creating service",
@@ -187,15 +190,28 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   };
 
   const handleCancel = () => {
-    // Ensure form is properly reset before closing
+    // Reset form and close dialog
+    form.reset();
     onOpenChange(false);
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog 
+      open={open} 
+      onOpenChange={(newOpen) => {
+        if (!newOpen && !isSubmitting) {
+          handleCancel();
+        } else {
+          onOpenChange(newOpen);
+        }
+      }}
+    >
       <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{service ? 'Edit Service Request' : 'Create New Service Request'}</DialogTitle>
+          <DialogDescription>
+            {service ? 'Update the details of this service request' : 'Enter the details for the new service request'}
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>

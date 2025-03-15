@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Sale } from '@/pages/Sales';
 import { useAuth } from '@/hooks/useAuth';
@@ -40,38 +40,41 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     sale, 
     user?.id, 
     () => {
-      onOpenChange(false);
       onSaved();
+      onOpenChange(false);
     },
     () => {
-      // Ensure clean close on cancel
+      // Ensure proper cleanup on cancel
+      form.reset(); 
       onOpenChange(false);
     }
   );
 
   useEffect(() => {
     // Update product search terms when the sale items change
-    if (sale) {
-      const fetchSaleItems = async () => {
-        try {
-          const { data } = await supabase
-            .from('sale_items')
-            .select('*')
-            .eq('sale_id', sale.id);
-            
-          if (data) {
-            updateProductSearchTerms(data.map(() => "") || []);
+    if (open) {
+      if (sale) {
+        const fetchSaleItems = async () => {
+          try {
+            const { data } = await supabase
+              .from('sale_items')
+              .select('*')
+              .eq('sale_id', sale.id);
+              
+            if (data) {
+              updateProductSearchTerms(data.map(() => "") || []);
+            }
+          } catch (error) {
+            console.error("Error fetching sale items:", error);
           }
-        } catch (error) {
-          console.error("Error fetching sale items:", error);
-        }
-      };
-      
-      fetchSaleItems();
-    } else {
-      updateProductSearchTerms(['']);
+        };
+        
+        fetchSaleItems();
+      } else {
+        updateProductSearchTerms(['']);
+      }
     }
-  }, [sale, updateProductSearchTerms]);
+  }, [sale, updateProductSearchTerms, open]);
 
   const selectProduct = (product: ProductSuggestion, index: number) => {
     form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name} (${product.sku})`);
@@ -88,6 +91,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
   const handleCancel = () => {
     // Explicit cancel handler to ensure dialog closes properly
+    form.reset();
     onOpenChange(false);
   };
 
@@ -96,16 +100,19 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       open={open} 
       onOpenChange={(newOpen) => {
         // Handle dialog close via the X button or clicking outside
-        if (!newOpen) {
+        if (!newOpen && !isSubmitting) {
           handleCancel();
         } else {
-          onOpenChange(true);
+          onOpenChange(newOpen);
         }
       }}
     >
       <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{sale ? 'Edit Sale' : 'Create New Sale'}</DialogTitle>
+          <DialogDescription>
+            {sale ? 'Update the details of this sale' : 'Enter the details for the new sale'}
+          </DialogDescription>
         </DialogHeader>
         
         <Form {...form}>
