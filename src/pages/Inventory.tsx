@@ -21,7 +21,8 @@ import { cn } from '@/lib/utils';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-import { InventoryDialog, InventoryItem } from '@/components/inventory/InventoryDialog';
+import { InventoryDialog } from '@/components/inventory/InventoryDialog';
+import { InventoryItem } from '@/types/inventory';
 
 const Inventory = () => {
   const { user } = useAuth();
@@ -54,7 +55,8 @@ const Inventory = () => {
 
       if (error) throw error;
       
-      setInventory(data || []);
+      // Add type assertion to help TypeScript understand the data type
+      setInventory(data as InventoryItem[]);
     } catch (error: any) {
       toast({
         title: "Error fetching inventory",

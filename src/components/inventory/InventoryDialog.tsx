@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -25,22 +24,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
-
-// Type definitions
-export interface InventoryItem {
-  id: string;
-  name: string;
-  brand: string;
-  sku: string;
-  category: string;
-  stock_level: number;
-  stock_status: string;
-  price: number;
-  date_added: string;
-  image_url: string | null;
-  description: string | null;
-  user_id: string;
-}
+import { InventoryItem } from '@/types/inventory';
 
 interface InventoryDialogProps {
   open: boolean;
