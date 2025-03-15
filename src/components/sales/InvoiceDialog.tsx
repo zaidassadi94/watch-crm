@@ -1,5 +1,5 @@
 
-import React, { useRef, useCallback } from 'react';
+import React, { useRef } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/components/ui/use-toast';
 import { Printer, Download, Share2 } from 'lucide-react';
-import { Sale } from '@/pages/Sales';
+import { Sale } from '@/types/sales';
 import { Invoice } from './Invoice';
 import { useReactToPrint } from 'react-to-print';
 
@@ -35,7 +35,7 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
         variant: "destructive",
       });
     },
-    content: () => invoiceRef.current, // Fixed to use callback function
+    content: () => invoiceRef.current,
   });
 
   const handleShare = async () => {
@@ -87,7 +87,7 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
             Share
           </Button>
           {isPrintable && (
-            <Button onClick={handlePrint}>
+            <Button onClick={() => handlePrint()}>
               <Printer className="w-4 h-4 mr-2" />
               Print Invoice
             </Button>
