@@ -12,42 +12,16 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { format, subDays, subMonths, subYears, startOfWeek, endOfWeek, eachDayOfInterval, 
+  startOfMonth, endOfMonth, eachMonthOfInterval, startOfYear, endOfYear, eachYearOfInterval } from 'date-fns';
 
-// Sample data for demonstration
-const revenueData = {
-  weekly: [
-    { name: 'Mon', revenue: 4000 },
-    { name: 'Tue', revenue: 3000 },
-    { name: 'Wed', revenue: 2000 },
-    { name: 'Thu', revenue: 2780 },
-    { name: 'Fri', revenue: 1890 },
-    { name: 'Sat', revenue: 2390 },
-    { name: 'Sun', revenue: 3490 },
-  ],
-  monthly: [
-    { name: 'Jan', revenue: 4000 },
-    { name: 'Feb', revenue: 3000 },
-    { name: 'Mar', revenue: 2000 },
-    { name: 'Apr', revenue: 2780 },
-    { name: 'May', revenue: 1890 },
-    { name: 'Jun', revenue: 2390 },
-    { name: 'Jul', revenue: 3490 },
-    { name: 'Aug', revenue: 4000 },
-    { name: 'Sep', revenue: 3300 },
-    { name: 'Oct', revenue: 2700 },
-    { name: 'Nov', revenue: 3200 },
-    { name: 'Dec', revenue: 4100 },
-  ],
-  yearly: [
-    { name: '2017', revenue: 32000 },
-    { name: '2018', revenue: 38000 },
-    { name: '2019', revenue: 35000 },
-    { name: '2020', revenue: 28000 },
-    { name: '2021', revenue: 34000 },
-    { name: '2022', revenue: 42000 },
-    { name: '2023', revenue: 48000 },
-  ],
-};
+// Type for revenue data
+interface RevenueItem {
+  name: string;
+  revenue: number;
+}
 
 // Custom tooltip component
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -56,7 +30,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       <div className="bg-background border border-border p-3 rounded-md shadow-md">
         <p className="font-medium">{label}</p>
         <p className="text-primary">
-          Revenue: ${payload[0].value.toLocaleString()}
+          Revenue: ₹{payload[0].value.toLocaleString()}
         </p>
       </div>
     );
@@ -68,39 +42,158 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 export function RevenueChart() {
   const [activeTab, setActiveTab] = useState('weekly');
   const [isAnimated, setIsAnimated] = useState(false);
+  const [revenueData, setRevenueData] = useState<{
+    weekly: RevenueItem[];
+    monthly: RevenueItem[];
+    yearly: RevenueItem[];
+  }>({
+    weekly: [],
+    monthly: [],
+    yearly: []
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   // Trigger animation when component is mounted
   useEffect(() => {
     setTimeout(() => setIsAnimated(true), 100);
   }, []);
 
-  const renderChart = (data: typeof revenueData.weekly) => (
+  useEffect(() => {
+    const fetchRevenueData = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        
+        // Fetch sales data
+        const { data: salesData, error: salesError } = await supabase
+          .from('sales')
+          .select('total_amount, created_at')
+          .eq('user_id', user.id);
+        
+        if (salesError) throw salesError;
+        
+        // Fetch service data
+        const { data: serviceData, error: serviceError } = await supabase
+          .from('service_requests')
+          .select('price, created_at')
+          .eq('user_id', user.id);
+        
+        if (serviceError) throw serviceError;
+        
+        // Combine data
+        const combinedData = [
+          ...(salesData || []).map(item => ({ 
+            amount: Number(item.total_amount || 0), 
+            date: new Date(item.created_at) 
+          })),
+          ...(serviceData || []).map(item => ({ 
+            amount: Number(item.price || 0), 
+            date: new Date(item.created_at) 
+          }))
+        ];
+        
+        // Generate weekly data
+        const now = new Date();
+        const weekStart = startOfWeek(now);
+        const weekEnd = endOfWeek(now);
+        const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+        
+        const weeklyData = weekDays.map(day => {
+          const dayStr = format(day, 'EEE');
+          const dayRevenue = combinedData
+            .filter(item => format(item.date, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd'))
+            .reduce((sum, item) => sum + item.amount, 0);
+          
+          return { name: dayStr, revenue: dayRevenue };
+        });
+        
+        // Generate monthly data
+        const monthStart = startOfMonth(subMonths(now, 11));
+        const monthEnd = endOfMonth(now);
+        const months = eachMonthOfInterval({ start: monthStart, end: monthEnd });
+        
+        const monthlyData = months.map(month => {
+          const monthStr = format(month, 'MMM');
+          const monthRevenue = combinedData
+            .filter(item => {
+              const itemMonth = item.date.getMonth();
+              const itemYear = item.date.getFullYear();
+              return itemMonth === month.getMonth() && itemYear === month.getFullYear();
+            })
+            .reduce((sum, item) => sum + item.amount, 0);
+          
+          return { name: monthStr, revenue: monthRevenue };
+        });
+        
+        // Generate yearly data
+        const yearStart = startOfYear(subYears(now, 6));
+        const yearEnd = endOfYear(now);
+        const years = eachYearOfInterval({ start: yearStart, end: yearEnd });
+        
+        const yearlyData = years.map(year => {
+          const yearStr = format(year, 'yyyy');
+          const yearRevenue = combinedData
+            .filter(item => item.date.getFullYear() === year.getFullYear())
+            .reduce((sum, item) => sum + item.amount, 0);
+          
+          return { name: yearStr, revenue: yearRevenue };
+        });
+        
+        setRevenueData({
+          weekly: weeklyData,
+          monthly: monthlyData,
+          yearly: yearlyData
+        });
+      } catch (error) {
+        console.error('Error fetching revenue data:', error);
+        setRevenueData({
+          weekly: [],
+          monthly: [],
+          yearly: []
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchRevenueData();
+  }, [user]);
+
+  const renderChart = (data: RevenueItem[]) => (
     <ResponsiveContainer width="100%" height={300}>
-      <AreaChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-        <defs>
-          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#4a85f0" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#4a85f0" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-        <XAxis dataKey="name" axisLine={false} tickLine={false} />
-        <YAxis 
-          axisLine={false} 
-          tickLine={false} 
-          tickFormatter={(value) => `$${value}`}
-        />
-        <Tooltip content={<CustomTooltip />} />
-        <Area 
-          type="monotone" 
-          dataKey="revenue" 
-          stroke="#4a85f0" 
-          strokeWidth={2}
-          fillOpacity={1} 
-          fill="url(#colorRevenue)" 
-          animationDuration={1500}
-        />
-      </AreaChart>
+      {isLoading ? (
+        <div className="flex items-center justify-center h-full">
+          <p className="text-muted-foreground">Loading revenue data...</p>
+        </div>
+      ) : (
+        <AreaChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+          <defs>
+            <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor="#4a85f0" stopOpacity={0.3} />
+              <stop offset="95%" stopColor="#4a85f0" stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+          <XAxis dataKey="name" axisLine={false} tickLine={false} />
+          <YAxis 
+            axisLine={false} 
+            tickLine={false} 
+            tickFormatter={(value) => `₹${value}`}
+          />
+          <Tooltip content={<CustomTooltip />} />
+          <Area 
+            type="monotone" 
+            dataKey="revenue" 
+            stroke="#4a85f0" 
+            strokeWidth={2}
+            fillOpacity={1} 
+            fill="url(#colorRevenue)" 
+            animationDuration={1500}
+          />
+        </AreaChart>
+      )}
     </ResponsiveContainer>
   );
 

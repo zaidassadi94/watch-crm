@@ -22,12 +22,6 @@ export function CustomerSelect({
   setSearchTerm,
   selectCustomer
 }: CustomerSelectProps) {
-  const handleCustomerChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    form.setValue('customer_name', value);
-    setSearchTerm(value);
-  };
-  
   return (
     <CustomerInfoSection 
       form={form}

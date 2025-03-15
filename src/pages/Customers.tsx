@@ -32,139 +32,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-interface Customer {
-  id: number;
-  name: string;
-  email: string;
-  phone: string;
-  type: string;
-  totalSpent: number;
-  lastPurchase: string;
-  status: string;
-  avatarUrl: string;
-}
-
-// Sample data that would be replaced with actual data from database
-const customers: Customer[] = [
-  {
-    id: 1,
-    name: 'Alex Johnson',
-    email: 'alex@example.com',
-    phone: '+1 (555) 123-4567',
-    type: 'VIP',
-    totalSpent: 12450,
-    lastPurchase: '2023-11-15',
-    status: 'Active',
-    avatarUrl: '',
-  },
-  {
-    id: 2,
-    name: 'Sarah Williams',
-    email: 'sarah@example.com',
-    phone: '+1 (555) 234-5678',
-    type: 'Regular',
-    totalSpent: 8750,
-    lastPurchase: '2023-11-10',
-    status: 'Active',
-    avatarUrl: '',
-  },
-  {
-    id: 3,
-    name: 'Michael Brown',
-    email: 'michael@example.com',
-    phone: '+1 (555) 345-6789',
-    type: 'VIP',
-    totalSpent: 6320,
-    lastPurchase: '2023-11-05',
-    status: 'Inactive',
-    avatarUrl: '',
-  },
-  {
-    id: 4,
-    name: 'Emily Davis',
-    email: 'emily@example.com',
-    phone: '+1 (555) 456-7890',
-    type: 'Regular',
-    totalSpent: 5890,
-    lastPurchase: '2023-10-28',
-    status: 'Active',
-    avatarUrl: '',
-  },
-  {
-    id: 5,
-    name: 'James Wilson',
-    email: 'james@example.com',
-    phone: '+1 (555) 567-8901',
-    type: 'Regular',
-    totalSpent: 4560,
-    lastPurchase: '2023-10-25',
-    status: 'Active',
-    avatarUrl: '',
-  },
-  {
-    id: 6,
-    name: 'Olivia Martinez',
-    email: 'olivia@example.com',
-    phone: '+1 (555) 678-9012',
-    type: 'VIP',
-    totalSpent: 9870,
-    lastPurchase: '2023-10-23',
-    status: 'Active',
-    avatarUrl: '',
-  },
-  {
-    id: 7,
-    name: 'Daniel Anderson',
-    email: 'daniel@example.com',
-    phone: '+1 (555) 789-0123',
-    type: 'Regular',
-    totalSpent: 3540,
-    lastPurchase: '2023-10-20',
-    status: 'Inactive',
-    avatarUrl: '',
-  },
-  {
-    id: 8,
-    name: 'Sophia Thomas',
-    email: 'sophia@example.com',
-    phone: '+1 (555) 890-1234',
-    type: 'Regular',
-    totalSpent: 2780,
-    lastPurchase: '2023-10-18',
-    status: 'Active',
-    avatarUrl: '',
-  },
-];
-
-const customerFormSchema = z.object({
-  name: z.string().min(2, "Name must be at least 2 characters"),
-  email: z.string().email("Invalid email address").optional().or(z.literal('')),
-  phone: z.string().optional().or(z.literal('')),
-  type: z.enum(["Regular", "VIP"]),
-  status: z.enum(["Active", "Inactive"]),
-});
-
-type CustomerFormValues = z.infer<typeof customerFormSchema>;
+import { useCustomers } from '@/hooks/useCustomers';
+import { CustomerDialog } from '@/components/customers/CustomerDialog';
+import { CustomersList } from '@/components/customers/CustomersList';
 
 const Customers = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
   const { toast } = useToast();
-
-  const form = useForm<CustomerFormValues>({
-    resolver: zodResolver(customerFormSchema),
-    defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      type: 'Regular',
-      status: 'Active',
-    }
-  });
+  const { customers, isLoading, refreshCustomers } = useCustomers();
 
   useEffect(() => {
     setTimeout(() => {
@@ -172,172 +50,25 @@ const Customers = () => {
     }, 100);
   }, []);
 
-  useEffect(() => {
-    if (selectedCustomer) {
-      form.reset({
-        name: selectedCustomer.name,
-        email: selectedCustomer.email,
-        phone: selectedCustomer.phone,
-        type: selectedCustomer.type as 'Regular' | 'VIP',
-        status: selectedCustomer.status as 'Active' | 'Inactive',
-      });
-    } else {
-      form.reset({
-        name: '',
-        email: '',
-        phone: '',
-        type: 'Regular',
-        status: 'Active',
-      });
-    }
-  }, [selectedCustomer, form]);
-
-  const filteredCustomers = customers.filter(customer => 
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    customer.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const onSubmit = async (data: CustomerFormValues) => {
-    try {
-      setIsSubmitting(true);
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      toast({
-        title: selectedCustomer ? "Customer Updated" : "Customer Added",
-        description: `${data.name} has been ${selectedCustomer ? 'updated' : 'added'} successfully.`,
-      });
-      
-      setIsDialogOpen(false);
-      setSelectedCustomer(null);
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Something went wrong. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleCloseDialog = () => {
-    form.reset();
-    setSelectedCustomer(null);
-    setIsDialogOpen(false);
-  };
-
-  const handleAddCustomer = () => {
-    setSelectedCustomer(null);
-    setIsDialogOpen(true);
-  };
-
-  const handleEditCustomer = (customer: Customer) => {
+  const handleOpenDialog = (customer = null) => {
     setSelectedCustomer(customer);
     setIsDialogOpen(true);
   };
 
-  const handleDeleteCustomer = (id: number) => {
-    toast({
-      title: "Customer Deleted",
-      description: "Customer has been deleted successfully.",
-    });
+  const handleCloseDialog = () => {
+    setSelectedCustomer(null);
+    setIsDialogOpen(false);
   };
 
-  const columns = [
-    {
-      header: 'Customer',
-      cell: (customer: Customer) => (
-        <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9 border border-border">
-            <AvatarImage src={customer.avatarUrl} alt={customer.name} />
-            <AvatarFallback className="bg-primary/10 text-primary">
-              {customer.name.split(' ').map(n => n[0]).join('')}
-            </AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-medium">{customer.name}</p>
-            <p className="text-xs text-muted-foreground">{customer.email}</p>
-          </div>
-        </div>
-      ),
-    },
-    {
-      header: 'Phone',
-      accessorKey: 'phone',
-    },
-    {
-      header: 'Type',
-      cell: (customer: Customer) => (
-        <Badge 
-          variant={customer.type === 'VIP' ? 'default' : 'outline'}
-          className={customer.type === 'VIP' ? 'bg-brand-500' : ''}
-        >
-          {customer.type}
-        </Badge>
-      ),
-    },
-    {
-      header: 'Total Spent',
-      cell: (customer: Customer) => (
-        <div className="font-medium">₹{customer.totalSpent.toLocaleString()}</div>
-      ),
-    },
-    {
-      header: 'Last Purchase',
-      cell: (customer: Customer) => (
-        <div>{new Date(customer.lastPurchase).toLocaleDateString()}</div>
-      ),
-    },
-    {
-      header: 'Status',
-      cell: (customer: Customer) => (
-        <Badge 
-          variant="outline"
-          className={cn(
-            customer.status === 'Active' 
-              ? 'border-green-500 text-green-600 bg-green-50'
-              : 'border-gray-300 text-gray-600 bg-gray-50'
-          )}
-        >
-          {customer.status}
-        </Badge>
-      ),
-    },
-    {
-      header: 'Actions',
-      cell: (customer: Customer) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-[160px]">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer" onClick={(e) => e.stopPropagation()}>
-              <Eye className="mr-2 h-4 w-4" /> View Details
-            </DropdownMenuItem>
-            <DropdownMenuItem className="cursor-pointer" onClick={(e) => {
-              e.stopPropagation();
-              handleEditCustomer(customer);
-            }}>
-              <Edit className="mr-2 h-4 w-4" /> Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer text-destructive" onClick={(e) => {
-              e.stopPropagation();
-              handleDeleteCustomer(customer.id);
-            }}>
-              <Trash2 className="mr-2 h-4 w-4" /> Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-    },
-  ];
+  const handleSaved = () => {
+    refreshCustomers();
+    handleCloseDialog();
+  };
+
+  const filteredCustomers = customers.filter(customer => 
+    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div 
@@ -353,7 +84,10 @@ const Customers = () => {
             Manage customer profiles and track purchase history
           </p>
         </div>
-        <Button className="w-full md:w-auto gap-2" onClick={handleAddCustomer}>
+        <Button 
+          className="w-full md:w-auto gap-2" 
+          onClick={() => handleOpenDialog()}
+        >
           <UserPlus className="h-4 w-4" /> Add Customer
         </Button>
       </div>
@@ -381,172 +115,22 @@ const Customers = () => {
             </div>
           </div>
 
-          <DataTable 
-            columns={columns} 
-            data={filteredCustomers}
-            onRowClick={(customer) => console.log('Clicked on customer:', customer.name)}
-            emptyState={
-              <div className="flex flex-col items-center justify-center py-8">
-                <div className="bg-muted/30 rounded-full p-3 mb-3">
-                  <UserPlus className="h-6 w-6 text-muted-foreground" />
-                </div>
-                <h3 className="text-lg font-medium mb-1">No customers found</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  {searchTerm 
-                    ? "Try adjusting your search terms" 
-                    : "Get started by adding your first customer"}
-                </p>
-                {!searchTerm && (
-                  <Button size="sm" className="gap-1" onClick={handleAddCustomer}>
-                    <PlusCircle className="h-4 w-4" /> Add Customer
-                  </Button>
-                )}
-              </div>
-            }
+          <CustomersList 
+            customers={filteredCustomers}
+            onEditCustomer={handleOpenDialog}
+            searchTerm={searchTerm}
+            onAddCustomer={() => handleOpenDialog()}
+            isLoading={isLoading}
           />
         </CardContent>
       </Card>
 
-      <Dialog open={isDialogOpen} onOpenChange={(open) => {
-        if (!open && !isSubmitting) {
-          handleCloseDialog();
-        }
-      }}>
-        <DialogContent className="sm:max-w-md overflow-y-auto max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
-          <DialogHeader>
-            <DialogTitle>{selectedCustomer ? 'Edit Customer' : 'Add New Customer'}</DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-6">
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Name</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Customer name" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Email address" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="phone"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Phone</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Phone number" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Customer Type</FormLabel>
-                      <FormControl>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select type" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Regular">Regular</SelectItem>
-                            <SelectItem value="VIP">VIP</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <FormField
-                  control={form.control}
-                  name="status"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <FormControl>
-                        <Select 
-                          onValueChange={field.onChange} 
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Active">Active</SelectItem>
-                            <SelectItem value="Inactive">Inactive</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="flex justify-end space-x-4 pt-4">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!isSubmitting) {
-                        handleCloseDialog();
-                      }
-                    }}
-                    disabled={isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={isSubmitting}
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    {isSubmitting 
-                      ? 'Saving...' 
-                      : selectedCustomer 
-                        ? 'Update Customer' 
-                        : 'Add Customer'
-                    }
-                  </Button>
-                </div>
-              </form>
-            </Form>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <CustomerDialog 
+        open={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
+        customer={selectedCustomer}
+        onSaved={handleSaved}
+      />
     </div>
   );
 };

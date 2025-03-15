@@ -1,7 +1,7 @@
 
 import { useEffect, useState } from 'react';
 import { 
-  DollarSign, 
+  IndianRupee, 
   ShoppingCart, 
   Package2, 
   Wrench, 
@@ -14,9 +14,20 @@ import { ServiceStatus } from '@/components/dashboard/ServiceStatus';
 import { TopCustomers } from '@/components/dashboard/TopCustomers';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { Link } from 'react-router-dom';
 
 const Dashboard = () => {
   const [isLoaded, setIsLoaded] = useState(false);
+  const [dashboardStats, setDashboardStats] = useState({
+    totalRevenue: 0,
+    salesCount: 0,
+    activeInventory: 0,
+    pendingServices: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     setTimeout(() => {
@@ -24,30 +35,84 @@ const Dashboard = () => {
     }, 100);
   }, []);
 
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      if (!user) return;
+      
+      try {
+        setIsLoading(true);
+        
+        // Fetch sales data for revenue and count
+        const { data: salesData, error: salesError } = await supabase
+          .from('sales')
+          .select('total_amount')
+          .eq('user_id', user.id);
+        
+        if (salesError) throw salesError;
+        
+        // Fetch service data for additional revenue
+        const { data: serviceData, error: serviceError } = await supabase
+          .from('service_requests')
+          .select('price, status')
+          .eq('user_id', user.id);
+        
+        if (serviceError) throw serviceError;
+        
+        // Fetch inventory count
+        const { data: inventoryData, error: inventoryError } = await supabase
+          .from('inventory')
+          .select('id')
+          .eq('user_id', user.id);
+        
+        if (inventoryError) throw inventoryError;
+        
+        // Calculate stats
+        const totalSalesRevenue = salesData?.reduce((acc, item) => acc + Number(item.total_amount || 0), 0) || 0;
+        const totalServiceRevenue = serviceData?.reduce((acc, item) => acc + Number(item.price || 0), 0) || 0;
+        const pendingServices = serviceData?.filter(item => 
+          item.status === 'pending' || item.status === 'in progress'
+        ).length || 0;
+        
+        setDashboardStats({
+          totalRevenue: totalSalesRevenue + totalServiceRevenue,
+          salesCount: salesData?.length || 0,
+          activeInventory: inventoryData?.length || 0,
+          pendingServices
+        });
+      } catch (error) {
+        console.error('Error fetching dashboard data:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchDashboardData();
+  }, [user]);
+
   const stats = [
     {
       title: 'Total Revenue',
-      value: '₹48,352',
-      icon: <DollarSign className="w-5 h-5" />,
+      value: `₹${dashboardStats.totalRevenue.toLocaleString()}`,
+      icon: <IndianRupee className="w-5 h-5" />,
       trend: { value: 12, positive: true },
     },
     {
       title: 'Sales Count',
-      value: '182',
+      value: dashboardStats.salesCount.toString(),
       icon: <ShoppingCart className="w-5 h-5" />,
       trend: { value: 8, positive: true },
     },
     {
       title: 'Active Inventory',
-      value: '165',
+      value: dashboardStats.activeInventory.toString(),
       icon: <Package2 className="w-5 h-5" />,
-      trend: { value: 3, positive: false },
+      trend: { value: 3, positive: dashboardStats.activeInventory > 0 },
     },
     {
       title: 'Pending Services',
-      value: '37',
+      value: dashboardStats.pendingServices.toString(),
       icon: <Wrench className="w-5 h-5" />,
-      trend: { value: 5, positive: true },
+      trend: { value: 5, positive: false },
     },
   ];
 
@@ -139,9 +204,9 @@ const Dashboard = () => {
               className={cn("p-0 h-auto", action.textColor)}
               asChild
             >
-              <a href={action.link} className="flex items-center gap-1 text-sm">
+              <Link to={action.link} className="flex items-center gap-1 text-sm">
                 Go <ArrowRight className="w-3 h-3" />
-              </a>
+              </Link>
             </Button>
           </div>
         ))}
