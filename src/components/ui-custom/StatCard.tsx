@@ -1,13 +1,19 @@
 
-import { ReactNode } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+interface SecondaryValue {
+  label: string;
+  value: string;
+}
 
 interface StatCardProps {
   title: string;
-  value: string | number;
-  description?: string;
-  icon?: ReactNode;
+  value: string;
+  secondaryValues?: SecondaryValue[];
+  icon?: React.ReactNode;
   trend?: {
     value: number;
     positive: boolean;
@@ -18,41 +24,42 @@ interface StatCardProps {
 export function StatCard({
   title,
   value,
-  description,
+  secondaryValues,
   icon,
   trend,
   className,
 }: StatCardProps) {
   return (
-    <Card className={cn(
-      "overflow-hidden transition-all duration-200 hover:shadow-card-hover", 
-      className
-    )}>
+    <Card className={cn("overflow-hidden", className)}>
       <CardContent className="p-6">
-        <div className="flex justify-between items-start">
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-bold">{value}</h3>
-            {trend && (
-              <div className="flex items-center gap-1">
-                <span 
-                  className={cn(
-                    "text-xs font-medium",
-                    trend.positive ? "text-green-500" : "text-red-500"
-                  )}
-                >
-                  {trend.positive ? "+" : "-"}{Math.abs(trend.value)}%
-                </span>
-                <span className="text-xs text-muted-foreground">vs last period</span>
-              </div>
-            )}
-            {description && (
-              <p className="text-sm text-muted-foreground mt-1">{description}</p>
-            )}
-          </div>
-          {icon && (
-            <div className="rounded-full p-2 bg-primary/10 text-primary">
-              {icon}
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium text-muted-foreground">{title}</span>
+          {icon && <div className="flex items-center justify-center h-8 w-8 rounded-full bg-accent">{icon}</div>}
+        </div>
+        <div className="mt-2 flex flex-col">
+          <span className="text-2xl font-bold">{value}</span>
+          
+          {secondaryValues && secondaryValues.length > 0 && (
+            <div className="mt-1 space-y-1">
+              {secondaryValues.map((item, index) => (
+                <div key={index} className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>{item.label}:</span>
+                  <span className="font-medium">{item.value}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {trend && (
+            <div className="mt-1 flex items-center">
+              {trend.positive ? (
+                <ArrowUpRight className="h-4 w-4 text-green-500 mr-1" />
+              ) : (
+                <ArrowDownRight className="h-4 w-4 text-red-500 mr-1" />
+              )}
+              <span className={cn("text-xs font-medium", trend.positive ? "text-green-500" : "text-red-500")}>
+                {trend.value}%
+              </span>
             </div>
           )}
         </div>

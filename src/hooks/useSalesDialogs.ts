@@ -13,15 +13,17 @@ export function useSalesDialogs() {
   const [invoiceSaleItems, setInvoiceSaleItems] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Clean way to handle dialog state
+  // Improved dialog state management to prevent freezing
   const safeSetIsDialogOpen = useCallback((open: boolean) => {
-    setIsDialogOpen(open);
-    
-    // Reset selected sale after dialog closes with a delay to prevent UI freeze
     if (!open) {
+      // Close the dialog immediately
+      setIsDialogOpen(false);
+      // Reset selected sale with a delay to prevent UI jank
       setTimeout(() => {
         setSelectedSale(null);
-      }, 300);
+      }, 100);
+    } else {
+      setIsDialogOpen(true);
     }
   }, []);
 
@@ -69,21 +71,26 @@ export function useSalesDialogs() {
     setIsReturnDialogOpen(true);
   }, [isLoading]);
 
-  // Safe handlers for dialog states
+  // Improved dialog state handlers
   const safeSetIsInvoiceDialogOpen = useCallback((open: boolean) => {
     setIsInvoiceDialogOpen(open);
-    
-    // Reset items after dialog closes with a delay
     if (!open) {
+      // Clear items only after dialog animation has completed
       setTimeout(() => {
         setInvoiceSaleItems([]);
-      }, 300);
+      }, 100);
     }
   }, []);
 
   const safeSetIsReturnDialogOpen = useCallback((open: boolean) => {
     setIsReturnDialogOpen(open);
-  }, []);
+    if (!open && selectedSale) {
+      // Reset selected sale after return dialog closes
+      setTimeout(() => {
+        setSelectedSale(null);
+      }, 100);
+    }
+  }, [selectedSale]);
 
   return {
     selectedSale,

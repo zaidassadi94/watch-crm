@@ -26,19 +26,18 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const { toast } = useToast();
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   
-  // Create safe cancel handler
-  const handleCancel = () => {
-    if (isFormSubmitting) return;
-    onOpenChange(false);
-  };
-  
-  // Handle successful save
+  // Create handlers before form init to avoid timing issues
   const handleSaved = () => {
     onSaved();
     onOpenChange(false);
   };
   
-  // Initialize form with error handling
+  const handleCancel = () => {
+    if (isFormSubmitting) return;
+    onOpenChange(false);
+  };
+  
+  // Initialize form with proper handlers
   const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
     sale, 
     user?.id, 
@@ -75,15 +74,16 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         description: "There was a problem submitting the form. Please try again.",
         variant: "destructive",
       });
-    } finally {
       setIsFormSubmitting(false);
     }
   };
 
   // Initialize form data when sale changes
   useEffect(() => {
+    if (!open) return; // Only initialize when dialog is open
+    
     if (!sale) {
-      // Initialize new sale form with empty values (not null)
+      // Initialize new sale form with empty values
       form.reset({
         customer_name: '',
         customer_email: '',
@@ -111,7 +111,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
               customer_email: sale.customer_email || '',
               customer_phone: sale.customer_phone || '',
               status: sale.status,
-              payment_method: sale.payment_method || '',
+              payment_method: sale.payment_method || 'cash',
               notes: sale.notes || '',
               invoice_number: sale.invoice_number || '',
               items: data.map(item => ({
@@ -130,7 +130,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
               customer_email: sale.customer_email || '',
               customer_phone: sale.customer_phone || '',
               status: sale.status,
-              payment_method: sale.payment_method || '',
+              payment_method: sale.payment_method || 'cash',
               notes: sale.notes || '',
               invoice_number: sale.invoice_number || '',
               items: [{ product_name: '', quantity: 1, price: 0, cost_price: 0 }]
@@ -149,7 +149,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       
       fetchSaleItems();
     }
-  }, [sale, updateProductSearchTerms, form, toast]);
+  }, [sale, open, updateProductSearchTerms, form, toast]);
 
   // Product selection handler
   const selectProduct = (product: ProductSuggestion, index: number) => {

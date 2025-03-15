@@ -21,7 +21,8 @@ import { Link } from 'react-router-dom';
 const Dashboard = () => {
   const [isLoaded, setIsLoaded] = useState(false);
   const [dashboardStats, setDashboardStats] = useState({
-    totalRevenue: 0,
+    totalSalesRevenue: 0,
+    totalServiceRevenue: 0,
     salesCount: 0,
     activeInventory: 0,
     pendingServices: 0
@@ -42,11 +43,12 @@ const Dashboard = () => {
       try {
         setIsLoading(true);
         
-        // Fetch sales data for revenue and count
+        // Fetch completed sales data for revenue and count
         const { data: salesData, error: salesError } = await supabase
           .from('sales')
           .select('total_amount')
-          .eq('user_id', user.id);
+          .eq('user_id', user.id)
+          .eq('status', 'completed'); // Only count completed sales
         
         if (salesError) throw salesError;
         
@@ -74,7 +76,8 @@ const Dashboard = () => {
         ).length || 0;
         
         setDashboardStats({
-          totalRevenue: totalSalesRevenue + totalServiceRevenue,
+          totalSalesRevenue,
+          totalServiceRevenue,
           salesCount: salesData?.length || 0,
           activeInventory: inventoryData?.length || 0,
           pendingServices
@@ -89,15 +92,22 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [user]);
 
+  // Calculate total revenue from both sales and services
+  const totalRevenue = dashboardStats.totalSalesRevenue + dashboardStats.totalServiceRevenue;
+
   const stats = [
     {
       title: 'Total Revenue',
-      value: `₹${dashboardStats.totalRevenue.toLocaleString()}`,
+      value: `₹${totalRevenue.toLocaleString()}`,
+      secondaryValue: [
+        { label: 'Sales', value: `₹${dashboardStats.totalSalesRevenue.toLocaleString()}` },
+        { label: 'Services', value: `₹${dashboardStats.totalServiceRevenue.toLocaleString()}` }
+      ],
       icon: <IndianRupee className="w-5 h-5" />,
       trend: { value: 12, positive: true },
     },
     {
-      title: 'Sales Count',
+      title: 'Completed Sales',
       value: dashboardStats.salesCount.toString(),
       icon: <ShoppingCart className="w-5 h-5" />,
       trend: { value: 8, positive: true },
@@ -130,6 +140,7 @@ const Dashboard = () => {
             key={index}
             title={stat.title}
             value={stat.value}
+            secondaryValues={stat.secondaryValue}
             icon={stat.icon}
             trend={stat.trend}
           />
