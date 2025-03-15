@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -58,7 +59,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
             payment_method: sale.payment_method || '',
             notes: sale.notes || '',
             invoice_number: sale.invoice_number || '',
-            items: data?.map(item => ({
+            items: (data as SaleItemWithInventory[])?.map(item => ({
               product_name: item.product_name,
               quantity: item.quantity,
               price: Number(item.price),

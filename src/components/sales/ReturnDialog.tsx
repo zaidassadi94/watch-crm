@@ -117,7 +117,6 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
     }
     
     try {
-      // Fetch sale details
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .select('*')
@@ -127,7 +126,6 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
       if (saleError) throw saleError;
       setSelectedSale(saleData);
       
-      // Fetch sale items
       const { data: itemsData, error: itemsError } = await supabase
         .from('sale_items')
         .select('*')
@@ -136,8 +134,7 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
       if (itemsError) throw itemsError;
       setSaleItems(itemsData || []);
       
-      // Setup form with items
-      const formItems = itemsData.map(item => ({
+      const formItems = itemsData.map((item: SaleItemWithInventory) => ({
         product_name: item.product_name,
         quantity: 1,
         price: item.price,
@@ -163,13 +160,11 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
     setIsSubmitting(true);
     
     try {
-      // Calculate return amount
       const totalAmount = data.items.reduce(
         (sum, item) => sum + (item.quantity * item.price), 
         0
       );
       
-      // Create return record
       const { data: returnData, error: returnError } = await supabase
         .from('returns')
         .insert({
@@ -184,7 +179,6 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
         
       if (returnError) throw returnError;
       
-      // Create return items
       const returnItems = data.items.map(item => ({
         return_id: returnData.id,
         product_name: item.product_name,
@@ -200,10 +194,8 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
         
       if (itemsError) throw itemsError;
       
-      // Update inventory for each returned item
       for (const item of data.items) {
         if (item.inventory_id) {
-          // Get current inventory
           const { data: inventoryData, error: inventoryError } = await supabase
             .from('inventory')
             .select('stock_level, stock_status')
@@ -216,7 +208,6 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
           }
           
           if (inventoryData) {
-            // Update inventory
             const newStockLevel = inventoryData.stock_level + item.quantity;
             let newStockStatus = inventoryData.stock_status;
             
