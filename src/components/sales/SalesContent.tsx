@@ -27,13 +27,14 @@ function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
     let accessorKey = '';
     if ('accessorKey' in col && typeof col.accessorKey === 'string') {
       accessorKey = col.accessorKey;
-    } else if (col.accessorFn) {
+    } else if ('id' in col) {
+      // Use id as fallback if accessorFn doesn't exist
       accessorKey = String(col.id || '');
     }
     
     // Create a cell render function compatible with our DataTable
     const cellFunction = ({ row }: { row: { original: T } }) => {
-      if (typeof col.cell === 'function') {
+      if (col.cell && typeof col.cell === 'function') {
         return col.cell({ row: { original: row.original } } as any);
       }
       return null;
@@ -41,7 +42,7 @@ function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
     
     // Extract className safely
     const className = col.meta && typeof col.meta === 'object' && col.meta !== null
-      ? (col.meta as any).className || ''
+      ? ('className' in col.meta ? (col.meta as any).className : '')
       : '';
     
     return {
