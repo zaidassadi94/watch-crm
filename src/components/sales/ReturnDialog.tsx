@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { 
   Dialog, 
@@ -37,6 +36,18 @@ import { useSettings } from '@/hooks/useSettings';
 import { supabase } from '@/integrations/supabase/client';
 import { returnFormSchema, ReturnFormValues } from './saleFormSchema';
 
+interface SaleItemWithInventory {
+  id: string;
+  sale_id: string;
+  product_name: string;
+  quantity: number;
+  price: number;
+  cost_price: number | null;
+  subtotal: number;
+  created_at: string;
+  inventory_id?: string;
+}
+
 interface ReturnDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -50,7 +61,7 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sales, setSales] = useState<Sale[]>([]);
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
-  const [saleItems, setSaleItems] = useState<any[]>([]);
+  const [saleItems, setSaleItems] = useState<SaleItemWithInventory[]>([]);
   
   const form = useForm<ReturnFormValues>({
     resolver: zodResolver(returnFormSchema),

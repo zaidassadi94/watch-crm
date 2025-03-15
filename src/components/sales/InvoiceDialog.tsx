@@ -27,7 +27,6 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
   const invoiceRef = useRef<HTMLDivElement>(null);
 
   const handlePrint = useReactToPrint({
-    content: () => invoiceRef.current,
     documentTitle: `Invoice-${sale?.invoice_number || sale?.id?.substring(0, 8) || 'Unknown'}`,
     onPrintError: () => {
       toast({
@@ -83,7 +82,7 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
-          <Button onClick={handlePrint}>
+          <Button onClick={() => handlePrint(invoiceRef.current)}>
             <Printer className="w-4 h-4 mr-2" />
             Print Invoice
           </Button>

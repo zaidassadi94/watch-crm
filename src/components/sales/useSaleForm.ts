@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -7,6 +6,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sale } from '@/pages/Sales';
 import { saleFormSchema, SaleFormValues, calculateTotal, SaleItemInternal } from './saleFormSchema';
 import { getStockStatusBasedOnLevel } from '@/components/inventory/dialog/InventoryFormSchema';
+
+interface SaleItemWithInventory {
+  id: string;
+  sale_id: string;
+  product_name: string;
+  quantity: number;
+  price: number;
+  cost_price: number | null;
+  subtotal: number;
+  created_at: string;
+  inventory_id?: string;
+}
 
 export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuccess: () => void, onCancel: () => void) {
   const { toast } = useToast();
@@ -83,7 +94,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
 
   const generateInvoiceNumber = async () => {
     try {
-      // Use a database sequence to generate unique invoice numbers
       const { data, error } = await supabase.rpc('nextval', { seq_name: 'invoice_number_seq' });
       
       if (error) throw error;
@@ -92,7 +102,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
       return invoiceNumber;
     } catch (error) {
       console.error('Error generating invoice number:', error);
-      // Fallback to timestamp if sequence fails
       return `INV-${Date.now()}`;
     }
   };
@@ -122,14 +131,12 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
       const totalAmount = calculation.totalPrice;
       const totalProfit = calculation.totalProfit;
       
-      // Ensure we have an invoice number for completed sales
       let invoiceNumber = data.invoice_number;
       if (data.status === 'completed' && !invoiceNumber) {
         invoiceNumber = await generateInvoiceNumber();
       }
 
       if (sale) {
-        // Prepare for inventory updates by getting original items if status is changing to completed
         let originalItems: any[] = [];
         if (sale.status !== 'completed' && data.status === 'completed') {
           const { data: itemsData } = await supabase
@@ -140,7 +147,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
           originalItems = itemsData || [];
         }
         
-        // Update sale record
         const { error } = await supabase
           .from('sales')
           .update({
@@ -159,7 +165,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
 
         if (error) throw error;
 
-        // Delete existing items
         const { error: deleteError } = await supabase
           .from('sale_items')
           .delete()
@@ -167,7 +172,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
 
         if (deleteError) throw deleteError;
 
-        // Insert updated items
         const { error: itemsError } = await supabase
           .from('sale_items')
           .insert(
@@ -184,11 +188,9 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
 
         if (itemsError) throw itemsError;
         
-        // Update inventory if status is changing to completed
         if (sale.status !== 'completed' && data.status === 'completed') {
           for (const item of data.items) {
             if (item.inventory_id) {
-              // Get current inventory
               const { data: inventoryData, error: inventoryError } = await supabase
                 .from('inventory')
                 .select('stock_level, stock_status')
@@ -201,7 +203,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
               }
               
               if (inventoryData) {
-                // Update inventory
                 const newStockLevel = Math.max(0, inventoryData.stock_level - item.quantity);
                 const newStockStatus = getStockStatusBasedOnLevel(newStockLevel);
                 
@@ -223,7 +224,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
           description: "Sale details have been updated successfully",
         });
       } else {
-        // Create new sale
         const { data: newSale, error } = await supabase
           .from('sales')
           .insert({
@@ -243,7 +243,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
 
         if (error) throw error;
 
-        // Insert sale items
         const { error: itemsError } = await supabase
           .from('sale_items')
           .insert(
@@ -260,11 +259,9 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
 
         if (itemsError) throw itemsError;
         
-        // Update inventory for completed sales
         if (data.status === 'completed') {
           for (const item of data.items) {
             if (item.inventory_id) {
-              // Get current inventory
               const { data: inventoryData, error: inventoryError } = await supabase
                 .from('inventory')
                 .select('stock_level, stock_status')
@@ -277,7 +274,6 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
               }
               
               if (inventoryData) {
-                // Update inventory
                 const newStockLevel = Math.max(0, inventoryData.stock_level - item.quantity);
                 const newStockStatus = getStockStatusBasedOnLevel(newStockLevel);
                 
