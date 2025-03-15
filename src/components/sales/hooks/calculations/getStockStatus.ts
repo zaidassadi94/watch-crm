@@ -1,6 +1,6 @@
 
 /**
- * Determine stock status based on current stock level
+ * Get the stock status based on the current stock level
  */
 export function getStockStatusBasedOnLevel(stockLevel: number): string {
   if (stockLevel <= 0) {
