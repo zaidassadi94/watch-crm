@@ -5,7 +5,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { MainLayout } from "./components/layout/MainLayout";
+import { AuthProvider } from "./hooks/useAuth";
+import { ProtectedRoute } from "./components/ui-custom/ProtectedRoute";
 import Index from "./pages/Index";
+import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import Customers from "./pages/Customers";
 import Inventory from "./pages/Inventory";
@@ -21,54 +24,67 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          
-          {/* Main application routes with layout */}
-          <Route 
-            path="/dashboard" 
-            element={
-              <MainLayout>
-                <Dashboard />
-              </MainLayout>
-            } 
-          />
-          <Route 
-            path="/customers" 
-            element={
-              <MainLayout>
-                <Customers />
-              </MainLayout>
-            } 
-          />
-          <Route 
-            path="/inventory" 
-            element={
-              <MainLayout>
-                <Inventory />
-              </MainLayout>
-            } 
-          />
-          <Route 
-            path="/sales" 
-            element={
-              <MainLayout>
-                <Sales />
-              </MainLayout>
-            } 
-          />
-          <Route 
-            path="/services" 
-            element={
-              <MainLayout>
-                <Services />
-              </MainLayout>
-            } 
-          />
-          
-          {/* Not found route */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* Main application routes with layout */}
+            <Route 
+              path="/dashboard" 
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Dashboard />
+                  </MainLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/customers" 
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Customers />
+                  </MainLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/inventory" 
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Inventory />
+                  </MainLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/sales" 
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Sales />
+                  </MainLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/services" 
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Services />
+                  </MainLayout>
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* Not found route */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
