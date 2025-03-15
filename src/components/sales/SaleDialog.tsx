@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -71,8 +70,7 @@ const saleFormSchema = z.object({
 
 type SaleFormValues = z.infer<typeof saleFormSchema>;
 
-// Define a type for items that ensures quantity and price are non-optional
-interface SaleItem {
+interface SaleItemInternal {
   product_name: string;
   quantity: number;
   price: number;
@@ -89,7 +87,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [customerSearchTerm, setCustomerSearchTerm] = useState("");
 
-  // Initialize form with default values or sale data if editing
   const form = useForm<SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
     defaultValues: {
@@ -105,13 +102,11 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     }
   });
 
-  // Setup field array for items
   const { fields, append, remove } = useFieldArray({
     control: form.control,
     name: "items",
   });
 
-  // Update form when sale changes
   useEffect(() => {
     if (sale) {
       const fetchSaleItems = async () => {
@@ -137,7 +132,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             })) || []
           });
 
-          // Initialize product search terms array
           setProductSearchTerms(data?.map(() => "") || []);
         } catch (error: any) {
           toast({
@@ -165,7 +159,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     }
   }, [sale, form]);
 
-  // Load product suggestions when search term changes
   useEffect(() => {
     const index = showProductSuggestions;
     if (index === null || !productSearchTerms[index] || productSearchTerms[index].length < 2) {
@@ -196,7 +189,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     loadProductSuggestions();
   }, [showProductSuggestions, productSearchTerms, user]);
 
-  // Load customer suggestions when search term changes
   useEffect(() => {
     if (customerSearchTerm.length < 2) {
       setCustomerSuggestions([]);
@@ -207,7 +199,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       if (!user) return;
       
       try {
-        // Search in sales for existing customers
         const { data: salesData, error: salesError } = await supabase
           .from('sales')
           .select('customer_name, customer_email, customer_phone')
@@ -217,7 +208,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           
         if (salesError) throw salesError;
         
-        // Also search in service requests
         const { data: serviceData, error: serviceError } = await supabase
           .from('service_requests')
           .select('customer_name, customer_email, customer_phone')
@@ -227,7 +217,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           
         if (serviceError) throw serviceError;
         
-        // Combine and deduplicate
         const combinedData = [...(salesData || []), ...(serviceData || [])];
         const uniqueCustomers: CustomerSuggestion[] = [];
         
@@ -276,7 +265,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setProductSearchTerms(newSearchTerms);
   };
 
-  const calculateTotal = (items: SaleItem[]) => {
+  const calculateTotal = (items: SaleItemInternal[]) => {
     return items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
   };
 
@@ -295,7 +284,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       const totalAmount = calculateTotal(data.items);
 
       if (sale) {
-        // Update existing sale
         const { error } = await supabase
           .from('sales')
           .update({
@@ -312,7 +300,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
         if (error) throw error;
 
-        // Delete all existing items and insert new ones
         const { error: deleteError } = await supabase
           .from('sale_items')
           .delete()
@@ -320,7 +307,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
         if (deleteError) throw deleteError;
 
-        // Insert updated items
         const { error: itemsError } = await supabase
           .from('sale_items')
           .insert(
@@ -340,7 +326,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           description: "Sale details have been updated successfully",
         });
       } else {
-        // Create new sale
         const { data: newSale, error } = await supabase
           .from('sales')
           .insert({
@@ -358,7 +343,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
         if (error) throw error;
 
-        // Insert sale items
         const { error: itemsError } = await supabase
           .from('sale_items')
           .insert(
@@ -379,7 +363,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         });
       }
 
-      // Close dialog and refresh sales list
       onOpenChange(false);
       onSaved();
     } catch (error: any) {
@@ -393,8 +376,13 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     }
   };
 
-  // Calculate the current total
-  const total = calculateTotal(form.watch('items') as SaleItem[]);
+  const total = calculateTotal(
+    (form.watch('items') || []).map(item => ({
+      product_name: item.product_name || '',
+      quantity: item.quantity || 1,
+      price: item.price || 0
+    }))
+  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

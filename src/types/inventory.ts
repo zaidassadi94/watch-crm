@@ -28,7 +28,20 @@ export interface ProductSuggestion {
 
 export interface SaleItem {
   product_name: string;
-  price: number;
   quantity: number;
+  price: number;
   subtotal?: number;
+}
+
+export interface CustomerWatchDetails {
+  brand: string;
+  model: string | null;
+  serial: string | null;
+}
+
+export interface CustomerSuggestion {
+  name: string;
+  email: string | null;
+  phone: string | null;
+  watches?: CustomerWatchDetails[];
 }
