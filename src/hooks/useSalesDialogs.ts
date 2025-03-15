@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Sale } from '@/types/sales';
@@ -12,24 +12,26 @@ export function useSalesDialogs() {
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
   const [invoiceSaleItems, setInvoiceSaleItems] = useState<any[]>([]);
 
-  const handleEditSale = (sale: Sale) => {
+  const handleEditSale = useCallback((sale: Sale) => {
     console.log('Editing sale:', sale);
+    // Set sale first, then open dialog
     setSelectedSale(sale);
-    setIsDialogOpen(true);
-  };
-
-  const handleCreateSale = () => {
-    console.log('Creating new sale - dialog should open');
-    // Reset selected sale to null and ensure dialog opens
-    setSelectedSale(null);
-    // Force a small delay to ensure state updates correctly
     setTimeout(() => {
       setIsDialogOpen(true);
-      console.log('Dialog open state set to true');
-    }, 10);
-  };
+    }, 50);
+  }, []);
 
-  const handleViewInvoice = async (sale: Sale) => {
+  const handleCreateSale = useCallback(() => {
+    console.log('Creating new sale - dialog should open');
+    // Reset selected sale to null first
+    setSelectedSale(null);
+    // Then open dialog with a small delay
+    setTimeout(() => {
+      setIsDialogOpen(true);
+    }, 50);
+  }, []);
+
+  const handleViewInvoice = useCallback(async (sale: Sale) => {
     try {
       const { data, error } = await supabase
         .from('sale_items')
@@ -48,12 +50,12 @@ export function useSalesDialogs() {
         variant: "destructive",
       });
     }
-  };
+  }, [toast]);
 
-  const handleReturn = () => {
+  const handleReturn = useCallback(() => {
     console.log('Opening return dialog');
     setIsReturnDialogOpen(true);
-  };
+  }, []);
 
   return {
     selectedSale,

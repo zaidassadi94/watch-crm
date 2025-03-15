@@ -24,15 +24,17 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const [localOpen, setLocalOpen] = useState(false);
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   
-  console.log('SaleDialog rendered. Props open:', open, 'localOpen:', localOpen, 'isEdit:', !!sale);
-  
-  // Use local state to ensure dialog stays visible during form submission
+  // Use the same pattern as other working dialogs
   useEffect(() => {
     if (open) {
-      console.log('Setting localOpen to true because open prop is true');
       setLocalOpen(true);
+    } else {
+      // Only close if we're not in the middle of submitting
+      if (!isFormSubmitting) {
+        setLocalOpen(false);
+      }
     }
-  }, [open]);
+  }, [open, isFormSubmitting]);
   
   const {
     productSuggestions,
@@ -47,48 +49,37 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setCustomerSearchTerm
   } = useSuggestions(user?.id);
 
-  // Initialize the form without handlers that could close the dialog
-  const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
-    sale, 
-    user?.id, 
-    () => {}, // We'll handle this separately
-    () => {}  // We'll handle this separately
-  );
-
-  // Safe handlers that won't close the dialog prematurely
+  // Initialize the form with proper handlers
   const handleSaved = () => {
-    console.log('Sale saved, calling onSaved callback');
     onSaved();
-    // Use setTimeout to prevent state update issues
     setTimeout(() => {
-      console.log('Closing dialog after save');
       setLocalOpen(false);
       onOpenChange(false);
-    }, 300); // Increased timeout to be safer
+    }, 100);
   };
 
   const handleCancel = () => {
-    console.log('Cancelling, setting localOpen to false');
     if (!isFormSubmitting && !isSubmitting) {
       setLocalOpen(false);
       onOpenChange(false);
     }
   };
 
+  // Initialize the form with the handlers
+  const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
+    sale, 
+    user?.id, 
+    handleSaved,
+    handleCancel
+  );
+
   // Enhanced form handling with submission state tracking
   const handleFormSubmit = async (data: any) => {
-    console.log('Form submitted, setting isFormSubmitting to true');
     setIsFormSubmitting(true);
     
     try {
-      console.log('Calling onSubmit with data:', data);
       await formSubmit(data);
-      console.log('Form submission completed successfully');
-      handleSaved();
-    } catch (error) {
-      console.error('Error submitting form:', error);
     } finally {
-      console.log('Form submission complete, setting isFormSubmitting to false');
       setIsFormSubmitting(false);
     }
   };
@@ -96,8 +87,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   // Update product search terms when form is loaded
   useEffect(() => {
     if (open) {
-      console.log('Dialog open, initializing product search terms');
-      
       // Special case: if the dialog is open but there is no sale to edit,
       // We need to initialize the form with initial values
       if (!sale) {
@@ -154,7 +143,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     <Dialog 
       open={localOpen} 
       onOpenChange={(newOpen) => {
-        console.log('Dialog onOpenChange:', newOpen, 'isSubmitting:', isSubmitting, 'isFormSubmitting:', isFormSubmitting);
         // Only allow dialog to close when not submitting
         if (!isSubmitting && !isFormSubmitting && !newOpen) {
           handleCancel();
@@ -162,8 +150,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       }}
     >
       <DialogContent 
-        className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto" 
-        onClick={(e) => e.stopPropagation()}
+        className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto"
       >
         <DialogHeader>
           <DialogTitle>{sale ? 'Edit Sale' : 'Create New Sale'}</DialogTitle>

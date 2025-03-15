@@ -11,6 +11,7 @@ import { SaleEmptyState } from '@/components/sales/SaleEmptyState';
 import { InvoiceDialog } from '@/components/sales/InvoiceDialog';
 import { ReturnDialog } from '@/components/sales/returns/ReturnDialog';
 import { Sale } from '@/types/sales';
+import { getSaleTableColumns } from '@/components/sales/SaleTableColumns';
 
 export function SalesContent() {
   const { sales, isLoading, isLoaded, fetchSales, handleDelete } = useSalesData();
@@ -33,71 +34,12 @@ export function SalesContent() {
     handleReturn
   } = useSalesDialogs();
 
-  console.log('SalesContent - isDialogOpen:', isDialogOpen, 'selectedSale:', selectedSale ? 'exists' : 'null');
-
-  // Define correct column types for DataTable
-  const columns = [
-    {
-      header: 'Customer',
-      accessorKey: 'customer_name',
-    },
-    {
-      header: 'Invoice',
-      cell: ({ row }: { row: { original: Sale } }) => 
-        <div>{row.original.invoice_number || '-'}</div>
-    },
-    {
-      header: 'Amount',
-      cell: ({ row }: { row: { original: Sale } }) => 
-        <div>${Number(row.original.total_amount).toFixed(2)}</div>
-    },
-    {
-      header: 'Status',
-      cell: ({ row }: { row: { original: Sale } }) => 
-        <div className="capitalize">{row.original.status}</div>
-    },
-    {
-      header: 'Date',
-      cell: ({ row }: { row: { original: Sale } }) => 
-        <div>{new Date(row.original.created_at).toLocaleDateString()}</div>
-    },
-    {
-      header: 'Actions',
-      cell: ({ row }: { row: { original: Sale } }) => (
-        <div className="flex space-x-2">
-          <button 
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              handleEditSale(row.original);
-            }}
-            className="text-blue-500 hover:text-blue-700"
-          >
-            Edit
-          </button>
-          <button 
-            onClick={(e) => { 
-              e.stopPropagation(); 
-              handleDelete(row.original.id);
-            }}
-            className="text-red-500 hover:text-red-700"
-          >
-            Delete
-          </button>
-          {row.original.status === 'completed' && (
-            <button 
-              onClick={(e) => { 
-                e.stopPropagation(); 
-                handleViewInvoice(row.original);
-              }}
-              className="text-green-500 hover:text-green-700"
-            >
-              Invoice
-            </button>
-          )}
-        </div>
-      )
-    }
-  ];
+  // Use the columns from SaleTableColumns
+  const columns = getSaleTableColumns({
+    onEdit: handleEditSale,
+    onDelete: handleDelete,
+    onViewInvoice: handleViewInvoice
+  });
 
   const filteredSales = sales.filter(sale => {
     const matchesSearch = 
@@ -137,10 +79,8 @@ export function SalesContent() {
         data={filteredSales}
         isLoading={isLoading}
         emptyState={<SaleEmptyState onCreateSale={handleCreateSale} />}
-        onRowClick={(sale: Sale) => handleEditSale(sale)}
       />
 
-      {/* Important: Render the dialog regardless of state to prevent unmounting issues */}
       <SaleDialog 
         open={isDialogOpen} 
         onOpenChange={setIsDialogOpen}

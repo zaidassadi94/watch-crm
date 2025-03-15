@@ -1,9 +1,9 @@
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { Search, Filter, ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -38,6 +38,7 @@ export function SaleSearch({
   };
 
   const hasActiveFilters = status !== '' || paymentMethod !== '';
+  const activeFilterCount = (status !== '' ? 1 : 0) + (paymentMethod !== '' ? 1 : 0);
 
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -51,23 +52,24 @@ export function SaleSearch({
         />
       </div>
       
-      <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <PopoverTrigger asChild>
+      <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
+        <SheetTrigger asChild>
           <Button variant="outline" size="sm" className="h-10 gap-1">
             <Filter className="h-4 w-4" /> 
             Filter
             {hasActiveFilters && (
               <Badge variant="secondary" className="ml-1 rounded-full text-xs">
-                {(status !== '' ? 1 : 0) + (paymentMethod !== '' ? 1 : 0)}
+                {activeFilterCount}
               </Badge>
             )}
             <ChevronDown className="h-3 w-3 opacity-50" />
           </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-80">
-          <div className="space-y-4">
-            <h4 className="font-medium">Filter Sales</h4>
-            
+        </SheetTrigger>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Filter Sales</SheetTitle>
+          </SheetHeader>
+          <div className="space-y-4 mt-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
               <Select value={status} onValueChange={onStatusChange}>
@@ -100,7 +102,7 @@ export function SaleSearch({
               </Select>
             </div>
             
-            <div className="flex justify-between">
+            <div className="flex justify-between pt-4">
               <Button variant="outline" size="sm" onClick={resetFilters}>
                 <X className="mr-1 h-4 w-4" />
                 Reset Filters
@@ -108,8 +110,8 @@ export function SaleSearch({
               <Button size="sm" onClick={() => setIsFilterOpen(false)}>Apply</Button>
             </div>
           </div>
-        </PopoverContent>
-      </Popover>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
