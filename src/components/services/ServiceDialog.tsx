@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -123,10 +124,16 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
                 existingCustomer.watches = [];
               }
               
+              const watchItem = item as {
+                watch_brand: string;
+                watch_model?: string | null;
+                serial_number?: string | null;
+              };
+              
               const watch: CustomerWatchDetails = {
-                brand: item.watch_brand as string,
-                model: item.watch_model as string | null,
-                serial: item.serial_number as string | null
+                brand: watchItem.watch_brand,
+                model: watchItem.watch_model || null,
+                serial: watchItem.serial_number || null
               };
               
               const existingWatch = existingCustomer.watches.find(w => 
@@ -147,10 +154,16 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
             };
             
             if ('watch_brand' in item && item.watch_brand) {
+              const watchItem = item as {
+                watch_brand: string;
+                watch_model?: string | null;
+                serial_number?: string | null;
+              };
+              
               newCustomer.watches = [{
-                brand: item.watch_brand as string,
-                model: item.watch_model as string | null,
-                serial: item.serial_number as string | null
+                brand: watchItem.watch_brand,
+                model: watchItem.watch_model || null,
+                serial: watchItem.serial_number || null
               }];
             }
             

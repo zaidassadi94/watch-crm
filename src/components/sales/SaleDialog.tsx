@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -365,8 +366,8 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const total = calculateTotal(
     form.watch('items').map(item => ({
       product_name: item.product_name || '',
-      quantity: item.quantity || 1,
-      price: item.price || 0
+      quantity: Number(item.quantity) || 1,
+      price: Number(item.price) || 0
     }))
   );
 
