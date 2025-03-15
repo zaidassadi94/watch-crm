@@ -35,49 +35,50 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     setSearchTerm 
   } = useCustomerSuggestions(user);
 
-  const { form, isSubmitting, onSubmit, handleCancel, isEditMode } = useServiceForm({
+  const handleDialogClose = () => {
+    // Safe dialog close - only if not submitting
+    if (!isSubmitting) {
+      onOpenChange(false);
+    }
+  };
+
+  const { 
+    form, 
+    isSubmitting, 
+    onSubmit, 
+    handleCancel, 
+    isEditMode 
+  } = useServiceForm({
     service,
     user,
-    onSaved,
-    onCancel: () => onOpenChange(false)
+    onSaved: () => {
+      onSaved();
+      onOpenChange(false);
+    },
+    onCancel: handleDialogClose
   });
 
   // Reset form values when the dialog opens/closes or service changes
   useEffect(() => {
     if (open) {
-      if (service) {
-        form.reset({
-          customer_name: service.customer_name || '',
-          customer_email: service.customer_email || '',
-          customer_phone: service.customer_phone || '',
-          watch_brand: service.watch_brand || '',
-          watch_model: service.watch_model || '',
-          serial_number: service.serial_number || '',
-          service_type: service.service_type || 'repair',
-          description: service.description || '',
-          status: service.status || 'pending',
-          estimated_completion: service.estimated_completion 
-            ? new Date(service.estimated_completion).toISOString().split('T')[0] 
-            : '',
-          price: service.price !== undefined && service.price !== null 
-            ? Number(service.price) 
-            : null,
-        });
-      } else {
-        form.reset({
-          customer_name: '',
-          customer_email: '',
-          customer_phone: '',
-          watch_brand: '',
-          watch_model: '',
-          serial_number: '',
-          service_type: 'repair',
-          description: '',
-          status: 'pending',
-          estimated_completion: '',
-          price: null,
-        });
-      }
+      // Reset form with service data or empty values
+      form.reset({
+        customer_name: service?.customer_name || '',
+        customer_email: service?.customer_email || '',
+        customer_phone: service?.customer_phone || '',
+        watch_brand: service?.watch_brand || '',
+        watch_model: service?.watch_model || '',
+        serial_number: service?.serial_number || '',
+        service_type: service?.service_type || 'repair',
+        description: service?.description || '',
+        status: service?.status || 'pending',
+        estimated_completion: service?.estimated_completion 
+          ? new Date(service.estimated_completion).toISOString().split('T')[0] 
+          : '',
+        price: service?.price !== undefined && service?.price !== null 
+          ? Number(service.price) 
+          : null,
+      });
     }
   }, [service, form, open]);
 
@@ -101,8 +102,9 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
       open={open} 
       onOpenChange={(newOpen) => {
         if (!newOpen && !isSubmitting) {
-          handleCancel();
-        } else {
+          // Only allow closing if not submitting
+          handleDialogClose();
+        } else if (newOpen) {
           onOpenChange(newOpen);
         }
       }}

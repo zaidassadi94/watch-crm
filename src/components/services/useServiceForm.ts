@@ -117,8 +117,8 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
   };
 
   const handleCancel = () => {
+    // Only allow cancellation if not submitting
     if (!isSubmitting) {
-      form.reset();
       onCancel();
     }
   };
