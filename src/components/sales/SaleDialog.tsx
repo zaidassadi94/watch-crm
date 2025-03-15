@@ -21,6 +21,14 @@ interface SaleDialogProps {
 
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { user } = useAuth();
+  const [localOpen, setLocalOpen] = useState(false);
+  
+  // Use local state to ensure dialog stays visible during form submission
+  useEffect(() => {
+    if (open) {
+      setLocalOpen(true);
+    }
+  }, [open]);
   
   const {
     productSuggestions,
@@ -37,10 +45,12 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
   const handleSaved = () => {
     onSaved();
+    setLocalOpen(false);
     onOpenChange(false);
   };
 
   const handleCancel = () => {
+    setLocalOpen(false);
     onOpenChange(false);
   };
 
@@ -93,11 +103,11 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
   return (
     <Dialog 
-      open={open} 
+      open={localOpen} 
       onOpenChange={(newOpen) => {
         // Only allow dialog to close when not submitting
-        if (!isSubmitting) {
-          onOpenChange(newOpen);
+        if (!isSubmitting && !newOpen) {
+          handleCancel();
         }
       }}
     >
