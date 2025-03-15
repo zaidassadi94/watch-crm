@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useCustomers } from '@/hooks/useCustomers';
 
 export interface Customer {
@@ -23,26 +23,30 @@ export function useCustomerManagement() {
 
   useEffect(() => {
     // Add a small delay to ensure smooth transition animation
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 100);
+    
+    return () => clearTimeout(timer);
   }, []);
 
-  const handleOpenDialog = (customer: Customer | null = null) => {
+  // Use memoized callbacks to prevent excessive re-renders
+  const handleOpenDialog = useCallback((customer: Customer | null = null) => {
     setSelectedCustomer(customer);
     setIsDialogOpen(true);
-  };
+  }, []);
 
-  const handleCloseDialog = () => {
+  const handleCloseDialog = useCallback(() => {
     setSelectedCustomer(null);
     setIsDialogOpen(false);
-  };
+  }, []);
 
-  const handleSaved = () => {
+  const handleSaved = useCallback(() => {
     refreshCustomers();
     handleCloseDialog();
-  };
+  }, [refreshCustomers, handleCloseDialog]);
 
+  // Filter customers based on search term
   const filteredCustomers = customers.filter(customer => 
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     (customer.email && customer.email.toLowerCase().includes(searchTerm.toLowerCase()))

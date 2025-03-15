@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { memo } from 'react';
 import { CustomerSuggestion } from '@/types/inventory';
 import { UseFormReturn } from 'react-hook-form';
 import { ServiceFormValues } from './serviceFormSchema';
@@ -14,7 +14,8 @@ interface CustomerSelectProps {
   selectCustomer: (customer: CustomerSuggestion) => void;
 }
 
-export function CustomerSelect({
+// Use React.memo to prevent unnecessary re-renders
+export const CustomerSelect = memo(function CustomerSelect({
   form,
   customerSuggestions,
   showCustomerSuggestions,
@@ -32,4 +33,4 @@ export function CustomerSelect({
       selectCustomer={selectCustomer}
     />
   );
-}
+});

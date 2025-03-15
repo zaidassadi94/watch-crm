@@ -6,6 +6,10 @@ import { CustomerPageHeader } from '@/components/customers/CustomerPageHeader';
 import { CustomersList } from '@/components/customers/CustomersList';
 import { CustomerDialog } from '@/components/customers/CustomerDialog';
 import { useCustomerManagement } from '@/components/customers/useCustomerManagement';
+import { memo } from 'react';
+
+// Memoize the CustomersList component to prevent unnecessary re-renders
+const MemoizedCustomersList = memo(CustomersList);
 
 const Customers = () => {
   const {
@@ -39,7 +43,7 @@ const Customers = () => {
             onSearchChange={setSearchTerm}
           />
 
-          <CustomersList 
+          <MemoizedCustomersList 
             customers={filteredCustomers}
             onEditCustomer={handleOpenDialog}
             searchTerm={searchTerm}

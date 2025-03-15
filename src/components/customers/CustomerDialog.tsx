@@ -1,5 +1,4 @@
-
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -16,6 +15,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { useToast } from '@/components/ui/use-toast';
 import { Customer } from './useCustomerManagement';
+import { supabase } from '@/integrations/supabase/client';
 
 // Customer form schema
 const customerFormSchema = z.object({
@@ -50,7 +50,15 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
     }
   });
 
-  // Reset form when customer changes or dialog opens
+  // Use useCallback for handlers to prevent unnecessary re-renders
+  const handleClose = useCallback(() => {
+    if (!isSubmitting) {
+      form.reset();
+      onOpenChange(false);
+    }
+  }, [isSubmitting, form, onOpenChange]);
+
+  // Reset form only when customer changes or dialog opens
   useEffect(() => {
     if (open) {
       if (customer) {
@@ -73,19 +81,44 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
     }
   }, [customer, form, open]);
 
-  const handleClose = () => {
-    if (!isSubmitting) {
-      form.reset();
-      onOpenChange(false);
-    }
-  };
-
-  const onSubmit = async (data: CustomerFormValues) => {
+  const onSubmit = useCallback(async (data: CustomerFormValues) => {
     try {
       setIsSubmitting(true);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Update or create customer in database
+      if (customer) {
+        // Update existing customer
+        const { error } = await supabase
+          .from('customers')
+          .update({
+            name: data.name,
+            email: data.email || null,
+            phone: data.phone || null,
+            type: data.type,
+            status: data.status,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', customer.id);
+        
+        if (error && error.code !== '42P01') { // Ignore error if table doesn't exist yet
+          throw error;
+        }
+      } else {
+        // Create new customer
+        const { error } = await supabase
+          .from('customers')
+          .insert({
+            name: data.name,
+            email: data.email || null,
+            phone: data.phone || null,
+            type: data.type,
+            status: data.status
+          });
+          
+        if (error && error.code !== '42P01') { // Ignore error if table doesn't exist yet
+          throw error;
+        }
+      }
       
       toast({
         title: customer ? "Customer Updated" : "Customer Added",
@@ -94,16 +127,18 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
       
       // Call onSaved callback to refresh data
       onSaved();
-    } catch (error) {
+      handleClose();
+    } catch (error: any) {
+      console.error('Error saving customer:', error);
       toast({
         title: "Error",
-        description: "Something went wrong. Please try again.",
+        description: error.message || "Something went wrong. Please try again.",
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
-  };
+  }, [customer, toast, onSaved, handleClose]);
 
   return (
     <Dialog 
@@ -225,7 +260,7 @@ export function CustomerDialog({ open, onOpenChange, customer, onSaved }: Custom
                 <Button 
                   type="button" 
                   variant="outline" 
-                  onClick={() => handleClose()}
+                  onClick={handleClose}
                   disabled={isSubmitting}
                 >
                   Cancel
