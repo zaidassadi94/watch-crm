@@ -15,10 +15,7 @@ export function SaleDialogActions({ isSubmitting, onCancel, isEditMode }: SaleDi
       <Button 
         type="button" 
         variant="outline" 
-        onClick={() => {
-          // Call the cancel handler explicitly
-          if (onCancel) onCancel();
-        }}
+        onClick={onCancel}
       >
         Cancel
       </Button>

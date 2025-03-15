@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { 
-  MoreHorizontal, Edit, Trash2 
+  MoreHorizontal, Edit, Trash2, Clock, CheckCircle, XCircle
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -25,15 +25,15 @@ interface SaleStatusStyle {
 const statusStyles: Record<string, SaleStatusStyle> = {
   pending: { 
     color: "text-amber-700 bg-amber-100", 
-    icon: require('lucide-react').Clock 
+    icon: Clock
   },
   completed: { 
     color: "text-green-700 bg-green-100", 
-    icon: require('lucide-react').CheckCircle 
+    icon: CheckCircle  
   },
   cancelled: { 
     color: "text-red-700 bg-red-100", 
-    icon: require('lucide-react').XCircle 
+    icon: XCircle 
   }
 };
 
