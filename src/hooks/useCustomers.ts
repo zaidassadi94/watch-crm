@@ -16,7 +16,70 @@ export function useCustomers() {
     
     setIsLoading(true);
     try {
-      // Fetch customers from both sales and service requests
+      // First try to get customers from the customers table
+      const { data: customersData, error: customersError } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('name', { ascending: true });
+        
+      if (customersError && customersError.code !== '42P01') {
+        throw customersError;
+      }
+      
+      if (customersData && customersData.length > 0) {
+        // Convert from customers table format to Customer interface
+        const mappedCustomers: Customer[] = customersData.map(customer => ({
+          id: customer.id,
+          name: customer.name,
+          email: customer.email,
+          phone: customer.phone,
+          type: customer.type,
+          totalSpent: 0, // Will be updated below
+          lastPurchase: customer.updated_at,
+          status: customer.status,
+          avatarUrl: undefined
+        }));
+        
+        // Get the sales data to calculate total spent
+        const { data: salesData } = await supabase
+          .from('sales')
+          .select('customer_name, customer_email, created_at, total_amount')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+          
+        if (salesData) {
+          // Update the totalSpent and lastPurchase for each customer
+          mappedCustomers.forEach(customer => {
+            const customerSales = salesData.filter(sale => 
+              sale.customer_name === customer.name || 
+              (customer.email && sale.customer_email === customer.email)
+            );
+            
+            if (customerSales.length > 0) {
+              customer.totalSpent = customerSales.reduce(
+                (sum, sale) => sum + Number(sale.total_amount), 0
+              );
+              
+              // Find the most recent purchase
+              const latestSale = customerSales.reduce((latest, current) => 
+                new Date(current.created_at) > new Date(latest.created_at) ? current : latest
+              );
+              
+              customer.lastPurchase = latestSale.created_at;
+              
+              // Update type based on total spent
+              customer.type = customer.totalSpent > 5000 ? 'VIP' : 'Regular';
+            }
+          });
+        }
+        
+        setCustomers(mappedCustomers);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fallback: If no customers in customers table, get from sales and service requests
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
         .select('customer_name, customer_email, customer_phone, created_at, total_amount')
