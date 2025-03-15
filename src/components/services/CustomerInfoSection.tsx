@@ -27,7 +27,7 @@ export function CustomerInfoSection({
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-medium">Customer Information</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="customer_name"
@@ -35,7 +35,14 @@ export function CustomerInfoSection({
             <FormItem>
               <FormLabel>Customer Name *</FormLabel>
               <FormControl>
-                <Input placeholder="Enter customer name" {...field} />
+                <Input 
+                  placeholder="Enter customer name" 
+                  {...field} 
+                  onChange={(e) => {
+                    field.onChange(e);
+                    setSearchTerm(e.target.value);
+                  }}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -59,15 +66,42 @@ export function CustomerInfoSection({
         <FormField
           control={form.control}
           name="customer_phone"
-          render={() => (
-            <CustomerSuggestions 
-              form={form}
-              customerSuggestions={customerSuggestions}
-              showCustomerSuggestions={showCustomerSuggestions}
-              setShowCustomerSuggestions={setShowCustomerSuggestions}
-              setSearchTerm={setSearchTerm}
-              selectCustomer={selectCustomer}
-            />
+          render={({ field }) => (
+            <FormItem className="relative">
+              <FormLabel>Phone</FormLabel>
+              <FormControl>
+                <Input 
+                  placeholder="(123) 456-7890" 
+                  {...field} 
+                />
+              </FormControl>
+              {showCustomerSuggestions && customerSuggestions.length > 0 && (
+                <div className="absolute z-50 bg-popover border rounded-md w-full mt-1 shadow-md">
+                  <div className="max-h-60 overflow-auto py-1">
+                    {customerSuggestions.map((customer, idx) => (
+                      <div
+                        key={idx}
+                        className="px-2 py-1.5 hover:bg-accent cursor-pointer"
+                        onClick={() => selectCustomer(customer)}
+                      >
+                        <div className="font-medium">{customer.name}</div>
+                        <div className="text-xs text-muted-foreground">
+                          {customer.phone} {customer.email ? `• ${customer.email}` : ''}
+                          {customer.watches && customer.watches.length > 0 && (
+                            <div className="mt-1">
+                              <span className="font-medium text-xs">Watch: </span>
+                              {customer.watches[0].brand} 
+                              {customer.watches[0].model && ` - ${customer.watches[0].model}`}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <FormMessage />
+            </FormItem>
           )}
         />
       </div>

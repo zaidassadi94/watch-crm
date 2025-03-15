@@ -239,7 +239,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{sale ? 'Edit Sale' : 'Create New Sale'}</DialogTitle>
         </DialogHeader>
@@ -282,7 +282,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
               )}
             />
             
-            <DialogFooter>
+            <DialogFooter className="flex flex-row justify-end gap-2 mt-6">
               <Button 
                 type="button" 
                 variant="outline" 

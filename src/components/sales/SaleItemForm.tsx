@@ -45,14 +45,14 @@ export function SaleItemForm({
   return (
     <div>
       <h3 className="text-sm font-medium mb-2">Items *</h3>
-      <div className="space-y-2">
+      <div className="space-y-4">
         {fields.map((field, index) => (
-          <div key={field.id} className="flex items-end gap-2 relative">
+          <div key={field.id} className="flex flex-col sm:flex-row items-start sm:items-end gap-2 relative">
             <FormField
               control={form.control}
               name={`items.${index}.product_name`}
               render={({ field }) => (
-                <FormItem className="flex-1">
+                <FormItem className="flex-1 w-full sm:w-auto">
                   <FormLabel className={index !== 0 ? "sr-only" : ""}>
                     Product
                   </FormLabel>
@@ -62,20 +62,21 @@ export function SaleItemForm({
                   >
                     <PopoverTrigger asChild>
                       <FormControl>
-                        <div className="relative">
+                        <div className="relative w-full">
                           <Input 
                             placeholder="Product name or SKU" 
                             {...field} 
+                            className="pr-8"
                             onChange={(e) => {
                               field.onChange(e);
                               handleProductSearch(e.target.value, index);
                             }}
                           />
-                          <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                          <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                         </div>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="p-0" align="start">
+                    <PopoverContent className="p-0 w-[300px]" align="start">
                       {productSuggestions.length > 0 ? (
                         <div className="max-h-60 overflow-auto">
                           {productSuggestions.map((product) => (
@@ -104,59 +105,61 @@ export function SaleItemForm({
               )}
             />
             
-            <FormField
-              control={form.control}
-              name={`items.${index}.quantity`}
-              render={({ field }) => (
-                <FormItem className="w-20">
-                  <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                    Qty
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      min={1} 
-                      {...field}
-                      onChange={e => field.onChange(parseInt(e.target.value) || 1)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name={`items.${index}.price`}
-              render={({ field }) => (
-                <FormItem className="w-28">
-                  <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                    Price (₹)
-                  </FormLabel>
-                  <FormControl>
-                    <Input 
-                      type="number" 
-                      step="0.01" 
-                      min="0" 
-                      {...field}
-                      onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="mb-2"
-              onClick={() => remove(index)}
-              disabled={fields.length === 1}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex w-full sm:w-auto gap-2">
+              <FormField
+                control={form.control}
+                name={`items.${index}.quantity`}
+                render={({ field }) => (
+                  <FormItem className="w-full sm:w-20">
+                    <FormLabel className={index !== 0 ? "sr-only" : ""}>
+                      Qty
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        min={1} 
+                        {...field}
+                        onChange={e => field.onChange(parseInt(e.target.value) || 1)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name={`items.${index}.price`}
+                render={({ field }) => (
+                  <FormItem className="w-full sm:w-28">
+                    <FormLabel className={index !== 0 ? "sr-only" : ""}>
+                      Price (₹)
+                    </FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        min="0" 
+                        {...field}
+                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={index !== 0 ? "mb-0 mt-auto" : "mb-0"} 
+                onClick={() => remove(index)}
+                disabled={fields.length === 1}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>
@@ -165,7 +168,7 @@ export function SaleItemForm({
         type="button"
         variant="outline"
         size="sm"
-        className="mt-2"
+        className="mt-4"
         onClick={() => {
           append({ product_name: '', quantity: 1, price: 0 });
         }}
@@ -174,7 +177,7 @@ export function SaleItemForm({
         Add Item
       </Button>
       
-      <div className="flex justify-end mt-2">
+      <div className="flex justify-end mt-4">
         <div className="text-right">
           <span className="text-sm font-medium">Total: </span>
           <span className="text-lg font-bold">₹{total.toFixed(2)}</span>

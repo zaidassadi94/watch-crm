@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -154,7 +154,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{service ? 'Edit Service Request' : 'Create New Service Request'}</DialogTitle>
         </DialogHeader>
@@ -174,7 +174,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
             
             <ServiceDetailsSection form={form} />
             
-            <DialogFooter>
+            <DialogFooter className="flex flex-row justify-end gap-2 mt-6">
               <Button 
                 type="button" 
                 variant="outline" 

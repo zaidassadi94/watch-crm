@@ -1,32 +1,38 @@
 
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect, useCallback } from 'react';
 import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useSuggestions(userId: string | undefined) {
   const [productSuggestions, setProductSuggestions] = useState<ProductSuggestion[]>([]);
   const [showProductSuggestions, setShowProductSuggestions] = useState<number | null>(null);
   const [productSearchTerms, setProductSearchTerms] = useState<string[]>(['']);
+  
   const [customerSuggestions, setCustomerSuggestions] = useState<CustomerSuggestion[]>([]);
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
-  const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
 
-  // Product suggestions
+  const updateProductSearchTerms = useCallback((terms: string[]) => {
+    setProductSearchTerms(terms);
+  }, []);
+
+  // Product search effect
   useEffect(() => {
-    const index = showProductSuggestions;
-    if (index === null || !productSearchTerms[index] || productSearchTerms[index].length < 2 || !userId) {
+    if (showProductSuggestions === null || !userId) return;
+    
+    const searchTerm = productSearchTerms[showProductSuggestions];
+    if (!searchTerm || searchTerm.length < 2) {
       setProductSuggestions([]);
       return;
     }
-    
+
     const loadProductSuggestions = async () => {
       try {
-        const searchTerm = productSearchTerms[index];
         const { data, error } = await supabase
           .from('inventory')
-          .select('*')
+          .select('id, name, brand, sku, price')
           .eq('user_id', userId)
-          .or(`name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%`)
+          .or(`name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%`)
           .order('name', { ascending: true });
           
         if (error) throw error;
@@ -40,14 +46,15 @@ export function useSuggestions(userId: string | undefined) {
     loadProductSuggestions();
   }, [showProductSuggestions, productSearchTerms, userId]);
 
-  // Customer suggestions - fixed dependency array to prevent infinite loop
+  // Customer search effect
   useEffect(() => {
-    if (customerSearchTerm.length < 2 || !userId || !showCustomerSuggestions) {
+    if (!showCustomerSuggestions || !userId || customerSearchTerm.length < 2) {
       return;
     }
     
     const loadCustomerSuggestions = async () => {
       try {
+        // Search in sales
         const { data: salesData, error: salesError } = await supabase
           .from('sales')
           .select('customer_name, customer_email, customer_phone')
@@ -57,6 +64,7 @@ export function useSuggestions(userId: string | undefined) {
           
         if (salesError) throw salesError;
         
+        // Search in service_requests
         const { data: serviceData, error: serviceError } = await supabase
           .from('service_requests')
           .select('customer_name, customer_email, customer_phone')
@@ -66,14 +74,15 @@ export function useSuggestions(userId: string | undefined) {
           
         if (serviceError) throw serviceError;
         
+        // Combine and deduplicate results
         const combinedData = [...(salesData || []), ...(serviceData || [])];
         const uniqueCustomers: CustomerSuggestion[] = [];
         
         combinedData.forEach(item => {
-          const exists = uniqueCustomers.some(c => 
-            c.name === item.customer_name && 
-            c.email === item.customer_email && 
-            c.phone === item.customer_phone
+          const exists = uniqueCustomers.some(customer => 
+            customer.name === item.customer_name && 
+            customer.email === item.customer_email && 
+            customer.phone === item.customer_phone
           );
           
           if (!exists) {
@@ -92,17 +101,21 @@ export function useSuggestions(userId: string | undefined) {
     };
     
     loadCustomerSuggestions();
-  }, [customerSearchTerm, userId, showCustomerSuggestions]); // Added showCustomerSuggestions to dependency array
+  }, [customerSearchTerm, userId, showCustomerSuggestions]);
 
-  const handleProductSearch = (value: string, index: number) => {
-    const newSearchTerms = [...productSearchTerms];
-    newSearchTerms[index] = value;
-    setProductSearchTerms(newSearchTerms);
-  };
-
-  const updateProductSearchTerms = (terms: string[]) => {
-    setProductSearchTerms(terms);
-  };
+  const handleProductSearch = useCallback((value: string, index: number) => {
+    setProductSearchTerms(prev => {
+      const updated = [...prev];
+      updated[index] = value;
+      return updated;
+    });
+    
+    if (value.length >= 2) {
+      setShowProductSuggestions(index);
+    } else {
+      setShowProductSuggestions(null);
+    }
+  }, []);
 
   return {
     productSuggestions,
@@ -113,7 +126,7 @@ export function useSuggestions(userId: string | undefined) {
     handleProductSearch,
     customerSuggestions,
     showCustomerSuggestions,
-    setCustomerSearchTerm,
-    setShowCustomerSuggestions
+    setShowCustomerSuggestions,
+    setCustomerSearchTerm
   };
 }
