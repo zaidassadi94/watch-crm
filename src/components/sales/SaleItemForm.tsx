@@ -1,15 +1,16 @@
 
 import React from 'react';
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
+import { FormField } from '@/components/ui/form';
 import { Button } from '@/components/ui/button';
-import { Trash2, Search, PlusCircle } from 'lucide-react';
+import { Trash2, PlusCircle } from 'lucide-react';
 import { UseFormReturn } from 'react-hook-form';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ProductSuggestion } from '@/types/inventory';
-import { SaleFormValues, SaleItemInternal, calculateTotal } from './saleFormSchema';
+import { SaleFormValues, SaleItemInternal } from './saleFormSchema';
 import { useFieldArray } from 'react-hook-form';
-import { useSettings } from '@/hooks/useSettings';
+import { ProductSearchField } from './item-form/ProductSearchField';
+import { QuantityField } from './item-form/QuantityField';
+import { PriceField } from './item-form/PriceField';
+import { SaleItemSummary } from './item-form/SaleItemSummary';
 
 interface SaleItemFormProps {
   form: UseFormReturn<SaleFormValues>;
@@ -34,18 +35,6 @@ export function SaleItemForm({
     control: form.control,
     name: "items",
   });
-  
-  const { currencySymbol } = useSettings();
-
-  const total = calculateTotal(
-    form.watch('items').map(item => ({
-      product_name: item.product_name || '',
-      quantity: Number(item.quantity) || 1,
-      price: Number(item.price) || 0,
-      cost_price: Number(item.cost_price) || 0,
-      inventory_id: item.inventory_id
-    }))
-  );
 
   return (
     <div>
@@ -53,180 +42,40 @@ export function SaleItemForm({
       <div className="space-y-4">
         {fields.map((field, index) => (
           <div key={field.id} className="flex flex-col sm:flex-row items-start sm:items-end gap-2 relative">
-            <FormField
-              control={form.control}
-              name={`items.${index}.product_name`}
-              render={({ field }) => (
-                <FormItem className="flex-1 w-full sm:w-auto">
-                  <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                    Product
-                  </FormLabel>
-                  <div className="relative w-full">
-                    <Popover
-                      open={showProductSuggestions === index}
-                      onOpenChange={(open) => {
-                        setShowProductSuggestions(open ? index : null);
-                        // If opening, trigger search with current value
-                        if (open && field.value) {
-                          handleProductSearch(field.value, index);
-                        }
-                      }}
-                    >
-                      <PopoverTrigger asChild>
-                        <FormControl>
-                          <div className="relative w-full">
-                            <Input 
-                              placeholder="Search product name or SKU" 
-                              {...field} 
-                              className="pr-8"
-                              onChange={(e) => {
-                                field.onChange(e);
-                                handleProductSearch(e.target.value, index);
-                              }}
-                              onClick={() => {
-                                if (field.value) {
-                                  handleProductSearch(field.value, index);
-                                }
-                                setShowProductSuggestions(index);
-                              }}
-                            />
-                            <Search className="absolute right-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
-                          </div>
-                        </FormControl>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[300px]" align="start">
-                        {productSuggestions.length > 0 ? (
-                          <div className="max-h-60 overflow-auto">
-                            {productSuggestions.map((product) => (
-                              <div
-                                key={product.id}
-                                className="flex flex-col px-2 py-1.5 hover:bg-accent cursor-pointer"
-                                onClick={() => {
-                                  selectProduct(product, index);
-                                  // Set inventory_id when selecting a product
-                                  form.setValue(`items.${index}.inventory_id`, product.id);
-                                  
-                                  // Don't allow quantity more than stock
-                                  const currentQty = form.getValues(`items.${index}.quantity`);
-                                  if (currentQty > product.stock_level) {
-                                    form.setValue(`items.${index}.quantity`, Math.max(1, product.stock_level));
-                                  }
-                                  
-                                  // Close the popover after selection
-                                  setShowProductSuggestions(null);
-                                }}
-                              >
-                                <div className="font-medium">{product.brand} {product.name}</div>
-                                <div className="flex justify-between text-xs text-muted-foreground">
-                                  <span>SKU: {product.sku}</span>
-                                  <span>{currencySymbol}{product.price.toLocaleString()}</span>
-                                </div>
-                                <div className="text-xs text-muted-foreground mt-1">
-                                  <span className={product.stock_level <= 0 ? "text-red-500" : (product.stock_level <= 5 ? "text-amber-500" : "text-green-500")}>
-                                    Stock: {product.stock_level}
-                                  </span>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <div className="p-2 text-center text-sm text-muted-foreground">
-                            {productSearchTerms[index]?.length > 0 
-                              ? 'No products found' 
-                              : 'Type to search products'}
-                          </div>
-                        )}
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
+            <ProductSearchField 
+              form={form}
+              index={index}
+              isFirstItem={index === 0}
+              productSuggestions={productSuggestions}
+              showProductSuggestions={showProductSuggestions}
+              setShowProductSuggestions={setShowProductSuggestions}
+              handleProductSearch={handleProductSearch}
+              selectProduct={selectProduct}
+              productSearchTerms={productSearchTerms}
             />
             
             <div className="flex w-full sm:w-auto gap-2">
-              <FormField
-                control={form.control}
-                name={`items.${index}.quantity`}
-                render={({ field }) => {
-                  // Get the current inventory_id
-                  const inventoryId = form.watch(`items.${index}.inventory_id`);
-                  
-                  // Find the matching product in suggestions to get stock level
-                  const product = productSuggestions.find(p => p.id === inventoryId);
-                  const maxStock = product ? product.stock_level : 999;
-                  
-                  return (
-                    <FormItem className="w-full sm:w-20">
-                      <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                        Qty
-                      </FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="number" 
-                          min={1}
-                          max={maxStock} 
-                          {...field}
-                          onChange={e => {
-                            const val = parseInt(e.target.value) || 1;
-                            // Limit quantity to available stock
-                            if (inventoryId && product) {
-                              field.onChange(Math.min(Math.max(1, val), maxStock));
-                            } else {
-                              field.onChange(Math.max(1, val));
-                            }
-                          }}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  );
-                }}
+              <QuantityField
+                form={form}
+                index={index}
+                isFirstItem={index === 0}
+                productSuggestions={productSuggestions}
               />
               
-              <FormField
-                control={form.control}
-                name={`items.${index}.price`}
-                render={({ field }) => (
-                  <FormItem className="w-full sm:w-28">
-                    <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                      Price ({currencySymbol})
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        min="0" 
-                        {...field}
-                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <PriceField
+                form={form}
+                index={index}
+                isFirstItem={index === 0}
+                fieldName={`items.${index}.price`}
+                label="Price"
               />
               
-              {/* Cost price field */}
-              <FormField
-                control={form.control}
-                name={`items.${index}.cost_price`}
-                render={({ field }) => (
-                  <FormItem className="w-full sm:w-28">
-                    <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                      Cost ({currencySymbol})
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        step="0.01" 
-                        min="0" 
-                        {...field}
-                        onChange={e => field.onChange(parseFloat(e.target.value) || 0)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              <PriceField
+                form={form}
+                index={index}
+                isFirstItem={index === 0}
+                fieldName={`items.${index}.cost_price`}
+                label="Cost"
               />
               
               {/* Hidden field for inventory_id */}
@@ -266,15 +115,15 @@ export function SaleItemForm({
         Add Item
       </Button>
       
-      <div className="flex justify-end mt-4">
-        <div className="text-right">
-          <span className="text-sm font-medium">Total: </span>
-          <span className="text-lg font-bold">{currencySymbol}{total.totalPrice.toFixed(2)}</span>
-          <div className="text-sm text-muted-foreground">
-            Profit: {currencySymbol}{total.totalProfit.toFixed(2)} ({total.marginPercentage.toFixed(2)}%)
-          </div>
-        </div>
-      </div>
+      <SaleItemSummary 
+        items={form.watch('items').map(item => ({
+          product_name: item.product_name || '',
+          quantity: Number(item.quantity) || 1,
+          price: Number(item.price) || 0,
+          cost_price: Number(item.cost_price) || 0,
+          inventory_id: item.inventory_id
+        }))}
+      />
     </div>
   );
 }

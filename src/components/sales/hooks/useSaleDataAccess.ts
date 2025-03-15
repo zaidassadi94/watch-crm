@@ -1,7 +1,7 @@
 
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Sale } from '@/pages/Sales';
+import { Sale } from '@/types/sales';
 import { SaleFormValues, SaleItemInternal } from '../saleFormSchema';
 import { calculateSaleTotals, generateInvoiceNumber } from './useSaleCalculations';
 import { useToast } from '@/components/ui/use-toast';

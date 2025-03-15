@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useToast } from '@/components/ui/use-toast';
-import { Sale } from '@/pages/Sales';
+import { Sale } from '@/types/sales';
 import { saleFormSchema, SaleFormValues } from '../saleFormSchema';
 import { loadSaleItems, saveSale } from './useSaleDataAccess';
 

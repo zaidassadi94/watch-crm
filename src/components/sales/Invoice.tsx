@@ -1,9 +1,8 @@
-
 import React from 'react';
-import { useSettings } from '@/hooks/useSettings';
 import { format } from 'date-fns';
+import { useSettings } from '@/hooks/useSettings';
 import { calculateGST } from './saleFormSchema';
-import { Sale } from '@/pages/Sales';
+import { Sale } from '@/types/sales';
 
 interface InvoiceProps {
   sale: Sale;

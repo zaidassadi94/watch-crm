@@ -1,139 +1,119 @@
-
 import React from 'react';
-import { 
-  MoreHorizontal, Edit, Trash2, Clock, CheckCircle, XCircle, FileText
-} from 'lucide-react';
+import { ColumnDef } from '@tanstack/react-table';
+import { format } from 'date-fns';
+import { Button } from '@/components/ui/button';
+import { MoreHorizontal, FileText, Edit, Trash2, RotateCcw } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Column } from '@/components/ui-custom/DataTable';
-import { cn } from '@/lib/utils';
-import { Sale } from '@/pages/Sales';
+import { Sale } from '@/types/sales';
+import { useSalesDialogs } from '@/hooks/useSalesDialogs';
+import { useSalesData } from '@/hooks/useSalesData';
 import { useSettings } from '@/hooks/useSettings';
 
-interface SaleStatusStyle {
-  color: string;
-  icon: React.ElementType;
-}
-
-const statusStyles: Record<string, SaleStatusStyle> = {
-  pending: { 
-    color: "text-amber-700 bg-amber-100", 
-    icon: Clock
+export const SaleTableColumns: ColumnDef<Sale>[] = [
+  {
+    accessorKey: 'customer_name',
+    header: 'Customer Name',
   },
-  completed: { 
-    color: "text-green-700 bg-green-100", 
-    icon: CheckCircle  
+  {
+    accessorKey: 'customer_email',
+    header: 'Email',
   },
-  cancelled: { 
-    color: "text-red-700 bg-red-100", 
-    icon: XCircle 
-  }
-};
+  {
+    accessorKey: 'customer_phone',
+    header: 'Phone',
+  },
+  {
+    accessorKey: 'total_amount',
+    header: ({ column }) => {
+      const { currencySymbol } = useSettings();
+      return (
+        <div className="text-right">
+          Total ({currencySymbol})
+        </div>
+      );
+    },
+    cell: ({ row }) => {
+      const { currencySymbol } = useSettings();
+      const amount = parseFloat(row.getValue('total_amount'));
+      const formatted = new Intl.NumberFormat('en-US', {
+        style: 'decimal',
+        minimumFractionDigits: 2,
+      }).format(amount);
 
-interface SaleTableColumnsProps {
-  onEdit: (sale: Sale) => void;
-  onDelete: (id: string) => void;
-  onViewInvoice: (sale: Sale) => void;
-}
+      return <div className="text-right font-medium">{formatted}</div>;
+    },
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const status = row.getValue('status') as string;
 
-export const getSaleTableColumns = ({ onEdit, onDelete, onViewInvoice }: SaleTableColumnsProps): Column<Sale>[] => {
-  const { currencySymbol, formatDate } = useSettings();
-  
-  return [
-    {
-      header: "Customer",
-      accessorKey: "customer_name",
-      cell: (sale: Sale) => (
-        <div>
-          <div className="font-medium">{sale.customer_name}</div>
-          {sale.customer_email && (
-            <div className="text-sm text-muted-foreground">{sale.customer_email}</div>
-          )}
-        </div>
-      )
+      let badgeColor = "secondary";
+      if (status === "completed") badgeColor = "green";
+      if (status === "pending") badgeColor = "amber";
+      if (status === "cancelled") badgeColor = "red";
+      if (status === "returned") badgeColor = "destructive";
+
+      return (
+        <Badge variant={badgeColor}>
+          {status}
+        </Badge>
+      );
     },
-    {
-      header: "Amount",
-      accessorKey: "total_amount",
-      cell: (sale: Sale) => (
-        <div className="font-medium">
-          {currencySymbol}{Number(sale.total_amount).toFixed(2)}
-        </div>
-      ),
-      className: "text-right"
-    },
-    {
-      header: "Profit",
-      accessorKey: "total_profit",
-      cell: (sale: Sale) => (
-        <div className="font-medium text-green-600">
-          {currencySymbol}{Number(sale.total_profit || 0).toFixed(2)}
-        </div>
-      ),
-      className: "text-right"
-    },
-    {
-      header: "Status",
-      accessorKey: "status",
-      cell: (sale: Sale) => {
-        const status = sale.status.toLowerCase() as keyof typeof statusStyles;
-        const style = statusStyles[status] || statusStyles.pending;
-        const StatusIcon = style.icon;
-        
-        return (
-          <Badge variant="outline" className={cn("capitalize", style.color)}>
-            <StatusIcon className="w-3 h-3 mr-1" />
-            {sale.status}
-          </Badge>
-        );
-      }
-    },
-    {
-      header: "Date",
-      accessorKey: "created_at",
-      cell: (sale: Sale) => (
-        <div className="text-sm">
-          {formatDate(sale.created_at)}
-        </div>
-      )
-    },
-    {
-      header: "",
-      accessorKey: "id",
-      cell: (sale: Sale) => (
+  },
+  {
+    accessorKey: 'payment_method',
+    header: 'Payment Method',
+  },
+  {
+    accessorKey: 'created_at',
+    header: 'Date',
+    cell: ({ row }) => format(new Date(row.getValue('created_at')), 'PPP'),
+  },
+  {
+    id: 'actions',
+    cell: ({ row }) => {
+      const sale = row.original;
+      const { handleEditSale, handleViewInvoice, handleReturn } = useSalesDialogs();
+      const { handleDelete } = useSalesData();
+
+      return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="h-8 w-8 p-0">
+              <span className="sr-only">Open menu</span>
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => onViewInvoice(sale)}>
-              <FileText className="w-4 h-4 mr-2" />
+            <DropdownMenuItem onClick={() => handleViewInvoice(sale)}>
+              <FileText className="mr-2 h-4 w-4" />
               View Invoice
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onEdit(sale)}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
+            <DropdownMenuItem onClick={() => handleEditSale(sale)}>
+              <Edit className="mr-2 h-4 w-4" />
+              Edit Sale
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDelete(sale.id)}>
-              <Trash2 className="w-4 h-4 mr-2" />
+            <DropdownMenuItem onClick={() => handleReturn()}>
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Process Return
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleDelete(sale.id)}>
+              <Trash2 className="mr-2 h-4 w-4" />
               Delete
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-      ),
-      className: "text-right"
-    }
-  ];
-};
+      );
+    },
+  },
+];

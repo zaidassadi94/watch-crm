@@ -1,8 +1,7 @@
-
-import { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { Form } from '@/components/ui/form';
-import { Sale } from '@/pages/Sales';
+import React from 'react';
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
+import { SaleForm } from './SaleForm';
+import { Sale } from '@/types/sales';
 import { useAuth } from '@/hooks/useAuth';
 import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,7 +9,7 @@ import { CustomerForm } from './CustomerForm';
 import { SaleItemForm } from './SaleItemForm';
 import { SaleNotesField } from './SaleNotesField';
 import { SaleDialogActions } from './SaleDialogActions';
-import { useSaleForm } from './hooks/useSaleForm'; // Fixed import path
+import { useSaleForm } from './hooks/useSaleForm';
 import { useSuggestions } from './useSuggestions';
 
 interface SaleDialogProps {
@@ -25,7 +24,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const [localOpen, setLocalOpen] = useState(false);
   
   useEffect(() => {
-    // Control local state based on props
     setLocalOpen(open);
   }, [open]);
   
@@ -44,13 +42,11 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
   const handleSaved = () => {
     onSaved();
-    // Ensure safe dialog close
     setLocalOpen(false);
     onOpenChange(false);
   };
 
   const handleCancel = () => {
-    // Safe cancel handler
     form.reset();
     setLocalOpen(false);
     onOpenChange(false);
@@ -64,7 +60,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   );
 
   useEffect(() => {
-    // Update product search terms when the sale items change
     if (open) {
       if (sale) {
         const fetchSaleItems = async () => {
@@ -103,12 +98,10 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
-  // Use controlled open state to prevent issues when dialog state changes
   return (
     <Dialog 
       open={localOpen} 
       onOpenChange={(newOpen) => {
-        // If trying to close and not submitting, handle clean close
         if (!newOpen && !isSubmitting) {
           handleCancel();
         } else {
@@ -125,35 +118,13 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           </DialogDescription>
         </DialogHeader>
         
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <CustomerForm 
-              form={form}
-              customerSuggestions={customerSuggestions}
-              showCustomerSuggestions={showCustomerSuggestions}
-              setCustomerSearchTerm={setCustomerSearchTerm}
-              selectCustomer={selectCustomer}
-            />
-            
-            <SaleItemForm 
-              form={form}
-              productSuggestions={productSuggestions}
-              showProductSuggestions={showProductSuggestions}
-              setShowProductSuggestions={setShowProductSuggestions}
-              productSearchTerms={productSearchTerms}
-              handleProductSearch={handleProductSearch}
-              selectProduct={selectProduct}
-            />
-            
-            <SaleNotesField form={form} />
-            
-            <SaleDialogActions 
-              isSubmitting={isSubmitting} 
-              onCancel={handleCancel}
-              isEditMode={!!sale}
-            />
-          </form>
-        </Form>
+        <SaleForm 
+          form={form}
+          customerSuggestions={customerSuggestions}
+          showCustomerSuggestions={showCustomerSuggestions}
+          setCustomerSearchTerm={setCustomerSearchTerm}
+          selectCustomer={selectCustomer}
+        />
       </DialogContent>
     </Dialog>
   );

@@ -1,109 +1,85 @@
 
-import React, { useEffect } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogDescription,
-  DialogFooter
-} from '@/components/ui/dialog';
-import { Form } from "@/components/ui/form";
+import React from 'react';
+import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Undo2 } from 'lucide-react';
+import { Form } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { returnFormSchema, ReturnFormValues } from '../saleFormSchema';
-import { ReturnDialogProvider, useReturnDialog } from './ReturnDialogContext';
+import { SaleItemInternal, calculateTotal } from '../saleFormSchema';
+import { Sale } from '@/types/sales';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
 import { SaleSelector } from './SaleSelector';
-import { ReturnReason } from './ReturnReason';
 import { ReturnItemsList } from './ReturnItemsList';
+import { ReturnReason } from './ReturnReason';
+import { ReturnDialogProvider, useReturnDialog } from './ReturnDialogContext';
 
-interface ReturnDialogContentProps {
-  onOpenChange: (open: boolean) => void;
-}
+function ReturnDialogContent({ onClose }: { onClose: () => void }) {
+  const { 
+    form, 
+    selectedSaleItems,
+    isSubmitting,
+    fetchSales,
+    processReturn 
+  } = useReturnDialog();
 
-function ReturnDialogContent({ onOpenChange }: ReturnDialogContentProps) {
-  const { isSubmitting, selectedSale, fetchSales, processReturn } = useReturnDialog();
-  
-  const form = useForm<ReturnFormValues>({
-    resolver: zodResolver(returnFormSchema),
-    defaultValues: {
-      sale_id: '',
-      reason: '',
-      items: []
-    }
-  });
-  
-  useEffect(() => {
-    fetchSales();
-  }, [fetchSales]);
-  
-  const onSubmit = async (data: ReturnFormValues) => {
-    await processReturn(data);
-    onOpenChange(false);
-  };
-  
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <SaleSelector form={form} />
-          
-          {selectedSale && (
-            <>
-              <ReturnReason form={form} />
-              <ReturnItemsList form={form} />
-            </>
-          )}
-        </div>
+      <form onSubmit={form.handleSubmit(processReturn)} className="space-y-6">
+        <SaleSelector />
         
-        <DialogFooter>
-          <Button 
-            type="button" 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-            disabled={isSubmitting}
-          >
-            Cancel
-          </Button>
-          <Button 
-            type="submit" 
-            disabled={isSubmitting || !selectedSale || form.watch('items').length === 0}
-          >
-            <Undo2 className="w-4 h-4 mr-2" />
-            {isSubmitting ? 'Processing...' : 'Process Return'}
-          </Button>
-        </DialogFooter>
+        {selectedSaleItems.length > 0 && (
+          <>
+            <ReturnItemsList />
+            <ReturnReason />
+            
+            <div className="flex justify-end space-x-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Processing..." : "Process Return"}
+              </Button>
+            </div>
+          </>
+        )}
       </form>
     </Form>
   );
 }
 
-interface ReturnDialogProps {
+export function ReturnDialog({
+  open,
+  setOpen,
+  onComplete
+}: {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  setOpen: (open: boolean) => void;
   onComplete: () => void;
-}
+}) {
+  const handleClose = () => {
+    setOpen(false);
+  };
 
-export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogProps) {
   return (
-    <Dialog 
-      open={open} 
-      onOpenChange={(value) => {
-        onOpenChange(value);
-      }}
-    >
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Process Return</DialogTitle>
-          <DialogDescription>
-            Select a sale and items to return
-          </DialogDescription>
         </DialogHeader>
         
         <ReturnDialogProvider onComplete={onComplete}>
-          <ReturnDialogContent onOpenChange={onOpenChange} />
+          <ReturnDialogContent onClose={handleClose} />
         </ReturnDialogProvider>
       </DialogContent>
     </Dialog>
