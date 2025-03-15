@@ -1,6 +1,6 @@
 
 import { useState } from 'react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Users, Package2, ShoppingCart, Wrench, 
   LayoutDashboard, ChevronLeft, ChevronRight, Clock,
@@ -8,10 +8,13 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
 
   const navItems = [
     { 
@@ -40,6 +43,14 @@ export function Sidebar() {
       icon: Wrench 
     },
   ];
+
+  const handleSettingsClick = () => {
+    navigate('/settings');
+  };
+
+  const handleLogoutClick = async () => {
+    await signOut();
+  };
 
   return (
     <aside 
@@ -107,6 +118,7 @@ export function Sidebar() {
               "w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent/50",
               collapsed && "justify-center px-0"
             )}
+            onClick={handleSettingsClick}
           >
             <Settings className="w-5 h-5" />
             {!collapsed && <span className="ml-3">Settings</span>}
@@ -117,6 +129,7 @@ export function Sidebar() {
               "w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent/50",
               collapsed && "justify-center px-0"
             )}
+            onClick={handleLogoutClick}
           >
             <LogOut className="w-5 h-5" />
             {!collapsed && <span className="ml-3">Logout</span>}

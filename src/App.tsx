@@ -14,6 +14,7 @@ import Customers from "./pages/Customers";
 import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
 import Services from "./pages/Services";
+import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -76,6 +77,16 @@ const App = () => (
                 <ProtectedRoute>
                   <MainLayout>
                     <Services />
+                  </MainLayout>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/settings" 
+              element={
+                <ProtectedRoute>
+                  <MainLayout>
+                    <Settings />
                   </MainLayout>
                 </ProtectedRoute>
               } 
