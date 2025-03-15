@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 export interface Column<T extends object> {
   header: string;
   accessorKey?: keyof T | string;
-  cell?: (item: T) => ReactNode;
+  cell?: ({ row }: { row: { original: T } }) => ReactNode;
   className?: string;
 }
 
@@ -73,7 +73,7 @@ export function DataTable<T extends object>({
                 {columns.map((column, colIndex) => (
                   <TableCell key={`${index}-${colIndex}`} className={column.className}>
                     {column.cell 
-                      ? column.cell(item) 
+                      ? column.cell({ row: { original: item } }) 
                       : column.accessorKey && typeof column.accessorKey === 'string' && column.accessorKey in item
                         ? String((item as any)[column.accessorKey])
                         : null}

@@ -123,7 +123,7 @@ export function SalesContent() {
         data={filteredSales}
         isLoading={isLoading}
         emptyState={<SaleEmptyState onCreateSale={handleCreateSale} />}
-        onRowClick={(row) => handleEditSale(row)}
+        onRowClick={(item: Sale) => handleEditSale(item)}
       />
 
       <SaleDialog 
