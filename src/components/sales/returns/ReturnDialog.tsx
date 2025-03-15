@@ -8,6 +8,7 @@ import { SaleSelector } from './SaleSelector';
 import { ReturnItemsList } from './ReturnItemsList';
 import { ReturnReason } from './ReturnReason';
 import { Button } from '@/components/ui/button';
+import { Sale } from '@/types/sales'; // Import from types instead of pages
 
 function ReturnDialogContent({ onClose }: { onClose: () => void }) {
   const { 

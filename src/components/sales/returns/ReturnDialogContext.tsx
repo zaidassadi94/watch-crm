@@ -1,60 +1,54 @@
 
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useToast } from '@/components/ui/use-toast';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
 import { returnFormSchema, ReturnFormValues } from '../saleFormSchema';
 import { Sale } from '@/types/sales';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
 import { updateInventoryStock } from '../hooks/sale-data';
 
-interface SaleItem {
+interface SaleItemWithInventory {
   id: string;
+  sale_id: string;
   product_name: string;
   quantity: number;
   price: number;
-  cost_price: number;
+  cost_price: number | null;
+  subtotal: number;
+  created_at: string;
   inventory_id?: string;
 }
 
 interface ReturnDialogContextProps {
-  form: ReturnContextForm;
-  sales: Sale[];
-  selectedSaleItems: SaleItem[];
+  form: ReturnFormReturn;
   selectedSale: Sale | null;
+  selectedSaleItems: SaleItemWithInventory[];
   isSubmitting: boolean;
   fetchSales: () => Promise<void>;
-  handleSaleSelect: (saleId: string) => Promise<void>;
-  handleSaleChange: (saleId: string) => Promise<{itemsData: any[]} | null>;
+  handleSaleChange: (saleId: string) => Promise<void>;
   processReturn: (data: ReturnFormValues) => Promise<void>;
 }
 
-type ReturnContextForm = ReturnType<typeof useForm<ReturnFormValues>>;
+type ReturnFormReturn = ReturnType<typeof useForm<ReturnFormValues>>;
 
 const ReturnDialogContext = createContext<ReturnDialogContextProps | undefined>(undefined);
 
-export function useReturnDialog() {
-  const context = useContext(ReturnDialogContext);
-  if (context === undefined) {
-    throw new Error('useReturnDialog must be used within a ReturnDialogProvider');
-  }
-  return context;
-}
-
-interface ReturnDialogProviderProps {
+export function ReturnDialogProvider({ 
+  children, 
+  onComplete 
+}: { 
   children: React.ReactNode;
   onComplete: () => void;
-}
-
-export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProviderProps) {
-  const { toast } = useToast();
+}) {
   const { user } = useAuth();
-  const [sales, setSales] = useState<Sale[]>([]);
-  const [selectedSaleItems, setSelectedSaleItems] = useState<SaleItem[]>([]);
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
-
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
+  const [selectedSaleItems, setSelectedSaleItems] = useState<SaleItemWithInventory[]>([]);
+  
   const form = useForm<ReturnFormValues>({
     resolver: zodResolver(returnFormSchema),
     defaultValues: {
@@ -63,8 +57,8 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
       items: []
     }
   });
-
-  const fetchSales = async () => {
+  
+  const fetchSales = useCallback(async () => {
     if (!user) return;
     
     try {
@@ -76,67 +70,25 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
         .order('created_at', { ascending: false });
         
       if (error) throw error;
-      
-      setSales(data as Sale[]);
-    } catch (error: any) {
+      setSales(data || []);
+    } catch (error) {
+      console.error('Error fetching sales:', error);
       toast({
-        title: "Error fetching sales",
-        description: error.message,
-        variant: "destructive",
+        title: 'Error fetching sales',
+        description: 'Could not load completed sales',
+        variant: 'destructive'
       });
     }
-  };
-
-  const handleSaleSelect = async (saleId: string) => {
-    if (!saleId) {
-      setSelectedSaleItems([]);
-      setSelectedSale(null);
-      form.setValue('items', []);
-      return;
-    }
-    
-    try {
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .select('*')
-        .eq('id', saleId)
-        .single();
-        
-      if (saleError) throw saleError;
-      setSelectedSale(saleData);
-      
-      const { data, error } = await supabase
-        .from('sale_items')
-        .select('*')
-        .eq('sale_id', saleId);
-        
-      if (error) throw error;
-      
-      setSelectedSaleItems(data);
-      
-      // Set the items in the form
-      form.setValue('items', data.map(item => ({
-        product_name: item.product_name,
-        quantity: 1, // Default to returning 1 item
-        price: item.price,
-        cost_price: item.cost_price || 0,
-        inventory_id: item.inventory_id,
-        max_quantity: item.quantity, // Maximum returnable is what was purchased
-      })));
-    } catch (error: any) {
-      toast({
-        title: "Error loading sale items",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
+  }, [user, toast]);
   
   const handleSaleChange = async (saleId: string) => {
+    form.setValue('sale_id', saleId);
+    
     if (!saleId) {
-      setSelectedSaleItems([]);
       setSelectedSale(null);
-      return null;
+      setSelectedSaleItems([]);
+      form.setValue('items', []);
+      return;
     }
     
     try {
@@ -157,7 +109,16 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
       if (itemsError) throw itemsError;
       setSelectedSaleItems(itemsData || []);
       
-      return { itemsData };
+      const formItems = itemsData.map((item: SaleItemWithInventory) => ({
+        product_name: item.product_name,
+        quantity: 1,
+        price: item.price,
+        cost_price: item.cost_price || 0,
+        inventory_id: item.inventory_id,
+        max_quantity: item.quantity
+      }));
+      
+      form.setValue('items', formItems);
     } catch (error) {
       console.error('Error fetching sale details:', error);
       toast({
@@ -165,139 +126,101 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
         description: 'Could not load sale details',
         variant: 'destructive'
       });
-      return null;
     }
   };
-
+  
   const processReturn = async (data: ReturnFormValues) => {
-    if (!user) {
-      toast({
-        title: "Authentication required",
-        description: "You must be logged in to process returns",
-        variant: "destructive",
-      });
-      return;
-    }
+    if (!user || !selectedSale) return;
+    
+    setIsSubmitting(true);
     
     try {
-      setIsSubmitting(true);
-      
-      // Calculate return amount and profit adjustment
-      const returnTotal = data.items.reduce(
+      const totalAmount = data.items.reduce(
         (sum, item) => sum + (item.quantity * item.price), 
         0
       );
       
-      const profitAdjustment = data.items.reduce(
-        (sum, item) => sum + (item.quantity * (item.price - (item.cost_price || 0))), 
-        0
-      );
-      
-      // Add return record
-      const { data: returnData, error } = await supabase
+      const { data: returnData, error: returnError } = await supabase
         .from('returns')
         .insert({
-          user_id: user.id,
           sale_id: data.sale_id,
-          total_amount: returnTotal,  // Changed from return_amount to total_amount
-          reason: data.reason || null,
+          user_id: user.id,
+          reason: data.reason,
+          total_amount: totalAmount,
+          status: 'completed'
         })
         .select()
         .single();
         
-      if (error) throw error;
+      if (returnError) throw returnError;
       
-      // Add return items
+      const returnItems = data.items.map(item => ({
+        return_id: returnData.id,
+        product_name: item.product_name,
+        quantity: item.quantity,
+        price: item.price,
+        cost_price: item.cost_price || 0,
+        subtotal: item.quantity * item.price
+      }));
+      
       const { error: itemsError } = await supabase
         .from('return_items')
-        .insert(
-          data.items
-            .filter(item => item.quantity > 0) // Only include items with quantity
-            .map(item => ({
-              return_id: returnData.id,
-              product_name: item.product_name,
-              quantity: item.quantity,
-              price: item.price,
-              cost_price: item.cost_price || 0,
-              subtotal: item.quantity * item.price,
-              inventory_id: item.inventory_id
-            }))
-        );
+        .insert(returnItems);
         
       if (itemsError) throw itemsError;
       
-      // Update original sale total and profit
-      const { data: saleData, error: saleError } = await supabase
-        .from('sales')
-        .select('total_amount, total_profit')
-        .eq('id', data.sale_id)
-        .single();
-        
-      if (saleError) throw saleError;
-      
-      const updatedAmount = Math.max(0, saleData.total_amount - returnTotal);
-      const updatedProfit = Math.max(0, saleData.total_profit - profitAdjustment);
-      
-      const { error: updateError } = await supabase
-        .from('sales')
-        .update({
-          total_amount: updatedAmount,
-          total_profit: updatedProfit,
-          status: updatedAmount === 0 ? 'returned' : 'completed',
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', data.sale_id);
-        
-      if (updateError) throw updateError;
-      
-      // Update inventory for returned items
+      // Update inventory for each returned item
       for (const item of data.items) {
-        if (item.quantity > 0 && item.inventory_id) {
+        if (item.inventory_id) {
           await updateInventoryStock({
             product_name: item.product_name,
             quantity: item.quantity,
             price: item.price,
             cost_price: item.cost_price || 0,
             inventory_id: item.inventory_id
-          }, false);
+          }, false); // false for return (increases stock)
         }
       }
       
       toast({
-        title: "Return processed",
-        description: `Return for ${returnTotal.toFixed(2)} has been processed successfully`,
+        title: 'Return processed',
+        description: 'Return has been successfully processed',
       });
       
-      // Reset form and close dialog
-      form.reset();
-      setSelectedSaleItems([]);
       onComplete();
     } catch (error: any) {
+      console.error('Error processing return:', error);
       toast({
-        title: "Error processing return",
-        description: error.message,
-        variant: "destructive",
+        title: 'Error',
+        description: error.message || 'Failed to process return',
+        variant: 'destructive'
       });
     } finally {
       setIsSubmitting(false);
     }
   };
-
-  const value = {
+  
+  const contextValue: ReturnDialogContextProps = {
     form,
-    sales,
-    selectedSaleItems,
     selectedSale,
+    selectedSaleItems,
     isSubmitting,
     fetchSales,
-    handleSaleSelect,
     handleSaleChange,
     processReturn
   };
-
+  
   return (
-    <ReturnDialogContext.Provider value={value}>
+    <ReturnDialogContext.Provider value={contextValue}>
       {children}
     </ReturnDialogContext.Provider>
   );
+}
+
+export function useReturnDialog() {
+  const context = useContext(ReturnDialogContext);
+  if (context === undefined) {
+    throw new Error('useReturnDialog must be used within a ReturnDialogProvider');
+  }
+  return context;
 }

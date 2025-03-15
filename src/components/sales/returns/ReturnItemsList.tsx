@@ -1,38 +1,31 @@
 
 import React from 'react';
-import { Label } from '@/components/ui/label';
+import { UseFormReturn } from 'react-hook-form';
 import { Input } from '@/components/ui/input';
 import { FormField, FormItem, FormControl, FormMessage } from '@/components/ui/form';
-import { UseFormReturn, useFieldArray } from 'react-hook-form';
 import { ReturnFormValues } from '../saleFormSchema';
-import { useReturnDialog } from './ReturnDialogContext';
 import { useSettings } from '@/hooks/useSettings';
+import { useReturnDialog } from './ReturnDialogContext';
 
 interface ReturnItemsListProps {
   form: UseFormReturn<ReturnFormValues>;
 }
 
 export function ReturnItemsList({ form }: ReturnItemsListProps) {
-  const { selectedSale, selectedSaleItems } = useReturnDialog();
   const { currencySymbol } = useSettings();
+  const { selectedSale } = useReturnDialog();
   
-  const { fields } = useFieldArray({
-    control: form.control,
-    name: "items"
-  });
-  
-  if (!selectedSale || fields.length === 0) {
-    return null;
-  }
+  if (!selectedSale) return null;
   
   return (
-    <div>
-      <Label>Return Items</Label>
-      <div className="space-y-2 mt-2">
-        {fields.map((field, index) => (
-          <div key={field.id} className="grid grid-cols-12 gap-2 items-center">
+    <div className="space-y-4">
+      <h3 className="text-lg font-medium">Return Items</h3>
+      
+      <div className="space-y-2">
+        {form.watch('items').map((item, index) => (
+          <div key={index} className="grid grid-cols-12 gap-2 items-center">
             <div className="col-span-6">
-              <p className="text-sm font-medium">{field.product_name}</p>
+              <p className="text-sm font-medium">{item.product_name}</p>
             </div>
             
             <div className="col-span-3">
@@ -69,7 +62,7 @@ export function ReturnItemsList({ form }: ReturnItemsListProps) {
         ))}
       </div>
       
-      <div className="flex justify-end text-lg font-bold mt-4">
+      <div className="flex justify-end text-lg font-bold">
         Total: {currencySymbol}
         {form.watch('items').reduce(
           (sum, item) => sum + (item.price * item.quantity), 

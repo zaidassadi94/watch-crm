@@ -3,10 +3,10 @@ import { supabase } from '@/integrations/supabase/client';
 import { Sale } from '@/types/sales';
 import { SaleFormValues } from '../../saleFormSchema';
 import { SaleItemInternal } from '../../saleFormSchema';
-import { calculateSaleTotals } from '../useSaleCalculations';
-import { generateInvoiceNumber } from '../useSaleCalculations';
-import { loadSaleItems, SaleItemWithInventory } from './loadSaleItems';
-import { updateInventoryStock } from './updateInventoryStock';
+import { calculateSaleTotals } from '../calculations';
+import { generateInvoiceNumber } from '../calculations';
+import { loadSaleItems, SaleItemWithInventory } from '../sale-data/loadSaleItems';
+import { updateInventoryStock } from '../sale-data/updateInventoryStock';
 
 /**
  * Save or update a sale in the database
