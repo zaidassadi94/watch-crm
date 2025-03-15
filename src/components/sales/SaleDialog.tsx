@@ -31,27 +31,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { ProductSuggestion, CustomerSuggestion, SaleItem } from '@/types/inventory';
 
 interface SaleDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   sale: Sale | null;
   onSaved: () => void;
-}
-
-interface ProductSuggestion {
-  id: string;
-  name: string;
-  brand: string;
-  sku: string;
-  price: number;
-  stock_level: number;
-}
-
-interface CustomerSuggestion {
-  name: string;
-  email: string | null;
-  phone: string | null;
 }
 
 const saleFormSchema = z.object({
@@ -377,7 +363,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   };
 
   const total = calculateTotal(
-    (form.watch('items') || []).map(item => ({
+    form.watch('items').map(item => ({
       product_name: item.product_name || '',
       quantity: item.quantity || 1,
       price: item.price || 0

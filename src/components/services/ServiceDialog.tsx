@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -33,23 +32,13 @@ import {
 } from "@/components/ui/popover";
 import { Check, ChevronsUpDown } from "lucide-react";
 import { cn } from '@/lib/utils';
+import { CustomerSuggestion, CustomerWatchDetails } from '@/types/inventory';
 
 interface ServiceDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   service: ServiceRequest | null;
   onSaved: () => void;
-}
-
-interface CustomerSuggestion {
-  name: string;
-  email: string | null;
-  phone: string | null;
-  watches?: {
-    brand: string;
-    model: string | null;
-    serial: string | null;
-  }[];
 }
 
 const serviceFormSchema = z.object({
@@ -76,7 +65,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Initialize form with default values or service data if editing
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
     defaultValues: {
@@ -96,7 +84,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     }
   });
 
-  // Load customer data when searching
   useEffect(() => {
     if (searchTerm.length < 2) return;
     
@@ -104,7 +91,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
       if (!user) return;
       
       try {
-        // Search in service requests
         const { data: serviceData, error: serviceError } = await supabase
           .from('service_requests')
           .select('customer_name, customer_email, customer_phone, watch_brand, watch_model, serial_number')
@@ -114,7 +100,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
           
         if (serviceError) throw serviceError;
         
-        // Search in sales
         const { data: salesData, error: salesError } = await supabase
           .from('sales')
           .select('customer_name, customer_email, customer_phone')
@@ -124,7 +109,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
           
         if (salesError) throw salesError;
         
-        // Combine and deduplicate results
         const combinedData = [...(serviceData || []), ...(salesData || [])];
         const uniqueCustomers: CustomerSuggestion[] = [];
         
@@ -134,24 +118,25 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
           );
           
           if (existingCustomer) {
-            // Add watch info if from service data and has watch details
             if ('watch_brand' in item && item.watch_brand) {
               if (!existingCustomer.watches) {
                 existingCustomer.watches = [];
               }
               
+              const watch: CustomerWatchDetails = {
+                brand: item.watch_brand as string,
+                model: item.watch_model as string | null,
+                serial: item.serial_number as string | null
+              };
+              
               const existingWatch = existingCustomer.watches.find(w => 
-                w.brand === item.watch_brand && 
-                w.model === item.watch_model && 
-                w.serial === item.serial_number
+                w.brand === watch.brand && 
+                w.model === watch.model && 
+                w.serial === watch.serial
               );
               
               if (!existingWatch) {
-                existingCustomer.watches.push({
-                  brand: item.watch_brand,
-                  model: item.watch_model,
-                  serial: item.serial_number
-                });
+                existingCustomer.watches.push(watch);
               }
             }
           } else {
@@ -163,9 +148,9 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
             
             if ('watch_brand' in item && item.watch_brand) {
               newCustomer.watches = [{
-                brand: item.watch_brand,
-                model: item.watch_model,
-                serial: item.serial_number
+                brand: item.watch_brand as string,
+                model: item.watch_model as string | null,
+                serial: item.serial_number as string | null
               }];
             }
             
@@ -188,7 +173,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     if (customer.email) form.setValue('customer_email', customer.email);
     if (customer.phone) form.setValue('customer_phone', customer.phone);
     
-    // If customer has watches, set the first one's details
     if (customer.watches && customer.watches.length > 0) {
       const watch = customer.watches[0];
       form.setValue('watch_brand', watch.brand);
@@ -213,7 +197,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
       setIsSubmitting(true);
 
       if (service) {
-        // Update existing service
         const { error } = await supabase
           .from('service_requests')
           .update({
@@ -239,7 +222,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
           description: "Service request has been updated successfully",
         });
       } else {
-        // Create new service
         const { error } = await supabase
           .from('service_requests')
           .insert({
@@ -265,7 +247,6 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
         });
       }
 
-      // Close dialog and refresh services list
       onOpenChange(false);
       onSaved();
     } catch (error: any) {
