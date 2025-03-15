@@ -3,15 +3,13 @@ import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  AreaChart,
-  Area,
 } from 'recharts';
 import { cn } from '@/lib/utils';
 
@@ -76,6 +74,36 @@ export function RevenueChart() {
     setTimeout(() => setIsAnimated(true), 100);
   }, []);
 
+  const renderChart = (data: typeof revenueData.weekly) => (
+    <ResponsiveContainer width="100%" height={300}>
+      <AreaChart data={data} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+        <defs>
+          <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="#4a85f0" stopOpacity={0.3} />
+            <stop offset="95%" stopColor="#4a85f0" stopOpacity={0} />
+          </linearGradient>
+        </defs>
+        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
+        <XAxis dataKey="name" axisLine={false} tickLine={false} />
+        <YAxis 
+          axisLine={false} 
+          tickLine={false} 
+          tickFormatter={(value) => `$${value}`}
+        />
+        <Tooltip content={<CustomTooltip />} />
+        <Area 
+          type="monotone" 
+          dataKey="revenue" 
+          stroke="#4a85f0" 
+          strokeWidth={2}
+          fillOpacity={1} 
+          fill="url(#colorRevenue)" 
+          animationDuration={1500}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  );
+
   return (
     <Card className={cn(
       "transition-all duration-300", 
@@ -97,93 +125,17 @@ export function RevenueChart() {
         </Tabs>
       </CardHeader>
       <CardContent className="pt-0">
-        <TabsContent value="weekly" className="mt-0">
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={revenueData.weekly} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4a85f0" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#4a85f0" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tickFormatter={(value) => `$${value}`}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="#4a85f0" 
-                strokeWidth={2}
-                fillOpacity={1} 
-                fill="url(#colorRevenue)" 
-                animationDuration={1500}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </TabsContent>
-        <TabsContent value="monthly" className="mt-0">
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={revenueData.monthly} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4a85f0" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#4a85f0" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tickFormatter={(value) => `$${value}`}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="#4a85f0" 
-                strokeWidth={2}
-                fillOpacity={1} 
-                fill="url(#colorRevenue)" 
-                animationDuration={1500}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </TabsContent>
-        <TabsContent value="yearly" className="mt-0">
-          <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={revenueData.yearly} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#4a85f0" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#4a85f0" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-              <XAxis dataKey="name" axisLine={false} tickLine={false} />
-              <YAxis 
-                axisLine={false} 
-                tickLine={false} 
-                tickFormatter={(value) => `$${value}`}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Area 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="#4a85f0" 
-                strokeWidth={2}
-                fillOpacity={1} 
-                fill="url(#colorRevenue)" 
-                animationDuration={1500}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </TabsContent>
+        <Tabs value={activeTab} className="mt-0">
+          <TabsContent value="weekly" className="mt-0">
+            {renderChart(revenueData.weekly)}
+          </TabsContent>
+          <TabsContent value="monthly" className="mt-0">
+            {renderChart(revenueData.monthly)}
+          </TabsContent>
+          <TabsContent value="yearly" className="mt-0">
+            {renderChart(revenueData.yearly)}
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
