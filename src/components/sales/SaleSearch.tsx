@@ -3,7 +3,14 @@ import React, { useState } from 'react';
 import { Search, Filter, ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { 
+  Sheet, 
+  SheetContent, 
+  SheetHeader, 
+  SheetTitle, 
+  SheetTrigger,
+  SheetFooter
+} from '@/components/ui/sheet';
 import {
   Select,
   SelectContent,
@@ -69,7 +76,8 @@ export function SaleSearch({
           <SheetHeader>
             <SheetTitle>Filter Sales</SheetTitle>
           </SheetHeader>
-          <div className="space-y-4 mt-4">
+          
+          <div className="py-6 space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
               <Select value={status} onValueChange={onStatusChange}>
@@ -101,15 +109,15 @@ export function SaleSearch({
                 </SelectContent>
               </Select>
             </div>
-            
-            <div className="flex justify-between pt-4">
-              <Button variant="outline" size="sm" onClick={resetFilters}>
-                <X className="mr-1 h-4 w-4" />
-                Reset Filters
-              </Button>
-              <Button size="sm" onClick={() => setIsFilterOpen(false)}>Apply</Button>
-            </div>
           </div>
+            
+          <SheetFooter>
+            <Button variant="outline" size="sm" onClick={resetFilters}>
+              <X className="mr-1 h-4 w-4" />
+              Reset Filters
+            </Button>
+            <Button size="sm" onClick={() => setIsFilterOpen(false)}>Apply</Button>
+          </SheetFooter>
         </SheetContent>
       </Sheet>
     </div>

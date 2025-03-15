@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { Sale } from '@/types/sales';
@@ -12,68 +12,63 @@ export function useSalesDialogs() {
   const [isReturnDialogOpen, setIsReturnDialogOpen] = useState(false);
   const [invoiceSaleItems, setInvoiceSaleItems] = useState<any[]>([]);
   
-  // Use refs to track ongoing operations and prevent race conditions
+  // Use refs to track ongoing operations
   const operationInProgress = useRef(false);
+  
+  // Cleanup function when component unmounts
+  useEffect(() => {
+    return () => {
+      // Reset all states when component unmounts
+      setIsDialogOpen(false);
+      setSelectedSale(null);
+      setIsInvoiceDialogOpen(false);
+      setIsReturnDialogOpen(false);
+      setInvoiceSaleItems([]);
+    };
+  }, []);
 
   const handleEditSale = useCallback((sale: Sale) => {
-    if (operationInProgress.current) {
-      console.log('Operation already in progress, ignoring edit request');
-      return;
-    }
+    if (operationInProgress.current) return;
     
     operationInProgress.current = true;
-    console.log('Editing sale:', sale);
     
     try {
       // First set the selected sale
       setSelectedSale(sale);
       
-      // Then open dialog after a small delay to ensure state is updated
+      // Then after a small delay, open the dialog
       setTimeout(() => {
         setIsDialogOpen(true);
+        operationInProgress.current = false;
       }, 50);
     } catch (error) {
       console.error('Error in handleEditSale:', error);
-    } finally {
-      // Reset operation flag
-      setTimeout(() => {
-        operationInProgress.current = false;
-      }, 100);
+      operationInProgress.current = false;
     }
   }, []);
 
   const handleCreateSale = useCallback(() => {
-    if (operationInProgress.current) {
-      console.log('Operation already in progress, ignoring create request');
-      return;
-    }
+    if (operationInProgress.current) return;
     
     operationInProgress.current = true;
-    console.log('Creating new sale');
     
     try {
-      // Reset selected sale to null first
+      // Reset selected sale to null
       setSelectedSale(null);
       
-      // Then open dialog after a small delay to ensure state is updated
+      // Then open dialog after a small delay
       setTimeout(() => {
         setIsDialogOpen(true);
+        operationInProgress.current = false;
       }, 50);
     } catch (error) {
       console.error('Error in handleCreateSale:', error);
-    } finally {
-      // Reset operation flag
-      setTimeout(() => {
-        operationInProgress.current = false;
-      }, 100);
+      operationInProgress.current = false;
     }
   }, []);
 
   const handleViewInvoice = useCallback(async (sale: Sale) => {
-    if (operationInProgress.current) {
-      console.log('Operation already in progress, ignoring view invoice request');
-      return;
-    }
+    if (operationInProgress.current) return;
     
     operationInProgress.current = true;
     
@@ -95,66 +90,62 @@ export function useSalesDialogs() {
       // Open the dialog after all data is ready
       setTimeout(() => {
         setIsInvoiceDialogOpen(true);
+        operationInProgress.current = false;
       }, 50);
     } catch (error: any) {
+      operationInProgress.current = false;
       toast({
         title: "Error loading invoice",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      // Reset operation flag
-      setTimeout(() => {
-        operationInProgress.current = false;
-      }, 100);
     }
   }, [toast]);
 
   const handleReturn = useCallback(() => {
-    if (operationInProgress.current) {
-      console.log('Operation already in progress, ignoring return request');
-      return;
-    }
+    if (operationInProgress.current) return;
     
     operationInProgress.current = true;
-    console.log('Opening return dialog');
     
     try {
       // Open return dialog
       setTimeout(() => {
         setIsReturnDialogOpen(true);
+        operationInProgress.current = false;
       }, 50);
     } catch (error) {
       console.error('Error in handleReturn:', error);
-    } finally {
-      // Reset operation flag
-      setTimeout(() => {
-        operationInProgress.current = false;
-      }, 100);
+      operationInProgress.current = false;
     }
   }, []);
 
-  // Create a safe setter for the dialog that handles state properly
+  // Safe setters for dialog states
   const safeSetIsDialogOpen = useCallback((open: boolean) => {
-    console.log('Setting dialog open state to:', open);
     if (!open) {
-      // When closing, ensure we reset selected sale
+      // When closing, reset selected sale with a delay
+      setIsDialogOpen(false);
       setTimeout(() => {
         setSelectedSale(null);
-      }, 100);
+      }, 300);
+    } else {
+      setIsDialogOpen(open);
     }
-    setIsDialogOpen(open);
   }, []);
 
-  // Safe setter for invoice dialog
   const safeSetIsInvoiceDialogOpen = useCallback((open: boolean) => {
     if (!open) {
-      // When closing, reset state with slight delay
+      // When closing, reset state with a delay
+      setIsInvoiceDialogOpen(false);
       setTimeout(() => {
         setInvoiceSaleItems([]);
-      }, 100);
+      }, 300);
+    } else {
+      setIsInvoiceDialogOpen(open);
     }
-    setIsInvoiceDialogOpen(open);
+  }, []);
+
+  const safeSetIsReturnDialogOpen = useCallback((open: boolean) => {
+    setIsReturnDialogOpen(open);
   }, []);
 
   return {
@@ -164,7 +155,7 @@ export function useSalesDialogs() {
     isInvoiceDialogOpen,
     setIsInvoiceDialogOpen: safeSetIsInvoiceDialogOpen,
     isReturnDialogOpen,
-    setIsReturnDialogOpen,
+    setIsReturnDialogOpen: safeSetIsReturnDialogOpen,
     invoiceSaleItems,
     handleEditSale,
     handleCreateSale,

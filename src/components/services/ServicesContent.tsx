@@ -12,23 +12,43 @@ import { getServiceTableColumns } from '@/components/services/ServiceTableColumn
 import { ServiceRequest } from '@/types/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { Column } from '@/components/ui-custom/DataTable';
+import { ReactNode } from 'react';
 
-// Improved adapter function to handle different column definition structures
+// Function to adapt TanStack table columns to our DataTable component format
 function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
   return columns.map(col => {
+    // Extract header - fallback to id if header is not a string
     const header = typeof col.header === 'string' ? col.header : String(col.id || '');
-    // Safely access accessorKey which might be in different places based on column structure
-    const accessorKey = typeof col.accessorKey === 'string' ? col.accessorKey : 
-                       (col as any).accessorKey as string || '';
-    // Safely access cell render function
-    const cell = col.cell ? col.cell : undefined;
-    // Safely access className from meta
-    const className = col.meta && typeof col.meta === 'object' ? (col.meta as any).className || '' : '';
+    
+    // Handle accessorKey which might be in different places
+    let accessorKey = '';
+    if ('accessorKey' in col && typeof col.accessorKey === 'string') {
+      accessorKey = col.accessorKey;
+    }
+    
+    // Handle cell render function - convert to our expected format
+    let cellFunction: (({ row }: { row: { original: T } }) => ReactNode) | undefined = undefined;
+    if (col.cell) {
+      // Create a wrapper function that calls the original cell function
+      cellFunction = ({ row }) => {
+        if (typeof col.cell === 'function') {
+          return col.cell({ row: { original: row.original } } as any);
+        }
+        return null;
+      };
+    }
+    
+    // Extract className from meta if it exists
+    let className = '';
+    if (col.meta && typeof col.meta === 'object' && col.meta !== null) {
+      // Need to use type assertion since TypeScript doesn't know about className
+      className = (col.meta as any).className || '';
+    }
     
     return {
       header,
       accessorKey,
-      cell,
+      cell: cellFunction,
       className
     };
   });
@@ -97,12 +117,14 @@ export function ServicesContent() {
         emptyState={<ServiceEmptyState onCreateService={handleCreateService} />}
       />
 
-      <ServiceDialog 
-        open={isDialogOpen} 
-        onOpenChange={setIsDialogOpen}
-        service={selectedService}
-        onSaved={fetchServices}
-      />
+      {isDialogOpen && (
+        <ServiceDialog 
+          open={isDialogOpen} 
+          onOpenChange={setIsDialogOpen}
+          service={selectedService}
+          onSaved={fetchServices}
+        />
+      )}
     </div>
   );
 }

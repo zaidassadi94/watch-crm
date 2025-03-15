@@ -23,23 +23,27 @@ interface SaleDialogProps {
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [localOpen, setLocalOpen] = useState(open);
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const formInitialized = useRef(false);
-  const isUnmounting = useRef(false);
+  const dialogMounted = useRef(false);
   
-  // Synchronize local state with prop for more controlled state management
+  // Local state for controlling dialog visibility
+  const [localOpen, setLocalOpen] = useState(open);
+  
+  // Synchronize local state with prop
   useEffect(() => {
-    console.log('SaleDialog open prop changed to:', open);
-    if (open && !isUnmounting.current) {
+    if (open) {
       setLocalOpen(true);
     }
   }, [open]);
   
-  // Cleanup on unmount
+  // Mark component as mounted
   useEffect(() => {
+    dialogMounted.current = true;
+    
+    // Cleanup on unmount
     return () => {
-      isUnmounting.current = true;
+      dialogMounted.current = false;
     };
   }, []);
   
@@ -58,39 +62,31 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
   // Safe dialog close handler
   const handleClose = () => {
-    if (isFormSubmitting) {
-      console.log('Cannot close dialog while form is submitting');
-      return;
-    }
+    if (isFormSubmitting) return;
     
-    console.log('Closing dialog safely');
     setLocalOpen(false);
     
-    // Delay the parent notification to ensure smooth animation
+    // Delay the parent notification
     setTimeout(() => {
-      if (!isUnmounting.current) {
+      if (dialogMounted.current) {
         onOpenChange(false);
       }
-    }, 300);
+    }, 200);
   };
 
   // Handle successful save
   const handleSaved = () => {
-    console.log('Sale saved successfully');
     onSaved();
     handleClose();
   };
 
   // Create safe cancel handler
   const handleCancel = () => {
-    if (isFormSubmitting) {
-      console.log('Cannot cancel while form is submitting');
-      return;
-    }
+    if (isFormSubmitting) return;
     handleClose();
   };
-
-  // Initialize form
+  
+  // Initialize form with error handling
   const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
     sale, 
     user?.id, 
@@ -98,14 +94,14 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     handleCancel
   );
 
-  // Enhanced form submission handler
+  // Enhanced form submission handler with error protection
   const handleFormSubmit = async (data: any) => {
-    console.log('Form submission started');
+    if (isFormSubmitting) return;
+    
     setIsFormSubmitting(true);
     
     try {
       await formSubmit(data);
-      console.log('Form submission completed');
     } catch (error) {
       console.error("Form submission error:", error);
       toast({
@@ -114,14 +110,15 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         variant: "destructive",
       });
     } finally {
-      setIsFormSubmitting(false);
+      if (dialogMounted.current) {
+        setIsFormSubmitting(false);
+      }
     }
   };
 
   // Initialize form data when dialog opens
   useEffect(() => {
-    if (localOpen && !formInitialized.current && !isUnmounting.current) {
-      console.log('Initializing form data, sale:', sale);
+    if (localOpen && !formInitialized.current && dialogMounted.current) {
       formInitialized.current = true;
       
       if (!sale) {
@@ -194,9 +191,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     <Dialog 
       open={localOpen} 
       onOpenChange={(newOpen) => {
-        console.log('Dialog onOpenChange called with:', newOpen);
-        // Only allow closing when not submitting
-        if (!isFormSubmitting && !isSubmitting && !newOpen) {
+        if (!newOpen && !isFormSubmitting && !isSubmitting) {
           handleClose();
         }
       }}
@@ -204,13 +199,11 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       <DialogContent 
         className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto"
         onInteractOutside={(e) => {
-          // Prevent closing when clicking outside during submission
           if (isFormSubmitting || isSubmitting) {
             e.preventDefault();
           }
         }}
         onEscapeKeyDown={(e) => {
-          // Prevent closing when pressing Escape during submission
           if (isFormSubmitting || isSubmitting) {
             e.preventDefault();
           }
