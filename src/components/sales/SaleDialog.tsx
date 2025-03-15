@@ -22,10 +22,14 @@ interface SaleDialogProps {
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { user } = useAuth();
   const [localOpen, setLocalOpen] = useState(false);
+  const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  
+  console.log('SaleDialog rendered. Props open:', open, 'localOpen:', localOpen, 'isEdit:', !!sale);
   
   // Use local state to ensure dialog stays visible during form submission
   useEffect(() => {
     if (open) {
+      console.log('Setting localOpen to true because open prop is true');
       setLocalOpen(true);
     }
   }, [open]);
@@ -44,17 +48,35 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   } = useSuggestions(user?.id);
 
   const handleSaved = () => {
+    console.log('Sale saved, calling onSaved callback');
     onSaved();
     // Use setTimeout to prevent state update issues
     setTimeout(() => {
+      console.log('Closing dialog after save');
       setLocalOpen(false);
       onOpenChange(false);
     }, 100);
   };
 
   const handleCancel = () => {
-    setLocalOpen(false);
-    onOpenChange(false);
+    console.log('Cancelling, setting localOpen to false');
+    if (!isFormSubmitting) {
+      setLocalOpen(false);
+      onOpenChange(false);
+    }
+  };
+
+  // Enhanced form handling with submission state tracking
+  const handleFormSubmit = async (data: any) => {
+    console.log('Form submitted, setting isFormSubmitting to true');
+    setIsFormSubmitting(true);
+    try {
+      await onSubmit(data);
+      console.log('Form submission completed successfully');
+    } finally {
+      console.log('Form submission complete, setting isFormSubmitting to false');
+      setIsFormSubmitting(false);
+    }
   };
 
   const { form, isSubmitting, onSubmit } = useSaleForm(
@@ -67,6 +89,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   // Update product search terms when form is loaded
   useEffect(() => {
     if (open) {
+      console.log('Dialog open, initializing product search terms');
       if (sale) {
         const fetchSaleItems = async () => {
           try {
@@ -105,16 +128,13 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
-  // Explicitly log dialog state for debugging
-  console.log('SaleDialog state:', { open, localOpen, isSubmitting });
-
   return (
     <Dialog 
       open={localOpen} 
       onOpenChange={(newOpen) => {
-        console.log('Dialog onOpenChange:', newOpen, 'isSubmitting:', isSubmitting);
+        console.log('Dialog onOpenChange:', newOpen, 'isSubmitting:', isSubmitting, 'isFormSubmitting:', isFormSubmitting);
         // Only allow dialog to close when not submitting
-        if (!isSubmitting && !newOpen) {
+        if (!isSubmitting && !isFormSubmitting && !newOpen) {
           handleCancel();
         }
       }}
@@ -130,7 +150,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           </DialogDescription>
         </DialogHeader>
         
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
           <CustomerForm 
             form={form}
             customerSuggestions={customerSuggestions}
@@ -153,7 +173,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           
           <SaleDialogActions
             form={form}
-            isSubmitting={isSubmitting}
+            isSubmitting={isSubmitting || isFormSubmitting}
             onCancel={handleCancel}
             isEditMode={!!sale}
           />

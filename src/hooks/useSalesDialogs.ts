@@ -19,9 +19,14 @@ export function useSalesDialogs() {
   };
 
   const handleCreateSale = () => {
-    console.log('Creating new sale');
+    console.log('Creating new sale - dialog should open');
+    // Reset selected sale to null and ensure dialog opens
     setSelectedSale(null);
-    setIsDialogOpen(true);
+    // Force a small delay to ensure state updates correctly
+    setTimeout(() => {
+      setIsDialogOpen(true);
+      console.log('Dialog open state set to true');
+    }, 10);
   };
 
   const handleViewInvoice = async (sale: Sale) => {

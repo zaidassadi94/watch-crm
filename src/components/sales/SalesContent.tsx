@@ -31,6 +31,8 @@ export function SalesContent() {
     handleReturn
   } = useSalesDialogs();
 
+  console.log('SalesContent - isDialogOpen:', isDialogOpen, 'selectedSale:', selectedSale ? 'exists' : 'null');
+
   // Define correct column types for DataTable
   const columns = [
     {
@@ -126,6 +128,7 @@ export function SalesContent() {
         onRowClick={(sale: Sale) => handleEditSale(sale)}
       />
 
+      {/* Important: Render the dialog regardless of state to prevent unmounting issues */}
       <SaleDialog 
         open={isDialogOpen} 
         onOpenChange={setIsDialogOpen}
