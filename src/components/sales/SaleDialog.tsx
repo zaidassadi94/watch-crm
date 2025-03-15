@@ -23,21 +23,25 @@ interface SaleDialogProps {
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [localOpen, setLocalOpen] = useState(false);
+  const [localOpen, setLocalOpen] = useState(open);
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const formInitialized = useRef(false);
+  const isUnmounting = useRef(false);
   
-  // Use the same pattern as other working dialogs
+  // Synchronize local state with prop for more controlled state management
   useEffect(() => {
-    if (open) {
+    console.log('SaleDialog open prop changed to:', open);
+    if (open && !isUnmounting.current) {
       setLocalOpen(true);
-    } else {
-      // Only close if we're not in the middle of submitting
-      if (!isFormSubmitting) {
-        setLocalOpen(false);
-      }
     }
-  }, [open, isFormSubmitting]);
+  }, [open]);
+  
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      isUnmounting.current = true;
+    };
+  }, []);
   
   const {
     productSuggestions,
@@ -52,23 +56,41 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setCustomerSearchTerm
   } = useSuggestions(user?.id);
 
-  // Initialize the form with proper handlers
-  const handleSaved = () => {
-    onSaved();
-    setTimeout(() => {
-      setLocalOpen(false);
-      onOpenChange(false);
-    }, 100);
-  };
-
-  const handleCancel = () => {
-    if (!isFormSubmitting && !isSubmitting) {
-      setLocalOpen(false);
-      onOpenChange(false);
+  // Safe dialog close handler
+  const handleClose = () => {
+    if (isFormSubmitting) {
+      console.log('Cannot close dialog while form is submitting');
+      return;
     }
+    
+    console.log('Closing dialog safely');
+    setLocalOpen(false);
+    
+    // Delay the parent notification to ensure smooth animation
+    setTimeout(() => {
+      if (!isUnmounting.current) {
+        onOpenChange(false);
+      }
+    }, 300);
   };
 
-  // Initialize the form with the handlers
+  // Handle successful save
+  const handleSaved = () => {
+    console.log('Sale saved successfully');
+    onSaved();
+    handleClose();
+  };
+
+  // Create safe cancel handler
+  const handleCancel = () => {
+    if (isFormSubmitting) {
+      console.log('Cannot cancel while form is submitting');
+      return;
+    }
+    handleClose();
+  };
+
+  // Initialize form
   const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
     sale, 
     user?.id, 
@@ -76,12 +98,14 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     handleCancel
   );
 
-  // Enhanced form handling with submission state tracking
+  // Enhanced form submission handler
   const handleFormSubmit = async (data: any) => {
+    console.log('Form submission started');
     setIsFormSubmitting(true);
     
     try {
       await formSubmit(data);
+      console.log('Form submission completed');
     } catch (error) {
       console.error("Form submission error:", error);
       toast({
@@ -94,13 +118,14 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     }
   };
 
-  // Update product search terms when form is loaded
+  // Initialize form data when dialog opens
   useEffect(() => {
-    if (open && !formInitialized.current) {
+    if (localOpen && !formInitialized.current && !isUnmounting.current) {
+      console.log('Initializing form data, sale:', sale);
       formInitialized.current = true;
       
-      // If dialog is open but there is no sale to edit, initialize with default values
       if (!sale) {
+        // Initialize new sale form
         try {
           form.reset({
             customer_name: '',
@@ -109,13 +134,14 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             payment_method: 'cash',
             status: 'completed',
             notes: '',
-            items: [{ product_name: '', quantity: 1, price: 0 }]
+            items: [{ product_name: '', quantity: 1, price: 0, cost_price: 0 }]
           });
           updateProductSearchTerms(['']);
         } catch (error) {
-          console.error("Error initializing form:", error);
+          console.error("Error initializing new sale form:", error);
         }
       } else {
+        // Fetch items for existing sale
         const fetchSaleItems = async () => {
           try {
             const { data, error } = await supabase
@@ -137,12 +163,12 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       }
     }
     
-    // Reset the initialization flag when dialog closes
-    if (!open) {
+    if (!localOpen) {
       formInitialized.current = false;
     }
-  }, [sale, updateProductSearchTerms, open, form]);
+  }, [sale, updateProductSearchTerms, localOpen, form]);
 
+  // Product selection handler
   const selectProduct = (product: ProductSuggestion, index: number) => {
     form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name} (${product.sku})`);
     form.setValue(`items.${index}.price`, product.price);
@@ -151,6 +177,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowProductSuggestions(null);
   };
 
+  // Customer selection handler
   const selectCustomer = (customer: CustomerSuggestion) => {
     form.setValue('customer_name', customer.name);
     if (customer.email) form.setValue('customer_email', customer.email);
@@ -158,18 +185,36 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
+  // Don't render content if dialog isn't open
+  if (!localOpen) {
+    return null;
+  }
+
   return (
     <Dialog 
       open={localOpen} 
       onOpenChange={(newOpen) => {
-        // Only allow dialog to close when not submitting
-        if (!isSubmitting && !isFormSubmitting && !newOpen) {
-          handleCancel();
+        console.log('Dialog onOpenChange called with:', newOpen);
+        // Only allow closing when not submitting
+        if (!isFormSubmitting && !isSubmitting && !newOpen) {
+          handleClose();
         }
       }}
     >
       <DialogContent 
         className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto"
+        onInteractOutside={(e) => {
+          // Prevent closing when clicking outside during submission
+          if (isFormSubmitting || isSubmitting) {
+            e.preventDefault();
+          }
+        }}
+        onEscapeKeyDown={(e) => {
+          // Prevent closing when pressing Escape during submission
+          if (isFormSubmitting || isSubmitting) {
+            e.preventDefault();
+          }
+        }}
       >
         <DialogHeader>
           <DialogTitle>{sale ? 'Edit Sale' : 'Create New Sale'}</DialogTitle>
@@ -178,36 +223,34 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
           </DialogDescription>
         </DialogHeader>
         
-        {localOpen && (
-          <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
-            <CustomerForm 
-              form={form}
-              customerSuggestions={customerSuggestions}
-              showCustomerSuggestions={showCustomerSuggestions}
-              setCustomerSearchTerm={setCustomerSearchTerm}
-              selectCustomer={selectCustomer}
-            />
-            
-            <SaleItemForm
-              form={form}
-              productSuggestions={productSuggestions}
-              showProductSuggestions={showProductSuggestions}
-              setShowProductSuggestions={setShowProductSuggestions}
-              productSearchTerms={productSearchTerms}
-              handleProductSearch={handleProductSearch}
-              selectProduct={selectProduct}
-            />
-            
-            <SaleNotesField form={form} />
-            
-            <SaleDialogActions
-              form={form}
-              isSubmitting={isSubmitting || isFormSubmitting}
-              onCancel={handleCancel}
-              isEditMode={!!sale}
-            />
-          </form>
-        )}
+        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+          <CustomerForm 
+            form={form}
+            customerSuggestions={customerSuggestions}
+            showCustomerSuggestions={showCustomerSuggestions}
+            setCustomerSearchTerm={setCustomerSearchTerm}
+            selectCustomer={selectCustomer}
+          />
+          
+          <SaleItemForm
+            form={form}
+            productSuggestions={productSuggestions}
+            showProductSuggestions={showProductSuggestions}
+            setShowProductSuggestions={setShowProductSuggestions}
+            productSearchTerms={productSearchTerms}
+            handleProductSearch={handleProductSearch}
+            selectProduct={selectProduct}
+          />
+          
+          <SaleNotesField form={form} />
+          
+          <SaleDialogActions
+            form={form}
+            isSubmitting={isSubmitting || isFormSubmitting}
+            onCancel={handleCancel}
+            isEditMode={!!sale}
+          />
+        </form>
       </DialogContent>
     </Dialog>
   );

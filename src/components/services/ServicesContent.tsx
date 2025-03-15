@@ -13,14 +13,25 @@ import { ServiceRequest } from '@/types/services';
 import { ColumnDef } from '@tanstack/react-table';
 import { Column } from '@/components/ui-custom/DataTable';
 
-// Adapter function to convert ColumnDef to Column
+// Improved adapter function to handle different column definition structures
 function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
-  return columns.map(col => ({
-    header: typeof col.header === 'string' ? col.header : String(col.id),
-    accessorKey: col.accessorKey as string,
-    cell: col.cell as any,
-    className: col.meta?.className as string,
-  }));
+  return columns.map(col => {
+    const header = typeof col.header === 'string' ? col.header : String(col.id || '');
+    // Safely access accessorKey which might be in different places based on column structure
+    const accessorKey = typeof col.accessorKey === 'string' ? col.accessorKey : 
+                       (col as any).accessorKey as string || '';
+    // Safely access cell render function
+    const cell = col.cell ? col.cell : undefined;
+    // Safely access className from meta
+    const className = col.meta && typeof col.meta === 'object' ? (col.meta as any).className || '' : '';
+    
+    return {
+      header,
+      accessorKey,
+      cell,
+      className
+    };
+  });
 }
 
 export function ServicesContent() {
