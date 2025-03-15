@@ -1,27 +1,15 @@
 
 import { useState, useEffect } from 'react';
-import { 
-  PlusCircle, Search, Filter, Download, 
-  MoreHorizontal, Eye, Edit, Trash2, 
-  DollarSign, CheckCircle, Clock, XCircle
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { DataTable, Column } from '@/components/ui-custom/DataTable';
+import { DataTable } from '@/components/ui-custom/DataTable';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { SaleDialog } from '@/components/sales/SaleDialog';
+import { SaleActions } from '@/components/sales/SaleActions';
+import { SaleSearch } from '@/components/sales/SaleSearch';
+import { SaleEmptyState } from '@/components/sales/SaleEmptyState';
+import { getSaleTableColumns } from '@/components/sales/SaleTableColumns';
 
 // Type definitions
 export interface Sale {
@@ -35,21 +23,6 @@ export interface Sale {
   notes: string | null;
   created_at: string;
 }
-
-const statusStyles = {
-  pending: { 
-    color: "text-amber-700 bg-amber-100", 
-    icon: Clock 
-  },
-  completed: { 
-    color: "text-green-700 bg-green-100", 
-    icon: CheckCircle 
-  },
-  cancelled: { 
-    color: "text-red-700 bg-red-100", 
-    icon: XCircle 
-  }
-};
 
 const Sales = () => {
   const { user } = useAuth();
@@ -129,81 +102,10 @@ const Sales = () => {
     setIsDialogOpen(true);
   };
 
-  const columns: Column<Sale>[] = [
-    {
-      header: "Customer",
-      accessorKey: "customer_name",
-      cell: (sale: Sale) => (
-        <div>
-          <div className="font-medium">{sale.customer_name}</div>
-          {sale.customer_email && (
-            <div className="text-sm text-muted-foreground">{sale.customer_email}</div>
-          )}
-        </div>
-      )
-    },
-    {
-      header: "Amount",
-      accessorKey: "total_amount",
-      cell: (sale: Sale) => (
-        <div className="font-medium">
-          ₹{Number(sale.total_amount).toFixed(2)}
-        </div>
-      ),
-      className: "text-right"
-    },
-    {
-      header: "Status",
-      accessorKey: "status",
-      cell: (sale: Sale) => {
-        const status = sale.status.toLowerCase() as keyof typeof statusStyles;
-        const style = statusStyles[status] || statusStyles.pending;
-        const StatusIcon = style.icon;
-        
-        return (
-          <Badge variant="outline" className={cn("capitalize", style.color)}>
-            <StatusIcon className="w-3 h-3 mr-1" />
-            {sale.status}
-          </Badge>
-        );
-      }
-    },
-    {
-      header: "Date",
-      accessorKey: "created_at",
-      cell: (sale: Sale) => (
-        <div className="text-sm">
-          {new Date(sale.created_at).toLocaleDateString()}
-        </div>
-      )
-    },
-    {
-      header: "",
-      accessorKey: "id",
-      cell: (sale: Sale) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <MoreHorizontal className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => handleEditSale(sale)}>
-              <Edit className="w-4 h-4 mr-2" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleDelete(sale.id)}>
-              <Trash2 className="w-4 h-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      ),
-      className: "text-right"
-    }
-  ];
+  const columns = getSaleTableColumns({
+    onEdit: handleEditSale,
+    onDelete: handleDelete
+  });
 
   const filteredSales = sales.filter(sale => 
     sale.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -217,46 +119,21 @@ const Sales = () => {
         isLoaded ? "opacity-100" : "opacity-0 translate-y-4"
       )}
     >
-      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold mb-1">Sales</h1>
-          <p className="text-muted-foreground">
-            Manage sales, quotes, and invoices
-          </p>
-        </div>
-        <Button className="w-full md:w-auto gap-2" onClick={handleCreateSale}>
-          <PlusCircle className="h-4 w-4" /> New Sale
-        </Button>
-      </div>
+      <SaleActions 
+        isLoaded={isLoaded} 
+        onCreateSale={handleCreateSale} 
+      />
 
-      <div className="flex flex-col md:flex-row gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search sales..."
-            className="pl-8"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </div>
+      <SaleSearch 
+        searchTerm={searchTerm} 
+        onSearchChange={setSearchTerm} 
+      />
 
       <DataTable
         columns={columns}
         data={filteredSales}
         isLoading={isLoading}
-        emptyState={
-          <div className="flex flex-col items-center justify-center p-8 text-center">
-            <DollarSign className="h-10 w-10 text-muted-foreground mb-3" />
-            <h3 className="text-lg font-medium">No sales found</h3>
-            <p className="text-muted-foreground mb-4">
-              You haven't created any sales yet.
-            </p>
-            <Button size="sm" onClick={handleCreateSale}>
-              <PlusCircle className="h-4 w-4 mr-2" /> New Sale
-            </Button>
-          </div>
-        }
+        emptyState={<SaleEmptyState onCreateSale={handleCreateSale} />}
       />
 
       <SaleDialog 
