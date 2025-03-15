@@ -1,5 +1,5 @@
 
-import React, { useRef } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { 
   Dialog, 
   DialogContent, 
@@ -35,6 +35,8 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
         variant: "destructive",
       });
     },
+    // Ensure the content callback returns a function that returns the node
+    content: useCallback(() => invoiceRef.current, []),
   });
 
   const handleShare = async () => {
@@ -82,7 +84,7 @@ export function InvoiceDialog({ open, onOpenChange, sale, saleItems }: InvoiceDi
             <Share2 className="w-4 h-4 mr-2" />
             Share
           </Button>
-          <Button onClick={() => handlePrint(invoiceRef.current)}>
+          <Button onClick={handlePrint}>
             <Printer className="w-4 h-4 mr-2" />
             Print Invoice
           </Button>
