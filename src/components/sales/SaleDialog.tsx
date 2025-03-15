@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -14,6 +13,8 @@ import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
 import { saleFormSchema, SaleFormValues, calculateTotal, SaleItemInternal } from './saleFormSchema';
 import { CustomerForm } from './CustomerForm';
 import { SaleItemForm } from './SaleItemForm';
+import { StatusSelect } from './StatusSelect';
+import { PaymentMethodSelect } from './PaymentMethodSelect';
 import { useSuggestions } from './useSuggestions';
 import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 
@@ -135,7 +136,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     try {
       setIsSubmitting(true);
       
-      // Ensure items have all required properties for SaleItemInternal
       const saleItems: SaleItemInternal[] = data.items.map(item => ({
         product_name: item.product_name,
         quantity: item.quantity,
@@ -253,6 +253,11 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
               setCustomerSearchTerm={setCustomerSearchTerm}
               selectCustomer={selectCustomer}
             />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <StatusSelect form={form} />
+              <PaymentMethodSelect form={form} />
+            </div>
             
             <SaleItemForm 
               form={form}

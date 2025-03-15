@@ -49,6 +49,7 @@ export function useSuggestions(userId: string | undefined) {
   // Customer search effect
   useEffect(() => {
     if (!showCustomerSuggestions || !userId || customerSearchTerm.length < 2) {
+      setCustomerSuggestions([]);
       return;
     }
     

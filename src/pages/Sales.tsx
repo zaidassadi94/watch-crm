@@ -147,7 +147,7 @@ const Sales = () => {
       accessorKey: "total_amount",
       cell: (sale: Sale) => (
         <div className="font-medium">
-          ${Number(sale.total_amount).toFixed(2)}
+          ₹{Number(sale.total_amount).toFixed(2)}
         </div>
       ),
       className: "text-right"
