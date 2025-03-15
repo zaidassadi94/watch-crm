@@ -26,6 +26,27 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const { toast } = useToast();
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   
+  // Create safe cancel handler
+  const handleCancel = () => {
+    if (isFormSubmitting) return;
+    onOpenChange(false);
+  };
+  
+  // Handle successful save - defining this before using it
+  const handleSaved = () => {
+    onSaved();
+    onOpenChange(false);
+  };
+  
+  // Initialize form with error handling - now handleSaved is defined before it's used
+  const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
+    sale, 
+    user?.id, 
+    handleSaved,
+    handleCancel
+  );
+  
+  // Set up suggestions
   const {
     productSuggestions,
     showProductSuggestions,
@@ -38,20 +59,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions,
     setCustomerSearchTerm
   } = useSuggestions(user?.id);
-
-  // Create safe cancel handler
-  const handleCancel = () => {
-    if (isFormSubmitting) return;
-    onOpenChange(false);
-  };
-  
-  // Initialize form with error handling
-  const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
-    sale, 
-    user?.id, 
-    handleSaved,
-    handleCancel
-  );
 
   // Enhanced form submission handler with error protection
   const handleFormSubmit = async (data: any) => {
@@ -71,12 +78,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     } finally {
       setIsFormSubmitting(false);
     }
-  };
-
-  // Handle successful save
-  const handleSaved = () => {
-    onSaved();
-    onOpenChange(false);
   };
 
   // Initialize form data when sale changes

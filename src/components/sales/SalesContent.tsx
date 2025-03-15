@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { DataTable } from '@/components/ui-custom/DataTable';
 import { cn } from '@/lib/utils';
 import { useSalesData } from '@/hooks/useSalesData';
@@ -20,29 +20,31 @@ function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
     // Extract header from string or function
     const header = typeof col.header === 'string' 
       ? col.header 
-      : String(col.id || '');
+      : col.id ? String(col.id) : '';
     
     // Extract accessor key from different possible locations
     let accessorKey = '';
     if ('accessorKey' in col && typeof col.accessorKey === 'string') {
       accessorKey = col.accessorKey;
-    } else if ('id' in col) {
+    } else if (col.id) {
       // Use id as fallback
-      accessorKey = String(col.id || '');
+      accessorKey = String(col.id);
     }
     
     // Create a cell render function compatible with our DataTable
     const cellFunction = ({ row }: { row: { original: T } }) => {
       if (col.cell && typeof col.cell === 'function') {
+        // Need to convert between TanStack table's cell renderer and our format
         return col.cell({ row: { original: row.original } } as any);
       }
       return null;
     };
     
     // Extract className safely
-    const className = col.meta && typeof col.meta === 'object' && col.meta !== null
-      ? ('className' in col.meta ? (col.meta as any).className : '')
-      : '';
+    let className = '';
+    if (col.meta && typeof col.meta === 'object' && col.meta !== null) {
+      className = (col.meta as any).className || '';
+    }
     
     return {
       header,

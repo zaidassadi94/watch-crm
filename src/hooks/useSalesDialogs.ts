@@ -15,14 +15,13 @@ export function useSalesDialogs() {
   
   // Clean way to handle dialog state
   const safeSetIsDialogOpen = useCallback((open: boolean) => {
+    setIsDialogOpen(open);
+    
+    // Reset selected sale after dialog closes with a delay
     if (!open) {
-      setIsDialogOpen(false);
-      // Reset selected sale after dialog closes
       setTimeout(() => {
         setSelectedSale(null);
       }, 300);
-    } else {
-      setIsDialogOpen(true);
     }
   }, []);
 
@@ -54,14 +53,14 @@ export function useSalesDialogs() {
       
       setInvoiceSaleItems(data || []);
       setIsInvoiceDialogOpen(true);
-      setIsLoading(false);
     } catch (error: any) {
-      setIsLoading(false);
       toast({
         title: "Error loading invoice",
         description: error.message,
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
   }, [toast, isLoading]);
 
@@ -72,15 +71,18 @@ export function useSalesDialogs() {
 
   // Safe handlers for dialog states
   const safeSetIsInvoiceDialogOpen = useCallback((open: boolean) => {
+    setIsInvoiceDialogOpen(open);
+    
+    // Reset items after dialog closes with a delay
     if (!open) {
-      setIsInvoiceDialogOpen(false);
-      // Reset items after dialog closes
       setTimeout(() => {
         setInvoiceSaleItems([]);
       }, 300);
-    } else {
-      setIsInvoiceDialogOpen(open);
     }
+  }, []);
+
+  const safeSetIsReturnDialogOpen = useCallback((open: boolean) => {
+    setIsReturnDialogOpen(open);
   }, []);
 
   return {
@@ -90,7 +92,7 @@ export function useSalesDialogs() {
     isInvoiceDialogOpen,
     setIsInvoiceDialogOpen: safeSetIsInvoiceDialogOpen,
     isReturnDialogOpen,
-    setIsReturnDialogOpen,
+    setIsReturnDialogOpen: safeSetIsReturnDialogOpen,
     invoiceSaleItems,
     handleEditSale,
     handleCreateSale,
