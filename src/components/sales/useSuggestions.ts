@@ -1,122 +1,96 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
+import { useState, useCallback, useMemo } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
 
 export function useSuggestions(userId: string | undefined) {
   const [productSuggestions, setProductSuggestions] = useState<ProductSuggestion[]>([]);
-  const [showProductSuggestions, setShowProductSuggestions] = useState<number | null>(null);
   const [productSearchTerms, setProductSearchTerms] = useState<string[]>(['']);
+  const [showProductSuggestions, setShowProductSuggestions] = useState<number | null>(null);
   
   const [customerSuggestions, setCustomerSuggestions] = useState<CustomerSuggestion[]>([]);
-  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
   const [customerSearchTerm, setCustomerSearchTerm] = useState('');
-
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  
   const updateProductSearchTerms = useCallback((terms: string[]) => {
     setProductSearchTerms(terms);
   }, []);
 
-  // Product search effect
-  useEffect(() => {
-    if (showProductSuggestions === null || !userId) return;
+  const handleProductSearch = useCallback(async (term: string, index: number) => {
+    const newSearchTerms = [...productSearchTerms];
+    newSearchTerms[index] = term;
+    setProductSearchTerms(newSearchTerms);
     
-    const searchTerm = productSearchTerms[showProductSuggestions];
-    if (!searchTerm || searchTerm.length < 2) {
+    if (!userId || term.length < 2) {
       setProductSuggestions([]);
       return;
     }
-
-    const loadProductSuggestions = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('inventory')
-          .select('id, name, brand, sku, price, stock_level, stock_status, category')
-          .eq('user_id', userId)
-          .or(`name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%`)
-          .order('name', { ascending: true });
-          
-        if (error) throw error;
+    
+    try {
+      const { data, error } = await supabase
+        .from('inventory')
+        .select('id, name, brand, sku, price, cost_price, stock_level, stock_status, category')
+        .eq('user_id', userId)
+        .or(`name.ilike.%${term}%,sku.ilike.%${term}%,brand.ilike.%${term}%`)
+        .order('name')
+        .limit(10);
         
-        setProductSuggestions(data || []);
-      } catch (error) {
-        console.error("Error fetching product suggestions:", error);
-      }
-    };
-    
-    loadProductSuggestions();
-  }, [showProductSuggestions, productSearchTerms, userId]);
-
-  // Customer search effect
-  useEffect(() => {
-    if (!showCustomerSuggestions || !userId || customerSearchTerm.length < 2) {
-      setCustomerSuggestions([]);
-      return;
+      if (error) throw error;
+      
+      setProductSuggestions(data as ProductSuggestion[]);
+    } catch (error) {
+      console.error('Error searching products:', error);
+      setProductSuggestions([]);
     }
-    
-    const loadCustomerSuggestions = async () => {
+  }, [userId, productSearchTerms]);
+
+  useMemo(() => {
+    const searchCustomers = async (term: string) => {
+      if (!userId || term.length < 2) {
+        setCustomerSuggestions([]);
+        return;
+      }
+      
       try {
-        // Search in sales
-        const { data: salesData, error: salesError } = await supabase
+        // In a real app, this would search a customers table
+        // For now, simulate pulling from past sales
+        const { data, error } = await supabase
           .from('sales')
           .select('customer_name, customer_email, customer_phone')
           .eq('user_id', userId)
-          .or(`customer_name.ilike.%${customerSearchTerm}%,customer_phone.ilike.%${customerSearchTerm}%,customer_email.ilike.%${customerSearchTerm}%`)
-          .order('created_at', { ascending: false });
+          .ilike('customer_name', `%${term}%`)
+          .order('created_at', { ascending: false })
+          .limit(5);
           
-        if (salesError) throw salesError;
+        if (error) throw error;
         
-        // Search in service_requests
-        const { data: serviceData, error: serviceError } = await supabase
-          .from('service_requests')
-          .select('customer_name, customer_email, customer_phone')
-          .eq('user_id', userId)
-          .or(`customer_name.ilike.%${customerSearchTerm}%,customer_phone.ilike.%${customerSearchTerm}%,customer_email.ilike.%${customerSearchTerm}%`)
-          .order('created_at', { ascending: false });
-          
-        if (serviceError) throw serviceError;
-        
-        // Combine and deduplicate results
-        const combinedData = [...(salesData || []), ...(serviceData || [])];
-        const uniqueCustomers: CustomerSuggestion[] = [];
-        
-        combinedData.forEach(item => {
-          const exists = uniqueCustomers.some(customer => 
-            customer.name === item.customer_name && 
-            customer.email === item.customer_email && 
-            customer.phone === item.customer_phone
-          );
-          
-          if (!exists) {
-            uniqueCustomers.push({
-              name: item.customer_name,
-              email: item.customer_email,
-              phone: item.customer_phone
-            });
-          }
-        });
+        // Remove duplicates based on customer name
+        const uniqueCustomers = Array.from(
+          new Map(data.map(item => 
+            [item.customer_name, { 
+              name: item.customer_name, 
+              email: item.customer_email, 
+              phone: item.customer_phone 
+            }]
+          )).values()
+        );
         
         setCustomerSuggestions(uniqueCustomers);
       } catch (error) {
-        console.error("Error fetching customer suggestions:", error);
+        console.error('Error searching customers:', error);
+        setCustomerSuggestions([]);
       }
     };
     
-    loadCustomerSuggestions();
-  }, [customerSearchTerm, userId, showCustomerSuggestions]);
-
-  const handleProductSearch = useCallback((value: string, index: number) => {
-    setProductSearchTerms(prev => {
-      const updated = [...prev];
-      updated[index] = value;
-      return updated;
-    });
+    // Debounce search
+    const timeoutId = setTimeout(() => {
+      if (customerSearchTerm) {
+        searchCustomers(customerSearchTerm);
+      }
+    }, 300);
     
-    if (value.length >= 2) {
-      setShowProductSuggestions(index);
-    } else {
-      setShowProductSuggestions(null);
-    }
-  }, []);
+    return () => clearTimeout(timeoutId);
+  }, [customerSearchTerm, userId]);
 
   return {
     productSuggestions,

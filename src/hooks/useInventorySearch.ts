@@ -21,7 +21,7 @@ export function useInventorySearch() {
         setLoading(true);
         const { data, error } = await supabase
           .from('inventory')
-          .select('id, name, brand, sku, price, stock_level, stock_status, category')
+          .select('id, name, brand, sku, price, cost_price, stock_level, stock_status, category')
           .eq('user_id', user.id)
           .or(`name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%`)
           .order('name', { ascending: true })

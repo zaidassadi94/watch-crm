@@ -26,6 +26,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { InventoryItem } from '@/types/inventory';
+import { useSettings } from '@/hooks/useSettings';
 
 interface InventoryDialogProps {
   open: boolean;
@@ -42,6 +43,7 @@ const inventoryFormSchema = z.object({
   stock_level: z.number().min(0, 'Stock level must be 0 or more'),
   stock_status: z.string(),
   price: z.number().min(0, 'Price must be 0 or more'),
+  cost_price: z.number().min(0, 'Cost price must be 0 or more'),
   description: z.string().optional(),
   image_url: z.string().optional().or(z.literal('')),
 });
@@ -53,6 +55,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
   const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [localOpen, setLocalOpen] = useState(false);
+  const { currencySymbol } = useSettings();
   
   useEffect(() => {
     // Control local state based on props
@@ -70,6 +73,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
       stock_level: 0,
       stock_status: 'in_stock',
       price: 0,
+      cost_price: 0,
       description: '',
       image_url: '',
     }
@@ -87,6 +91,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
         stock_level: item.stock_level || 0,
         stock_status: item.stock_status || 'in_stock',
         price: item.price || 0,
+        cost_price: item.cost_price || 0,
         description: item.description || '',
         image_url: item.image_url || '',
       });
@@ -100,6 +105,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
         stock_level: 0,
         stock_status: 'in_stock',
         price: 0,
+        cost_price: 0,
         description: '',
         image_url: '',
       });
@@ -135,6 +141,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
             stock_level: data.stock_level,
             stock_status: stock_status,
             price: data.price,
+            cost_price: data.cost_price,
             description: data.description || null,
             image_url: data.image_url || null,
             updated_at: new Date().toISOString(),
@@ -160,6 +167,7 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
             stock_level: data.stock_level,
             stock_status: stock_status,
             price: data.price,
+            cost_price: data.cost_price,
             description: data.description || null,
             image_url: data.image_url || null,
           });
@@ -342,10 +350,31 @@ export function InventoryDialog({ open, onOpenChange, item, onSaved }: Inventory
               
               <FormField
                 control={form.control}
+                name="cost_price"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Cost Price ({currencySymbol}) *</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="number" 
+                        step="0.01" 
+                        min="0" 
+                        {...field}
+                        onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                        value={field.value}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
                 name="price"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Price (₹) *</FormLabel>
+                    <FormLabel>MRP/Selling Price ({currencySymbol}) *</FormLabel>
                     <FormControl>
                       <Input 
                         type="number" 

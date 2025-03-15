@@ -92,6 +92,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const selectProduct = (product: ProductSuggestion, index: number) => {
     form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name} (${product.sku})`);
     form.setValue(`items.${index}.price`, product.price);
+    form.setValue(`items.${index}.cost_price`, product.cost_price || 0);
     setShowProductSuggestions(null);
   };
 

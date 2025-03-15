@@ -23,6 +23,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { InventoryDialog } from '@/components/inventory/InventoryDialog';
 import { InventoryItem } from '@/types/inventory';
+import { useSettings } from '@/hooks/useSettings';
 
 const Inventory = () => {
   const { user } = useAuth();
@@ -33,6 +34,7 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null);
+  const { currencySymbol } = useSettings();
 
   useEffect(() => {
     fetchInventory();
@@ -133,6 +135,11 @@ const Inventory = () => {
     }
   };
 
+  const calculateProfitMargin = (costPrice: number, sellingPrice: number) => {
+    if (costPrice === 0 || sellingPrice === 0) return 0;
+    return ((sellingPrice - costPrice) / sellingPrice) * 100;
+  };
+
   const columns = [
     {
       header: 'Product',
@@ -185,16 +192,32 @@ const Inventory = () => {
       ),
     },
     {
-      header: 'Price',
+      header: 'Cost Price',
       cell: (item: InventoryItem) => (
-        <div className="font-medium">₹{item.price.toLocaleString()}</div>
+        <div className="font-medium text-muted-foreground">{currencySymbol}{item.cost_price?.toLocaleString() || '0'}</div>
       ),
     },
     {
-      header: 'Date Added',
+      header: 'MRP',
       cell: (item: InventoryItem) => (
-        <div>{new Date(item.date_added).toLocaleDateString()}</div>
+        <div className="font-medium">{currencySymbol}{item.price.toLocaleString()}</div>
       ),
+    },
+    {
+      header: 'Margin',
+      cell: (item: InventoryItem) => {
+        const margin = calculateProfitMargin(item.cost_price || 0, item.price);
+        return (
+          <div className={cn(
+            "font-medium",
+            margin > 30 ? "text-green-600" : 
+            margin > 15 ? "text-amber-600" : 
+            "text-red-600"
+          )}>
+            {margin.toFixed(2)}%
+          </div>
+        );
+      },
     },
     {
       header: 'Actions',

@@ -18,6 +18,7 @@ export interface Sale {
   customer_email: string | null;
   customer_phone: string | null;
   total_amount: number;
+  total_profit: number;
   status: string;
   payment_method: string | null;
   notes: string | null;

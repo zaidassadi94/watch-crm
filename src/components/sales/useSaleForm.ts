@@ -21,7 +21,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
       payment_method: '',
       notes: '',
       items: [
-        { product_name: '', quantity: 1, price: 0 }
+        { product_name: '', quantity: 1, price: 0, cost_price: 0 }
       ],
     }
   });
@@ -48,6 +48,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
               product_name: item.product_name,
               quantity: item.quantity,
               price: Number(item.price),
+              cost_price: Number(item.cost_price || 0),
             })) || []
           });
         } catch (error: any) {
@@ -69,7 +70,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
         payment_method: '',
         notes: '',
         items: [
-          { product_name: '', quantity: 1, price: 0 }
+          { product_name: '', quantity: 1, price: 0, cost_price: 0 }
         ],
       });
     }
@@ -91,10 +92,13 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
       const saleItems: SaleItemInternal[] = data.items.map(item => ({
         product_name: item.product_name,
         quantity: item.quantity,
-        price: item.price
+        price: item.price,
+        cost_price: item.cost_price || 0
       }));
       
-      const totalAmount = calculateTotal(saleItems);
+      const calculation = calculateTotal(saleItems);
+      const totalAmount = calculation.totalPrice;
+      const totalProfit = calculation.totalProfit;
 
       if (sale) {
         const { error } = await supabase
@@ -104,6 +108,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
             customer_email: data.customer_email || null,
             customer_phone: data.customer_phone || null,
             total_amount: totalAmount,
+            total_profit: totalProfit,
             status: data.status,
             payment_method: data.payment_method || null,
             notes: data.notes || null,
@@ -128,6 +133,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
               product_name: item.product_name,
               quantity: item.quantity,
               price: item.price,
+              cost_price: item.cost_price || 0,
               subtotal: item.quantity * item.price,
             }))
           );
@@ -147,6 +153,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
             customer_email: data.customer_email || null,
             customer_phone: data.customer_phone || null,
             total_amount: totalAmount,
+            total_profit: totalProfit,
             status: data.status,
             payment_method: data.payment_method || null,
             notes: data.notes || null,
@@ -164,6 +171,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
               product_name: item.product_name,
               quantity: item.quantity,
               price: item.price,
+              cost_price: item.cost_price || 0,
               subtotal: item.quantity * item.price,
             }))
           );

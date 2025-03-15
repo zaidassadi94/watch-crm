@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ProductSuggestion } from '@/types/inventory';
 import { SaleFormValues, SaleItemInternal, calculateTotal } from './saleFormSchema';
 import { useFieldArray } from 'react-hook-form';
+import { useSettings } from '@/hooks/useSettings';
 
 interface SaleItemFormProps {
   form: UseFormReturn<SaleFormValues>;
@@ -33,12 +34,15 @@ export function SaleItemForm({
     control: form.control,
     name: "items",
   });
+  
+  const { currencySymbol } = useSettings();
 
   const total = calculateTotal(
     form.watch('items').map(item => ({
       product_name: item.product_name || '',
       quantity: Number(item.quantity) || 1,
-      price: Number(item.price) || 0
+      price: Number(item.price) || 0,
+      cost_price: Number(item.cost_price) || 0,
     }))
   );
 
@@ -88,7 +92,7 @@ export function SaleItemForm({
                               <div className="font-medium">{product.brand} {product.name}</div>
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>SKU: {product.sku}</span>
-                                <span>₹{product.price.toLocaleString()}</span>
+                                <span>{currencySymbol}{product.price.toLocaleString()}</span>
                               </div>
                             </div>
                           ))}
@@ -133,7 +137,7 @@ export function SaleItemForm({
                 render={({ field }) => (
                   <FormItem className="w-full sm:w-28">
                     <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                      Price (₹)
+                      Price ({currencySymbol})
                     </FormLabel>
                     <FormControl>
                       <Input 
@@ -170,7 +174,7 @@ export function SaleItemForm({
         size="sm"
         className="mt-4"
         onClick={() => {
-          append({ product_name: '', quantity: 1, price: 0 });
+          append({ product_name: '', quantity: 1, price: 0, cost_price: 0 });
         }}
       >
         <PlusCircle className="h-4 w-4 mr-2" />
@@ -180,7 +184,10 @@ export function SaleItemForm({
       <div className="flex justify-end mt-4">
         <div className="text-right">
           <span className="text-sm font-medium">Total: </span>
-          <span className="text-lg font-bold">₹{total.toFixed(2)}</span>
+          <span className="text-lg font-bold">{currencySymbol}{total.totalPrice.toFixed(2)}</span>
+          <div className="text-sm text-muted-foreground">
+            Profit: {currencySymbol}{total.totalProfit.toFixed(2)} ({total.marginPercentage.toFixed(2)}%)
+          </div>
         </div>
       </div>
     </div>

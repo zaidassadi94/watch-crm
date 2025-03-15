@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -10,6 +10,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 
 const generalSettingsSchema = z.object({
   companyName: z.string().min(2, {
@@ -33,6 +35,7 @@ type GeneralSettingsValues = z.infer<typeof generalSettingsSchema>;
 export function GeneralSettings() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const form = useForm<GeneralSettingsValues>({
     resolver: zodResolver(generalSettingsSchema),
@@ -46,20 +49,124 @@ export function GeneralSettings() {
     },
   });
 
-  function onSubmit(data: GeneralSettingsValues) {
+  // Load saved settings when component mounts
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('user_settings')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+          
+        if (error) {
+          if (error.code !== 'PGRST116') { // No rows returned
+            console.error("Error fetching settings:", error);
+          }
+          return;
+        }
+        
+        if (data) {
+          // Update form with stored settings
+          form.reset({
+            companyName: data.company_name || "Watch CRM",
+            currency: data.currency || "INR",
+            language: data.language || "en",
+            dateFormat: data.date_format || "DD/MM/YYYY",
+            enableNotifications: data.enable_notifications !== false,
+            enableDarkMode: data.enable_dark_mode || false,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch settings:", error);
+      }
+    };
+    
+    fetchSettings();
+  }, [user, form]);
+  
+  async function onSubmit(data: GeneralSettingsValues) {
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to save settings",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
     
-    // In a real app, you would save the settings to your database
-    console.log("General settings submitted:", data);
-    
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
+    try {
+      // Check if settings already exist for this user
+      const { data: existingSettings, error: fetchError } = await supabase
+        .from('user_settings')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+      
+      if (fetchError && fetchError.code !== 'PGRST116') {
+        throw fetchError;
+      }
+      
+      let saveError;
+      
+      if (existingSettings) {
+        // Update existing settings
+        const { error } = await supabase
+          .from('user_settings')
+          .update({
+            company_name: data.companyName,
+            currency: data.currency,
+            language: data.language,
+            date_format: data.dateFormat,
+            enable_notifications: data.enableNotifications,
+            enable_dark_mode: data.enableDarkMode,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('user_id', user.id);
+          
+        saveError = error;
+      } else {
+        // Insert new settings
+        const { error } = await supabase
+          .from('user_settings')
+          .insert({
+            user_id: user.id,
+            company_name: data.companyName,
+            currency: data.currency,
+            language: data.language,
+            date_format: data.dateFormat,
+            enable_notifications: data.enableNotifications,
+            enable_dark_mode: data.enableDarkMode,
+          });
+          
+        saveError = error;
+      }
+      
+      if (saveError) throw saveError;
+      
+      // Dispatch a custom event to notify other components about settings change
+      window.dispatchEvent(new CustomEvent('settings-updated', { 
+        detail: data 
+      }));
+      
       toast({
         title: "Settings saved",
         description: "Your general settings have been updated successfully.",
       });
-    }, 1000);
+    } catch (error: any) {
+      console.error("Error saving settings:", error);
+      toast({
+        title: "Error saving settings",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   }
 
   return (
