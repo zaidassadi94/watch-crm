@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { returnFormSchema, ReturnFormValues } from '../saleFormSchema';
 import { Sale } from '@/types/sales';
-import { updateInventoryStock } from '../hooks/sale-data';
+import { updateInventoryStock } from '../sale-data';
 
 interface SaleItemWithInventory {
   id: string;
@@ -25,7 +25,7 @@ interface ReturnDialogContextProps {
   form: ReturnFormReturn;
   selectedSale: Sale | null;
   selectedSaleItems: SaleItemWithInventory[];
-  sales: Sale[]; // Ensure this property is defined
+  sales: Sale[]; 
   isSubmitting: boolean;
   fetchSales: () => Promise<void>;
   handleSaleChange: (saleId: string) => Promise<void>;
@@ -83,9 +83,8 @@ export function ReturnDialogProvider({
   }, [user, toast]);
   
   const handleSaleChange = async (saleId: string) => {
-    form.setValue('sale_id', saleId);
-    
-    if (!saleId) {
+    // Don't proceed if saleId is _empty or invalid
+    if (!saleId || saleId === '_empty') {
       setSelectedSale(null);
       setSelectedSaleItems([]);
       form.setValue('items', []);
@@ -141,7 +140,6 @@ export function ReturnDialogProvider({
         0
       );
       
-      // Fix the property name to total_amount instead of return_amount
       const { data: returnData, error: returnError } = await supabase
         .from('returns')
         .insert({
@@ -189,6 +187,9 @@ export function ReturnDialogProvider({
         description: 'Return has been successfully processed',
       });
       
+      form.reset();
+      setSelectedSale(null);
+      setSelectedSaleItems([]);
       onComplete();
     } catch (error: any) {
       console.error('Error processing return:', error);
@@ -206,7 +207,7 @@ export function ReturnDialogProvider({
     form,
     selectedSale,
     selectedSaleItems,
-    sales, // Make sure to include sales in context value
+    sales,
     isSubmitting,
     fetchSales,
     handleSaleChange,

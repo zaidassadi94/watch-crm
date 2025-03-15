@@ -39,28 +39,32 @@ export function SalesContent() {
     },
     {
       header: 'Invoice',
-      cell: (item) => <div>{item.invoice_number || '-'}</div>
+      cell: ({ row }: { row: { original: Sale } }) => 
+        <div>{row.original.invoice_number || '-'}</div>
     },
     {
       header: 'Amount',
-      cell: (item) => <div>${Number(item.total_amount).toFixed(2)}</div>
+      cell: ({ row }: { row: { original: Sale } }) => 
+        <div>${Number(row.original.total_amount).toFixed(2)}</div>
     },
     {
       header: 'Status',
-      cell: (item) => <div className="capitalize">{item.status}</div>
+      cell: ({ row }: { row: { original: Sale } }) => 
+        <div className="capitalize">{row.original.status}</div>
     },
     {
       header: 'Date',
-      cell: (item) => <div>{new Date(item.created_at).toLocaleDateString()}</div>
+      cell: ({ row }: { row: { original: Sale } }) => 
+        <div>{new Date(row.original.created_at).toLocaleDateString()}</div>
     },
     {
       header: 'Actions',
-      cell: (item) => (
+      cell: ({ row }: { row: { original: Sale } }) => (
         <div className="flex space-x-2">
           <button 
             onClick={(e) => { 
               e.stopPropagation(); 
-              handleEditSale(item);
+              handleEditSale(row.original);
             }}
             className="text-blue-500 hover:text-blue-700"
           >
@@ -69,17 +73,17 @@ export function SalesContent() {
           <button 
             onClick={(e) => { 
               e.stopPropagation(); 
-              handleDelete(item.id);
+              handleDelete(row.original.id);
             }}
             className="text-red-500 hover:text-red-700"
           >
             Delete
           </button>
-          {item.status === 'completed' && (
+          {row.original.status === 'completed' && (
             <button 
               onClick={(e) => { 
                 e.stopPropagation(); 
-                handleViewInvoice(item);
+                handleViewInvoice(row.original);
               }}
               className="text-green-500 hover:text-green-700"
             >
@@ -119,7 +123,7 @@ export function SalesContent() {
         data={filteredSales}
         isLoading={isLoading}
         emptyState={<SaleEmptyState onCreateSale={handleCreateSale} />}
-        onRowClick={handleEditSale}
+        onRowClick={(row) => handleEditSale(row)}
       />
 
       <SaleDialog 

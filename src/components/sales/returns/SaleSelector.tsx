@@ -13,6 +13,9 @@ interface SaleSelectorProps {
 export function SaleSelector({ form }: SaleSelectorProps) {
   const { handleSaleChange, sales } = useReturnDialog();
   
+  // Ensure we have a valid default value to prevent React controlled/uncontrolled warning
+  const saleId = form.watch('sale_id') || "";
+  
   return (
     <FormField
       control={form.control}
@@ -26,19 +29,21 @@ export function SaleSelector({ form }: SaleSelectorProps) {
                 field.onChange(value);
                 handleSaleChange(value);
               }}
-              value={field.value}
+              value={saleId}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Select a sale to return" />
               </SelectTrigger>
               <SelectContent>
-                {/* Use a non-empty string for the default item value */}
-                <SelectItem value="_empty">-- Select a sale --</SelectItem>
-                {sales.map(sale => (
-                  <SelectItem key={sale.id} value={sale.id}>
-                    {sale.customer_name} - {sale.invoice_number || 'No invoice'} - {new Date(sale.created_at).toLocaleDateString()}
-                  </SelectItem>
-                ))}
+                {sales && sales.length > 0 ? (
+                  sales.map(sale => (
+                    <SelectItem key={sale.id} value={sale.id}>
+                      {sale.customer_name} - {sale.invoice_number || 'No invoice'} - {new Date(sale.created_at).toLocaleDateString()}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="_empty" disabled>No completed sales found</SelectItem>
+                )}
               </SelectContent>
             </Select>
           </FormControl>

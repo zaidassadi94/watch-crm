@@ -21,13 +21,6 @@ interface SaleDialogProps {
 
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { user } = useAuth();
-  // Manage local open state to prevent unwanted closures
-  const [localOpen, setLocalOpen] = useState(open);
-  
-  // Sync local state with prop
-  useEffect(() => {
-    setLocalOpen(open);
-  }, [open]);
   
   const {
     productSuggestions,
@@ -44,13 +37,10 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
   const handleSaved = () => {
     onSaved();
-    setLocalOpen(false);
     onOpenChange(false);
   };
 
   const handleCancel = () => {
-    form.reset();
-    setLocalOpen(false);
     onOpenChange(false);
   };
 
@@ -101,25 +91,19 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
-  // Prevent dialog from closing when clicking inside it
-  const handleDialogContentClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-  };
-
   return (
     <Dialog 
-      open={localOpen} 
+      open={open} 
       onOpenChange={(newOpen) => {
         // Only allow dialog to close when not submitting
         if (!isSubmitting) {
-          setLocalOpen(newOpen);
           onOpenChange(newOpen);
         }
       }}
     >
       <DialogContent 
         className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto" 
-        onClick={handleDialogContentClick}
+        onClick={(e) => e.stopPropagation()}
       >
         <DialogHeader>
           <DialogTitle>{sale ? 'Edit Sale' : 'Create New Sale'}</DialogTitle>
@@ -136,6 +120,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             setCustomerSearchTerm={setCustomerSearchTerm}
             selectCustomer={selectCustomer}
           />
+          
           <SaleItemForm
             form={form}
             productSuggestions={productSuggestions}
@@ -145,7 +130,9 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             handleProductSearch={handleProductSearch}
             selectProduct={selectProduct}
           />
+          
           <SaleNotesField form={form} />
+          
           <SaleDialogActions
             form={form}
             isSubmitting={isSubmitting}
