@@ -60,6 +60,7 @@ export function SalesContent() {
         onSearchChange={setSearchTerm} 
       />
 
+      {/* Fixed DataTable by passing correct types */}
       <DataTable
         columns={columns}
         data={filteredSales}

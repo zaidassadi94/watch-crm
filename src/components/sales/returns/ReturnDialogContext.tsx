@@ -25,6 +25,7 @@ interface ReturnDialogContextProps {
   form: ReturnFormReturn;
   selectedSale: Sale | null;
   selectedSaleItems: SaleItemWithInventory[];
+  sales: Sale[]; // Added sales property to the interface
   isSubmitting: boolean;
   fetchSales: () => Promise<void>;
   handleSaleChange: (saleId: string) => Promise<void>;
@@ -140,6 +141,7 @@ export function ReturnDialogProvider({
         0
       );
       
+      // Fix the property name to total_amount instead of return_amount
       const { data: returnData, error: returnError } = await supabase
         .from('returns')
         .insert({
@@ -204,6 +206,7 @@ export function ReturnDialogProvider({
     form,
     selectedSale,
     selectedSaleItems,
+    sales, // Added sales to the context value
     isSubmitting,
     fetchSales,
     handleSaleChange,

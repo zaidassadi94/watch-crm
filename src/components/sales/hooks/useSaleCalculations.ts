@@ -27,6 +27,9 @@ export async function updateInventoryStock(supabase: any, item: any, completion:
       // If completing sale, reduce stock. Otherwise no change needed
       const stockChange = completion ? -item.quantity : 0;
       const newStockLevel = Math.max(0, inventoryData.stock_level + stockChange);
+      
+      // Import getStockStatusBasedOnLevel from the calculations directory
+      const { getStockStatusBasedOnLevel } = require('./calculations');
       const newStockStatus = getStockStatusBasedOnLevel(newStockLevel);
       
       await supabase

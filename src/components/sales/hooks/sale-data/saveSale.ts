@@ -5,8 +5,8 @@ import { SaleFormValues } from '../../saleFormSchema';
 import { SaleItemInternal } from '../../saleFormSchema';
 import { calculateSaleTotals } from '../calculations';
 import { generateInvoiceNumber } from '../calculations';
-import { loadSaleItems, SaleItemWithInventory } from '../sale-data/loadSaleItems';
-import { updateInventoryStock } from '../sale-data/updateInventoryStock';
+import { loadSaleItems, SaleItemWithInventory } from './loadSaleItems';
+import { updateInventoryStock } from './updateInventoryStock';
 
 /**
  * Save or update a sale in the database
