@@ -12,6 +12,18 @@ import { InvoiceDialog } from '@/components/sales/InvoiceDialog';
 import { ReturnDialog } from '@/components/sales/returns/ReturnDialog';
 import { Sale } from '@/types/sales';
 import { getSaleTableColumns } from '@/components/sales/SaleTableColumns';
+import { ColumnDef } from '@tanstack/react-table';
+import { Column } from '@/components/ui-custom/DataTable';
+
+// Adapter function to convert ColumnDef to Column
+function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
+  return columns.map(col => ({
+    header: typeof col.header === 'string' ? col.header : String(col.id),
+    accessorKey: col.accessorKey as string,
+    cell: col.cell as any,
+    className: col.meta?.className as string,
+  }));
+}
 
 export function SalesContent() {
   const { sales, isLoading, isLoaded, fetchSales, handleDelete } = useSalesData();
@@ -34,12 +46,15 @@ export function SalesContent() {
     handleReturn
   } = useSalesDialogs();
 
-  // Use the columns from SaleTableColumns
-  const columns = getSaleTableColumns({
+  // Use the columns from SaleTableColumns with the adapter
+  const tanstackColumns = getSaleTableColumns({
     onEdit: handleEditSale,
     onDelete: handleDelete,
     onViewInvoice: handleViewInvoice
   });
+  
+  // Convert columns to the format expected by our DataTable
+  const columns = adaptColumns<Sale>(tanstackColumns);
 
   const filteredSales = sales.filter(sale => {
     const matchesSearch = 

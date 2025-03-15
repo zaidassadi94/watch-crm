@@ -9,6 +9,19 @@ import { ServiceHeader } from '@/components/services/ServiceHeader';
 import { ServiceSearch } from '@/components/services/ServiceSearch';
 import { ServiceEmptyState } from '@/components/services/ServiceEmptyState';
 import { getServiceTableColumns } from '@/components/services/ServiceTableColumns';
+import { ServiceRequest } from '@/types/services';
+import { ColumnDef } from '@tanstack/react-table';
+import { Column } from '@/components/ui-custom/DataTable';
+
+// Adapter function to convert ColumnDef to Column
+function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
+  return columns.map(col => ({
+    header: typeof col.header === 'string' ? col.header : String(col.id),
+    accessorKey: col.accessorKey as string,
+    cell: col.cell as any,
+    className: col.meta?.className as string,
+  }));
+}
 
 export function ServicesContent() {
   const { services, isLoading, isLoaded, fetchServices, handleDelete } = useServiceData();
@@ -24,10 +37,13 @@ export function ServicesContent() {
     handleCreateService
   } = useServiceDialogs();
 
-  const columns = getServiceTableColumns({
+  const tanstackColumns = getServiceTableColumns({
     onEdit: handleEditService,
     onDelete: handleDelete
   });
+  
+  // Convert columns to the format expected by our DataTable
+  const columns = adaptColumns<ServiceRequest>(tanstackColumns);
 
   const filteredServices = services.filter(service => {
     const matchesSearch = 

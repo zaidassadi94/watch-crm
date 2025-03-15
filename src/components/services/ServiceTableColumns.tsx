@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { Service } from '@/types/services';
+import { ServiceRequest } from '@/types/services';
 import { MoreHorizontal, Edit, Trash, ClipboardList } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -22,14 +22,14 @@ const formatDate = (dateString: string | Date | null) => {
 };
 
 interface ServiceTableColumnsOptions {
-  onEdit: (service: Service) => void;
+  onEdit: (service: ServiceRequest) => void;
   onDelete: (id: string) => void;
 }
 
 export function getServiceTableColumns({
   onEdit,
   onDelete
-}: ServiceTableColumnsOptions): ColumnDef<Service>[] {
+}: ServiceTableColumnsOptions): ColumnDef<ServiceRequest>[] {
   const { currencySymbol } = useSettings();
   
   return [
