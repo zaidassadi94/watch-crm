@@ -30,7 +30,7 @@ export function useSuggestions(userId: string | undefined) {
       try {
         const { data, error } = await supabase
           .from('inventory')
-          .select('id, name, brand, sku, price')
+          .select('id, name, brand, sku, price, stock_level, stock_status, category')
           .eq('user_id', userId)
           .or(`name.ilike.%${searchTerm}%,sku.ilike.%${searchTerm}%,brand.ilike.%${searchTerm}%`)
           .order('name', { ascending: true });
