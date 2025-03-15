@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,9 +22,11 @@ interface ReturnDialogContextProps {
   form: ReturnContextForm;
   sales: Sale[];
   selectedSaleItems: SaleItem[];
+  selectedSale: Sale | null;
   isSubmitting: boolean;
   fetchSales: () => Promise<void>;
   handleSaleSelect: (saleId: string) => Promise<void>;
+  handleSaleChange: (saleId: string) => Promise<{itemsData: any[]} | null>;
   processReturn: (data: ReturnFormValues) => Promise<void>;
 }
 
@@ -49,6 +52,7 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
   const { user } = useAuth();
   const [sales, setSales] = useState<Sale[]>([]);
   const [selectedSaleItems, setSelectedSaleItems] = useState<SaleItem[]>([]);
+  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const form = useForm<ReturnFormValues>({
@@ -86,11 +90,21 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
   const handleSaleSelect = async (saleId: string) => {
     if (!saleId) {
       setSelectedSaleItems([]);
+      setSelectedSale(null);
       form.setValue('items', []);
       return;
     }
     
     try {
+      const { data: saleData, error: saleError } = await supabase
+        .from('sales')
+        .select('*')
+        .eq('id', saleId)
+        .single();
+        
+      if (saleError) throw saleError;
+      setSelectedSale(saleData);
+      
       const { data, error } = await supabase
         .from('sale_items')
         .select('*')
@@ -115,6 +129,43 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
         description: error.message,
         variant: "destructive",
       });
+    }
+  };
+  
+  const handleSaleChange = async (saleId: string) => {
+    if (!saleId) {
+      setSelectedSaleItems([]);
+      setSelectedSale(null);
+      return null;
+    }
+    
+    try {
+      const { data: saleData, error: saleError } = await supabase
+        .from('sales')
+        .select('*')
+        .eq('id', saleId)
+        .single();
+        
+      if (saleError) throw saleError;
+      setSelectedSale(saleData);
+      
+      const { data: itemsData, error: itemsError } = await supabase
+        .from('sale_items')
+        .select('*')
+        .eq('sale_id', saleId);
+        
+      if (itemsError) throw itemsError;
+      setSelectedSaleItems(itemsData || []);
+      
+      return { itemsData };
+    } catch (error) {
+      console.error('Error fetching sale details:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not load sale details',
+        variant: 'destructive'
+      });
+      return null;
     }
   };
 
@@ -148,7 +199,7 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
         .insert({
           user_id: user.id,
           sale_id: data.sale_id,
-          return_amount: returnTotal,
+          total_amount: returnTotal,  // Changed from return_amount to total_amount
           reason: data.reason || null,
         })
         .select()
@@ -236,9 +287,11 @@ export function ReturnDialogProvider({ children, onComplete }: ReturnDialogProvi
     form,
     sales,
     selectedSaleItems,
+    selectedSale,
     isSubmitting,
     fetchSales,
     handleSaleSelect,
+    handleSaleChange,
     processReturn
   };
 

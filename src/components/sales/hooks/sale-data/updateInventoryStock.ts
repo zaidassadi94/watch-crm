@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { getStockStatusBasedOnLevel } from '../calculations';
 
 /**
  * Update inventory stock when a sale is completed or returned
@@ -30,14 +31,16 @@ export async function updateInventoryStock(
     const newStockLevel = isSale 
       ? Math.max(0, (inventoryData?.stock_level || 0) - item.quantity)
       : (inventoryData?.stock_level || 0) + item.quantity;
+    
+    // Get the stock status based on the new stock level
+    const newStockStatus = getStockStatusBasedOnLevel(newStockLevel);
       
     // Update stock level
     const { error: updateError } = await supabase
       .from('inventory')
       .update({
         stock_level: newStockLevel,
-        stock_status: newStockLevel <= 0 ? 'Out of Stock' : 
-                      newStockLevel <= 5 ? 'Low Stock' : 'In Stock',
+        stock_status: newStockStatus,
         updated_at: new Date().toISOString()
       })
       .eq('id', item.inventory_id);

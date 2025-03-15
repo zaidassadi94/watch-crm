@@ -13,7 +13,7 @@ interface ReturnItemsListProps {
 }
 
 export function ReturnItemsList({ form }: ReturnItemsListProps) {
-  const { selectedSale } = useReturnDialog();
+  const { selectedSale, selectedSaleItems } = useReturnDialog();
   const { currencySymbol } = useSettings();
   
   const { fields } = useFieldArray({

@@ -6,7 +6,7 @@ import { UseFormReturn } from 'react-hook-form';
 import { SaleFormValues } from './saleFormSchema';
 
 interface SaleDialogActionsProps {
-  form: UseFormReturn<SaleFormValues>;
+  form?: UseFormReturn<SaleFormValues>;
   isSubmitting: boolean;
   onCancel: () => void;
   isEditMode?: boolean;

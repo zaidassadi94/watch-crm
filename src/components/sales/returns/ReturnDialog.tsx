@@ -1,20 +1,13 @@
 
 import React from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
 import { Form } from '@/components/ui/form';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import { returnFormSchema, ReturnFormValues } from '../saleFormSchema';
-import { SaleItemInternal, calculateTotal } from '../saleFormSchema';
-import { Sale } from '@/types/sales';
-import { useToast } from '@/components/ui/use-toast';
-import { useAuth } from '@/hooks/useAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { useReturnDialog, ReturnDialogProvider } from './ReturnDialogContext';
 import { SaleSelector } from './SaleSelector';
 import { ReturnItemsList } from './ReturnItemsList';
 import { ReturnReason } from './ReturnReason';
-import { ReturnDialogProvider, useReturnDialog } from './ReturnDialogContext';
+import { Button } from '@/components/ui/button';
 
 function ReturnDialogContent({ onClose }: { onClose: () => void }) {
   const { 
@@ -25,15 +18,19 @@ function ReturnDialogContent({ onClose }: { onClose: () => void }) {
     processReturn 
   } = useReturnDialog();
 
+  React.useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(processReturn)} className="space-y-6">
-        <SaleSelector />
+        <SaleSelector form={form} />
         
         {selectedSaleItems.length > 0 && (
           <>
-            <ReturnItemsList />
-            <ReturnReason />
+            <ReturnItemsList form={form} />
+            <ReturnReason form={form} />
             
             <div className="flex justify-end space-x-2">
               <Button
