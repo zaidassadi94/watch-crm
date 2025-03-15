@@ -130,6 +130,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             form={form}
             productSuggestions={productSuggestions}
             showProductSuggestions={showProductSuggestions}
+            setShowProductSuggestions={setShowProductSuggestions}
             productSearchTerms={productSearchTerms}
             handleProductSearch={handleProductSearch}
             selectProduct={selectProduct}
@@ -139,6 +140,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
             form={form}
             isSubmitting={isSubmitting}
             onCancel={handleCancel}
+            isEditMode={!!sale}
           />
         </form>
       </DialogContent>

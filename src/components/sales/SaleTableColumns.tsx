@@ -10,10 +10,15 @@ import {
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { formatDate } from '@/lib/utils';
+import { format } from 'date-fns';
 import { Sale } from '@/types/sales';
 import { MoreHorizontal, FileText, Edit, Trash } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
+
+// Format date utility
+const formatDate = (dateString: string) => {
+  return format(new Date(dateString), 'MMM d, yyyy');
+};
 
 interface SaleTableColumnsOptions {
   onEdit: (sale: Sale) => void;

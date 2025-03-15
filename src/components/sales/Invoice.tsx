@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { format } from 'date-fns';
 import { useSettings } from '@/hooks/useSettings';
@@ -7,7 +8,7 @@ import { Sale } from '@/types/sales';
 interface InvoiceProps {
   sale: Sale;
   saleItems: any[];
-  forwardedRef: React.Ref<HTMLDivElement>;
+  forwardedRef?: React.Ref<HTMLDivElement>;
 }
 
 export function Invoice({ sale, saleItems, forwardedRef }: InvoiceProps) {

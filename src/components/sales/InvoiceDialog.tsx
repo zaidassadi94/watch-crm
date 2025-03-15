@@ -24,7 +24,7 @@ export function InvoiceDialog({
     onAfterPrint: () => {
       console.log('Print completed');
     },
-    content: () => invoiceRef.current,
+    contentRef: invoiceRef,
   });
 
   if (!sale) return null;
@@ -38,7 +38,7 @@ export function InvoiceDialog({
         
         <div className="mt-4">
           <div ref={invoiceRef} className="p-4">
-            <Invoice sale={sale} saleItems={saleItems} />
+            <Invoice sale={sale} saleItems={saleItems} forwardedRef={invoiceRef} />
           </div>
           
           <div className="flex justify-end mt-4">

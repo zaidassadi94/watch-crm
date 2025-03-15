@@ -2,14 +2,17 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { DialogFooter } from '@/components/ui/dialog';
+import { UseFormReturn } from 'react-hook-form';
+import { SaleFormValues } from './saleFormSchema';
 
 interface SaleDialogActionsProps {
+  form: UseFormReturn<SaleFormValues>;
   isSubmitting: boolean;
   onCancel: () => void;
-  isEditMode: boolean;
+  isEditMode?: boolean;
 }
 
-export function SaleDialogActions({ isSubmitting, onCancel, isEditMode }: SaleDialogActionsProps) {
+export function SaleDialogActions({ form, isSubmitting, onCancel, isEditMode }: SaleDialogActionsProps) {
   return (
     <DialogFooter className="flex flex-row justify-end gap-2 mt-6">
       <Button 
