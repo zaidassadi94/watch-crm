@@ -6,14 +6,14 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
-export interface Column<T> {
+export interface Column<T extends object> {
   header: string;
   accessorKey?: keyof T | string;
   cell?: (item: T) => ReactNode;
   className?: string;
 }
 
-interface DataTableProps<T> {
+interface DataTableProps<T extends object> {
   columns: Column<T>[];
   data: T[];
   className?: string;
@@ -22,7 +22,7 @@ interface DataTableProps<T> {
   emptyState?: ReactNode;
 }
 
-export function DataTable<T>({
+export function DataTable<T extends object>({
   columns,
   data,
   className,
