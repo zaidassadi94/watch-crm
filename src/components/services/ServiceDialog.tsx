@@ -8,7 +8,7 @@ import {
   DialogDescription
 } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
-import { ServiceRequest } from '@/pages/Services';
+import { ServiceRequest } from '@/types/services';
 import { useAuth } from '@/hooks/useAuth';
 import { CustomerSuggestion } from '@/types/inventory';
 import { WatchDetailsSection } from './WatchDetailsSection';

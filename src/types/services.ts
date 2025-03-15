@@ -1,6 +1,6 @@
-
 export interface ServiceRequest {
   id: string;
+  user_id: string;
   customer_name: string;
   customer_email: string | null;
   customer_phone: string | null;
@@ -13,6 +13,7 @@ export interface ServiceRequest {
   estimated_completion: string | null;
   price: number | null;
   created_at: string;
+  updated_at: string | null;
 }
 
 export const serviceStatusStyles = {

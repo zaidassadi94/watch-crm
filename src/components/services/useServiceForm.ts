@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
-import { ServiceRequest } from '@/pages/Services';
+import { ServiceRequest } from '@/types/services';
 import { User } from '@supabase/supabase-js';
 import { ServiceFormValues, serviceFormSchema } from './serviceFormSchema';
 

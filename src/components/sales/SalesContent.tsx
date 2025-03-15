@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DataTable } from '@/components/ui-custom/DataTable';
 import { cn } from '@/lib/utils';
 import { useSalesData } from '@/hooks/useSalesData';
@@ -123,7 +123,7 @@ export function SalesContent() {
         data={filteredSales}
         isLoading={isLoading}
         emptyState={<SaleEmptyState onCreateSale={handleCreateSale} />}
-        onRowClick={(item: Sale) => handleEditSale(item)}
+        onRowClick={(sale: Sale) => handleEditSale(sale)}
       />
 
       <SaleDialog 

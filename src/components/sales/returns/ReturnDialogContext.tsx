@@ -40,7 +40,7 @@ export function ReturnDialogProvider({
   children, 
   onComplete 
 }: { 
-  children: React.ReactNode;
+  children: (context: ReturnDialogContextProps) => React.ReactNode;
   onComplete: () => void;
 }) {
   const { user } = useAuth();
@@ -81,6 +81,11 @@ export function ReturnDialogProvider({
       });
     }
   }, [user, toast]);
+  
+  // Fetch sales on mount
+  React.useEffect(() => {
+    fetchSales();
+  }, [fetchSales]);
   
   const handleSaleChange = async (saleId: string) => {
     // Don't proceed if saleId is _empty or invalid
@@ -216,7 +221,7 @@ export function ReturnDialogProvider({
   
   return (
     <ReturnDialogContext.Provider value={contextValue}>
-      {children}
+      {children(contextValue)}
     </ReturnDialogContext.Provider>
   );
 }

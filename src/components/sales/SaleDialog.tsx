@@ -45,8 +45,11 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
 
   const handleSaved = () => {
     onSaved();
-    setLocalOpen(false);
-    onOpenChange(false);
+    // Use setTimeout to prevent state update issues
+    setTimeout(() => {
+      setLocalOpen(false);
+      onOpenChange(false);
+    }, 100);
   };
 
   const handleCancel = () => {
@@ -61,6 +64,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     handleCancel
   );
 
+  // Update product search terms when form is loaded
   useEffect(() => {
     if (open) {
       if (sale) {
@@ -101,10 +105,14 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
+  // Explicitly log dialog state for debugging
+  console.log('SaleDialog state:', { open, localOpen, isSubmitting });
+
   return (
     <Dialog 
       open={localOpen} 
       onOpenChange={(newOpen) => {
+        console.log('Dialog onOpenChange:', newOpen, 'isSubmitting:', isSubmitting);
         // Only allow dialog to close when not submitting
         if (!isSubmitting && !newOpen) {
           handleCancel();

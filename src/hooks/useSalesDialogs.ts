@@ -13,11 +13,13 @@ export function useSalesDialogs() {
   const [invoiceSaleItems, setInvoiceSaleItems] = useState<any[]>([]);
 
   const handleEditSale = (sale: Sale) => {
+    console.log('Editing sale:', sale);
     setSelectedSale(sale);
     setIsDialogOpen(true);
   };
 
   const handleCreateSale = () => {
+    console.log('Creating new sale');
     setSelectedSale(null);
     setIsDialogOpen(true);
   };
@@ -44,6 +46,7 @@ export function useSalesDialogs() {
   };
 
   const handleReturn = () => {
+    console.log('Opening return dialog');
     setIsReturnDialogOpen(true);
   };
 
