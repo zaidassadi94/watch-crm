@@ -16,7 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { DataTable } from '@/components/ui-custom/DataTable';
+import { DataTable, Column } from '@/components/ui-custom/DataTable';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
@@ -70,11 +70,14 @@ const Sales = () => {
   }, [user]);
 
   const fetchSales = async () => {
+    if (!user) return;
+    
     try {
       setIsLoading(true);
       const { data, error } = await supabase
         .from('sales')
         .select('*')
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -126,7 +129,7 @@ const Sales = () => {
     setIsDialogOpen(true);
   };
 
-  const columns = [
+  const columns: Column<Sale>[] = [
     {
       header: "Customer",
       accessorKey: "customer_name",
@@ -176,6 +179,7 @@ const Sales = () => {
     },
     {
       header: "",
+      accessorKey: "id",
       cell: (sale: Sale) => (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

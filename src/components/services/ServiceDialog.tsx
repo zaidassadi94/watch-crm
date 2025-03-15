@@ -25,6 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { ServiceRequest } from '@/pages/Services';
+import { useAuth } from '@/hooks/useAuth';
 
 interface ServiceDialogProps {
   open: boolean;
@@ -51,6 +52,7 @@ type ServiceFormValues = z.infer<typeof serviceFormSchema>;
 
 export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize form with default values or service data if editing
@@ -74,6 +76,15 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   });
 
   const onSubmit = async (data: ServiceFormValues) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to perform this action",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
 
@@ -108,6 +119,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
         const { error } = await supabase
           .from('service_requests')
           .insert({
+            user_id: user.id,
             customer_name: data.customer_name,
             customer_email: data.customer_email || null,
             customer_phone: data.customer_phone || null,

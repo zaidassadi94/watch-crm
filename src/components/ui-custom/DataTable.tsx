@@ -6,9 +6,9 @@ import {
 } from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 
-interface Column<T> {
+export interface Column<T> {
   header: string;
-  accessorKey?: keyof T;
+  accessorKey?: keyof T | string;
   cell?: (item: T) => ReactNode;
   className?: string;
 }
@@ -74,8 +74,8 @@ export function DataTable<T>({
                   <TableCell key={`${index}-${colIndex}`} className={column.className}>
                     {column.cell 
                       ? column.cell(item) 
-                      : column.accessorKey 
-                        ? String(item[column.accessorKey])
+                      : column.accessorKey && typeof column.accessorKey === 'string' && column.accessorKey in item
+                        ? String((item as any)[column.accessorKey])
                         : null}
                   </TableCell>
                 ))}

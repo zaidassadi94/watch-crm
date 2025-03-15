@@ -26,6 +26,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Sale } from '@/pages/Sales';
+import { useAuth } from '@/hooks/useAuth';
 
 interface SaleDialogProps {
   open: boolean;
@@ -50,8 +51,16 @@ const saleFormSchema = z.object({
 
 type SaleFormValues = z.infer<typeof saleFormSchema>;
 
+// Define a type for items that ensures quantity and price are non-optional
+interface SaleItem {
+  product_name: string;
+  quantity: number;
+  price: number;
+}
+
 export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Initialize form with default values or sale data if editing
@@ -126,14 +135,23 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     }
   }, [sale, form]);
 
-  const calculateTotal = (items: { quantity: number; price: number }[]) => {
+  const calculateTotal = (items: SaleItem[]) => {
     return items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
   };
 
   const onSubmit = async (data: SaleFormValues) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to perform this action",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
       setIsSubmitting(true);
-      const totalAmount = calculateTotal(data.items);
+      const totalAmount = calculateTotal(data.items as SaleItem[]);
 
       if (sale) {
         // Update existing sale
@@ -185,6 +203,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         const { data: newSale, error } = await supabase
           .from('sales')
           .insert({
+            user_id: user.id,
             customer_name: data.customer_name,
             customer_email: data.customer_email || null,
             customer_phone: data.customer_phone || null,
@@ -234,7 +253,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   };
 
   // Calculate the current total
-  const total = calculateTotal(form.watch('items'));
+  const total = calculateTotal(form.watch('items') as SaleItem[]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
