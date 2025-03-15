@@ -34,6 +34,7 @@ export interface SaleItem {
   price: number;
   cost_price: number;
   subtotal?: number;
+  inventory_id?: string;
 }
 
 export interface CustomerWatchDetails {
@@ -59,6 +60,34 @@ export interface UserSettings {
   date_format: string;
   enable_notifications: boolean;
   enable_dark_mode: boolean;
+  gst_number?: string;
+  gst_percentage?: number;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ReturnItem {
+  product_name: string;
+  quantity: number;
+  price: number;
+  cost_price?: number;
+  subtotal?: number;
+  inventory_id?: string;
+}
+
+export interface Return {
+  id: string;
+  sale_id: string;
+  user_id: string;
+  return_date: string;
+  reason?: string;
+  total_amount: number;
+  status: string;
+  items?: ReturnItem[];
+  sale?: {
+    customer_name: string;
+    customer_email?: string;
+    customer_phone?: string;
+    invoice_number?: string;
+  };
 }

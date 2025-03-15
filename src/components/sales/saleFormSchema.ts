@@ -8,11 +8,13 @@ export const saleFormSchema = z.object({
   status: z.string(),
   payment_method: z.string().optional(),
   notes: z.string().optional(),
+  invoice_number: z.string().optional(),
   items: z.array(z.object({
     product_name: z.string().min(1, 'Product name is required'),
     quantity: z.number().min(1, 'Quantity must be at least 1'),
     price: z.number().min(0, 'Price must be 0 or higher'),
     cost_price: z.number().min(0, 'Cost price must be 0 or higher').optional(),
+    inventory_id: z.string().optional(),
   })).min(1, 'At least one item is required'),
 });
 
@@ -23,6 +25,7 @@ export interface SaleItemInternal {
   quantity: number;
   price: number;
   cost_price?: number;
+  inventory_id?: string;
 }
 
 export const calculateTotal = (items: SaleItemInternal[]) => {
@@ -38,3 +41,29 @@ export const calculateTotal = (items: SaleItemInternal[]) => {
     marginPercentage
   };
 };
+
+export const calculateGST = (amount: number, gstPercentage: number = 18) => {
+  const gstAmount = (amount * gstPercentage) / 100;
+  const amountBeforeGST = amount - gstAmount;
+  
+  return {
+    amountBeforeGST,
+    gstAmount,
+    totalAmount: amount
+  };
+};
+
+export const returnFormSchema = z.object({
+  sale_id: z.string().min(1, 'Sale is required'),
+  reason: z.string().optional(),
+  items: z.array(z.object({
+    product_name: z.string().min(1, 'Product name is required'),
+    quantity: z.number().min(1, 'Quantity must be at least 1'),
+    price: z.number().min(0, 'Price must be 0 or higher'),
+    cost_price: z.number().min(0, 'Cost price must be 0 or higher').optional(),
+    inventory_id: z.string().optional(),
+    max_quantity: z.number().optional(),
+  })).min(1, 'At least one item is required'),
+});
+
+export type ReturnFormValues = z.infer<typeof returnFormSchema>;

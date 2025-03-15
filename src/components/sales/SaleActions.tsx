@@ -1,14 +1,15 @@
 
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Undo2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface SaleActionsProps {
   isLoaded: boolean;
   onCreateSale: () => void;
+  onReturn: () => void;
 }
 
-export function SaleActions({ isLoaded, onCreateSale }: SaleActionsProps) {
+export function SaleActions({ isLoaded, onCreateSale, onReturn }: SaleActionsProps) {
   return (
     <div className={cn(
       "flex flex-col md:flex-row justify-between md:items-center gap-4",
@@ -20,9 +21,14 @@ export function SaleActions({ isLoaded, onCreateSale }: SaleActionsProps) {
           Manage sales, quotes, and invoices
         </p>
       </div>
-      <Button className="w-full md:w-auto gap-2" onClick={onCreateSale}>
-        <PlusCircle className="h-4 w-4" /> New Sale
-      </Button>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Button variant="outline" className="w-full sm:w-auto gap-2" onClick={onReturn}>
+          <Undo2 className="h-4 w-4" /> Process Return
+        </Button>
+        <Button className="w-full sm:w-auto gap-2" onClick={onCreateSale}>
+          <PlusCircle className="h-4 w-4" /> New Sale
+        </Button>
+      </div>
     </div>
   );
 }

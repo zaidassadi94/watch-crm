@@ -6,6 +6,7 @@ import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { Sale } from '@/pages/Sales';
 import { saleFormSchema, SaleFormValues, calculateTotal, SaleItemInternal } from './saleFormSchema';
+import { getStockStatusBasedOnLevel } from '@/components/inventory/dialog/InventoryFormSchema';
 
 export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuccess: () => void, onCancel: () => void) {
   const { toast } = useToast();
@@ -20,6 +21,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
       status: 'pending',
       payment_method: '',
       notes: '',
+      invoice_number: '',
       items: [
         { product_name: '', quantity: 1, price: 0, cost_price: 0 }
       ],
@@ -44,11 +46,13 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
             status: sale.status,
             payment_method: sale.payment_method || '',
             notes: sale.notes || '',
+            invoice_number: sale.invoice_number || '',
             items: data?.map(item => ({
               product_name: item.product_name,
               quantity: item.quantity,
               price: Number(item.price),
               cost_price: Number(item.cost_price || 0),
+              inventory_id: item.inventory_id
             })) || []
           });
         } catch (error: any) {
@@ -69,12 +73,29 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
         status: 'pending',
         payment_method: '',
         notes: '',
+        invoice_number: '',
         items: [
           { product_name: '', quantity: 1, price: 0, cost_price: 0 }
         ],
       });
     }
   }, [sale, form, toast]);
+
+  const generateInvoiceNumber = async () => {
+    try {
+      // Use a database sequence to generate unique invoice numbers
+      const { data, error } = await supabase.rpc('nextval', { seq_name: 'invoice_number_seq' });
+      
+      if (error) throw error;
+      
+      const invoiceNumber = `INV-${String(data).padStart(8, '0')}`;
+      return invoiceNumber;
+    } catch (error) {
+      console.error('Error generating invoice number:', error);
+      // Fallback to timestamp if sequence fails
+      return `INV-${Date.now()}`;
+    }
+  };
 
   const onSubmit = async (data: SaleFormValues) => {
     if (!userId) {
@@ -93,14 +114,33 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
         product_name: item.product_name,
         quantity: item.quantity,
         price: item.price,
-        cost_price: item.cost_price || 0
+        cost_price: item.cost_price || 0,
+        inventory_id: item.inventory_id
       }));
       
       const calculation = calculateTotal(saleItems);
       const totalAmount = calculation.totalPrice;
       const totalProfit = calculation.totalProfit;
+      
+      // Ensure we have an invoice number for completed sales
+      let invoiceNumber = data.invoice_number;
+      if (data.status === 'completed' && !invoiceNumber) {
+        invoiceNumber = await generateInvoiceNumber();
+      }
 
       if (sale) {
+        // Prepare for inventory updates by getting original items if status is changing to completed
+        let originalItems: any[] = [];
+        if (sale.status !== 'completed' && data.status === 'completed') {
+          const { data: itemsData } = await supabase
+            .from('sale_items')
+            .select('*')
+            .eq('sale_id', sale.id);
+            
+          originalItems = itemsData || [];
+        }
+        
+        // Update sale record
         const { error } = await supabase
           .from('sales')
           .update({
@@ -112,12 +152,14 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
             status: data.status,
             payment_method: data.payment_method || null,
             notes: data.notes || null,
+            invoice_number: invoiceNumber,
             updated_at: new Date().toISOString(),
           })
           .eq('id', sale.id);
 
         if (error) throw error;
 
+        // Delete existing items
         const { error: deleteError } = await supabase
           .from('sale_items')
           .delete()
@@ -125,6 +167,7 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
 
         if (deleteError) throw deleteError;
 
+        // Insert updated items
         const { error: itemsError } = await supabase
           .from('sale_items')
           .insert(
@@ -135,16 +178,52 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
               price: item.price,
               cost_price: item.cost_price || 0,
               subtotal: item.quantity * item.price,
+              inventory_id: item.inventory_id
             }))
           );
 
         if (itemsError) throw itemsError;
+        
+        // Update inventory if status is changing to completed
+        if (sale.status !== 'completed' && data.status === 'completed') {
+          for (const item of data.items) {
+            if (item.inventory_id) {
+              // Get current inventory
+              const { data: inventoryData, error: inventoryError } = await supabase
+                .from('inventory')
+                .select('stock_level, stock_status')
+                .eq('id', item.inventory_id)
+                .single();
+                
+              if (inventoryError && inventoryError.code !== 'PGRST116') {
+                console.error('Error fetching inventory:', inventoryError);
+                continue;
+              }
+              
+              if (inventoryData) {
+                // Update inventory
+                const newStockLevel = Math.max(0, inventoryData.stock_level - item.quantity);
+                const newStockStatus = getStockStatusBasedOnLevel(newStockLevel);
+                
+                await supabase
+                  .from('inventory')
+                  .update({
+                    stock_level: newStockLevel,
+                    stock_status: newStockStatus,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', item.inventory_id);
+              }
+            }
+          }
+        }
 
         toast({
           title: "Sale updated",
           description: "Sale details have been updated successfully",
         });
       } else {
+        // Create new sale
         const { data: newSale, error } = await supabase
           .from('sales')
           .insert({
@@ -157,12 +236,14 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
             status: data.status,
             payment_method: data.payment_method || null,
             notes: data.notes || null,
+            invoice_number: invoiceNumber,
           })
           .select()
           .single();
 
         if (error) throw error;
 
+        // Insert sale items
         const { error: itemsError } = await supabase
           .from('sale_items')
           .insert(
@@ -173,10 +254,45 @@ export function useSaleForm(sale: Sale | null, userId: string | undefined, onSuc
               price: item.price,
               cost_price: item.cost_price || 0,
               subtotal: item.quantity * item.price,
+              inventory_id: item.inventory_id
             }))
           );
 
         if (itemsError) throw itemsError;
+        
+        // Update inventory for completed sales
+        if (data.status === 'completed') {
+          for (const item of data.items) {
+            if (item.inventory_id) {
+              // Get current inventory
+              const { data: inventoryData, error: inventoryError } = await supabase
+                .from('inventory')
+                .select('stock_level, stock_status')
+                .eq('id', item.inventory_id)
+                .single();
+                
+              if (inventoryError && inventoryError.code !== 'PGRST116') {
+                console.error('Error fetching inventory:', inventoryError);
+                continue;
+              }
+              
+              if (inventoryData) {
+                // Update inventory
+                const newStockLevel = Math.max(0, inventoryData.stock_level - item.quantity);
+                const newStockStatus = getStockStatusBasedOnLevel(newStockLevel);
+                
+                await supabase
+                  .from('inventory')
+                  .update({
+                    stock_level: newStockLevel,
+                    stock_status: newStockStatus,
+                    updated_at: new Date().toISOString()
+                  })
+                  .eq('id', item.inventory_id);
+              }
+            }
+          }
+        }
 
         toast({
           title: "Sale created",

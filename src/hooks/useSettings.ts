@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { UserSettings } from '@/types/inventory';
+import { format } from 'date-fns';
 
 export function useSettings() {
   const { user } = useAuth();
@@ -14,6 +15,8 @@ export function useSettings() {
     date_format: 'DD/MM/YYYY',
     enable_notifications: true,
     enable_dark_mode: false,
+    gst_number: '',
+    gst_percentage: 18,
   });
   const [isLoading, setIsLoading] = useState(true);
 
@@ -45,6 +48,8 @@ export function useSettings() {
             date_format: data.date_format || 'DD/MM/YYYY',
             enable_notifications: data.enable_notifications !== false,
             enable_dark_mode: data.enable_dark_mode || false,
+            gst_number: data.gst_number || '',
+            gst_percentage: data.gst_percentage || 18,
           });
         } else {
           // Set default settings if none found
@@ -56,6 +61,8 @@ export function useSettings() {
             date_format: 'DD/MM/YYYY',
             enable_notifications: true,
             enable_dark_mode: false,
+            gst_number: '',
+            gst_percentage: 18,
           });
         }
       } catch (error) {
@@ -90,9 +97,30 @@ export function useSettings() {
     }
   };
 
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      
+      switch (settings.date_format) {
+        case 'DD/MM/YYYY':
+          return format(date, 'dd/MM/yyyy');
+        case 'MM/DD/YYYY':
+          return format(date, 'MM/dd/yyyy');
+        case 'YYYY-MM-DD':
+          return format(date, 'yyyy-MM-dd');
+        default:
+          return format(date, 'dd/MM/yyyy');
+      }
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateString;
+    }
+  };
+
   return {
     settings,
     isLoading,
     currencySymbol: getCurrencySymbol(),
+    formatDate,
   };
 }

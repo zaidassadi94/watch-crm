@@ -24,3 +24,9 @@ export const getStockStatusText = (status: string) => {
     default: return status.charAt(0).toUpperCase() + status.slice(1).replace('_', ' ');
   }
 };
+
+export const getStockStatusBasedOnLevel = (level: number, threshold = 5) => {
+  if (level <= 0) return 'out_of_stock';
+  if (level <= threshold) return 'low_stock';
+  return 'in_stock';
+};

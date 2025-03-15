@@ -13,6 +13,8 @@ export function GeneralSettingsContainer() {
     dateFormat: "DD/MM/YYYY",
     enableNotifications: true,
     enableDarkMode: false,
+    gstNumber: "",
+    gstPercentage: 18,
   });
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
@@ -48,6 +50,8 @@ export function GeneralSettingsContainer() {
             dateFormat: data.date_format || "DD/MM/YYYY",
             enableNotifications: data.enable_notifications !== false,
             enableDarkMode: data.enable_dark_mode || false,
+            gstNumber: data.gst_number || "",
+            gstPercentage: data.gst_percentage || 18,
           });
         }
       } catch (error) {

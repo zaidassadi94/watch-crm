@@ -43,6 +43,7 @@ export function SaleItemForm({
       quantity: Number(item.quantity) || 1,
       price: Number(item.price) || 0,
       cost_price: Number(item.cost_price) || 0,
+      inventory_id: item.inventory_id
     }))
   );
 
@@ -87,12 +88,27 @@ export function SaleItemForm({
                             <div
                               key={product.id}
                               className="flex flex-col px-2 py-1.5 hover:bg-accent cursor-pointer"
-                              onClick={() => selectProduct(product, index)}
+                              onClick={() => {
+                                selectProduct(product, index);
+                                // Set inventory_id when selecting a product
+                                form.setValue(`items.${index}.inventory_id`, product.id);
+                                
+                                // Don't allow quantity more than stock
+                                const currentQty = form.getValues(`items.${index}.quantity`);
+                                if (currentQty > product.stock_level) {
+                                  form.setValue(`items.${index}.quantity`, Math.max(1, product.stock_level));
+                                }
+                              }}
                             >
                               <div className="font-medium">{product.brand} {product.name}</div>
                               <div className="flex justify-between text-xs text-muted-foreground">
                                 <span>SKU: {product.sku}</span>
                                 <span>{currencySymbol}{product.price.toLocaleString()}</span>
+                              </div>
+                              <div className="text-xs text-muted-foreground mt-1">
+                                <span className={product.stock_level <= 0 ? "text-red-500" : (product.stock_level <= 5 ? "text-amber-500" : "text-green-500")}>
+                                  Stock: {product.stock_level}
+                                </span>
                               </div>
                             </div>
                           ))}
@@ -113,22 +129,40 @@ export function SaleItemForm({
               <FormField
                 control={form.control}
                 name={`items.${index}.quantity`}
-                render={({ field }) => (
-                  <FormItem className="w-full sm:w-20">
-                    <FormLabel className={index !== 0 ? "sr-only" : ""}>
-                      Qty
-                    </FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min={1} 
-                        {...field}
-                        onChange={e => field.onChange(parseInt(e.target.value) || 1)}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  // Get the current inventory_id
+                  const inventoryId = form.watch(`items.${index}.inventory_id`);
+                  
+                  // Find the matching product in suggestions to get stock level
+                  const product = productSuggestions.find(p => p.id === inventoryId);
+                  const maxStock = product ? product.stock_level : 999;
+                  
+                  return (
+                    <FormItem className="w-full sm:w-20">
+                      <FormLabel className={index !== 0 ? "sr-only" : ""}>
+                        Qty
+                      </FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="number" 
+                          min={1}
+                          max={maxStock} 
+                          {...field}
+                          onChange={e => {
+                            const val = parseInt(e.target.value) || 1;
+                            // Limit quantity to available stock
+                            if (inventoryId && product) {
+                              field.onChange(Math.min(Math.max(1, val), maxStock));
+                            } else {
+                              field.onChange(Math.max(1, val));
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
               />
               
               <FormField
@@ -153,7 +187,7 @@ export function SaleItemForm({
                 )}
               />
               
-              {/* Add cost_price field */}
+              {/* Cost price field */}
               <FormField
                 control={form.control}
                 name={`items.${index}.cost_price`}
@@ -173,6 +207,15 @@ export function SaleItemForm({
                     </FormControl>
                     <FormMessage />
                   </FormItem>
+                )}
+              />
+              
+              {/* Hidden field for inventory_id */}
+              <FormField
+                control={form.control}
+                name={`items.${index}.inventory_id`}
+                render={({ field }) => (
+                  <input type="hidden" {...field} />
                 )}
               />
               

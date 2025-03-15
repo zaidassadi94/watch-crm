@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { 
-  MoreHorizontal, Edit, Trash2, Clock, CheckCircle, XCircle
+  MoreHorizontal, Edit, Trash2, Clock, CheckCircle, XCircle, FileText
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -41,10 +41,11 @@ const statusStyles: Record<string, SaleStatusStyle> = {
 interface SaleTableColumnsProps {
   onEdit: (sale: Sale) => void;
   onDelete: (id: string) => void;
+  onViewInvoice: (sale: Sale) => void;
 }
 
-export const getSaleTableColumns = ({ onEdit, onDelete }: SaleTableColumnsProps): Column<Sale>[] => {
-  const { currencySymbol } = useSettings();
+export const getSaleTableColumns = ({ onEdit, onDelete, onViewInvoice }: SaleTableColumnsProps): Column<Sale>[] => {
+  const { currencySymbol, formatDate } = useSettings();
   
   return [
     {
@@ -100,7 +101,7 @@ export const getSaleTableColumns = ({ onEdit, onDelete }: SaleTableColumnsProps)
       accessorKey: "created_at",
       cell: (sale: Sale) => (
         <div className="text-sm">
-          {new Date(sale.created_at).toLocaleDateString()}
+          {formatDate(sale.created_at)}
         </div>
       )
     },
@@ -117,6 +118,10 @@ export const getSaleTableColumns = ({ onEdit, onDelete }: SaleTableColumnsProps)
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => onViewInvoice(sale)}>
+              <FileText className="w-4 h-4 mr-2" />
+              View Invoice
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onEdit(sale)}>
               <Edit className="w-4 h-4 mr-2" />
               Edit

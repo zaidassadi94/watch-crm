@@ -9,6 +9,7 @@ import { CompanySection } from "./CompanySection";
 import { RegionalSection } from "./RegionalSection";
 import { DateFormatSection } from "./DateFormatSection";
 import { PreferencesSection } from "./PreferencesSection";
+import { TaxSection } from "./TaxSection";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +29,8 @@ export const generalSettingsSchema = z.object({
   }),
   enableNotifications: z.boolean().default(true),
   enableDarkMode: z.boolean().default(false),
+  gstNumber: z.string().optional(),
+  gstPercentage: z.number().min(0).max(100).default(18),
 });
 
 export type GeneralSettingsValues = z.infer<typeof generalSettingsSchema>;
@@ -83,6 +86,8 @@ export function GeneralSettingsForm({ initialSettings }: GeneralSettingsFormProp
             date_format: data.dateFormat,
             enable_notifications: data.enableNotifications,
             enable_dark_mode: data.enableDarkMode,
+            gst_number: data.gstNumber,
+            gst_percentage: data.gstPercentage,
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', user.id);
@@ -100,6 +105,8 @@ export function GeneralSettingsForm({ initialSettings }: GeneralSettingsFormProp
             date_format: data.dateFormat,
             enable_notifications: data.enableNotifications,
             enable_dark_mode: data.enableDarkMode,
+            gst_number: data.gstNumber,
+            gst_percentage: data.gstPercentage,
           });
           
         saveError = error;
@@ -116,6 +123,8 @@ export function GeneralSettingsForm({ initialSettings }: GeneralSettingsFormProp
           date_format: data.dateFormat,
           enable_notifications: data.enableNotifications,
           enable_dark_mode: data.enableDarkMode,
+          gst_number: data.gstNumber,
+          gst_percentage: data.gstPercentage,
         }
       }));
       
@@ -141,6 +150,7 @@ export function GeneralSettingsForm({ initialSettings }: GeneralSettingsFormProp
         <CompanySection form={form} />
         <RegionalSection form={form} />
         <DateFormatSection form={form} />
+        <TaxSection form={form} />
         <PreferencesSection form={form} />
         
         <Button type="submit" className="w-full md:w-auto" disabled={isSubmitting}>

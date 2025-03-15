@@ -90,6 +90,96 @@ export type Database = {
         }
         Relationships: []
       }
+      return_items: {
+        Row: {
+          cost_price: number | null
+          id: string
+          price: number
+          product_name: string
+          quantity: number
+          return_id: string
+          subtotal: number
+        }
+        Insert: {
+          cost_price?: number | null
+          id?: string
+          price: number
+          product_name: string
+          quantity?: number
+          return_id: string
+          subtotal: number
+        }
+        Update: {
+          cost_price?: number | null
+          id?: string
+          price?: number
+          product_name?: string
+          quantity?: number
+          return_id?: string
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_return"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "return_items_return_id_fkey"
+            columns: ["return_id"]
+            isOneToOne: false
+            referencedRelation: "returns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      returns: {
+        Row: {
+          id: string
+          reason: string | null
+          return_date: string
+          sale_id: string
+          status: string
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          reason?: string | null
+          return_date?: string
+          sale_id: string
+          status?: string
+          total_amount: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          reason?: string | null
+          return_date?: string
+          sale_id?: string
+          status?: string
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_sale"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "returns_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sale_items: {
         Row: {
           cost_price: number | null
@@ -138,6 +228,7 @@ export type Database = {
           customer_name: string
           customer_phone: string | null
           id: string
+          invoice_number: string | null
           notes: string | null
           payment_method: string | null
           status: string
@@ -152,6 +243,7 @@ export type Database = {
           customer_name: string
           customer_phone?: string | null
           id?: string
+          invoice_number?: string | null
           notes?: string | null
           payment_method?: string | null
           status?: string
@@ -166,6 +258,7 @@ export type Database = {
           customer_name?: string
           customer_phone?: string | null
           id?: string
+          invoice_number?: string | null
           notes?: string | null
           payment_method?: string | null
           status?: string
@@ -238,6 +331,8 @@ export type Database = {
           date_format: string
           enable_dark_mode: boolean
           enable_notifications: boolean
+          gst_number: string | null
+          gst_percentage: number | null
           id: string
           language: string
           updated_at: string
@@ -250,6 +345,8 @@ export type Database = {
           date_format?: string
           enable_dark_mode?: boolean
           enable_notifications?: boolean
+          gst_number?: string | null
+          gst_percentage?: number | null
           id?: string
           language?: string
           updated_at?: string
@@ -262,6 +359,8 @@ export type Database = {
           date_format?: string
           enable_dark_mode?: boolean
           enable_notifications?: boolean
+          gst_number?: string | null
+          gst_percentage?: number | null
           id?: string
           language?: string
           updated_at?: string
