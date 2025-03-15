@@ -16,36 +16,33 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Column } from '@/components/ui-custom/DataTable';
 import { ReactNode } from 'react';
 
-// Function to adapt TanStack table columns to our DataTable component format
 function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
   return columns.map(col => {
-    // Extract header - fallback to id if header is not a string
-    const header = typeof col.header === 'string' ? col.header : String(col.id || '');
+    // Extract header from string or function
+    const header = typeof col.header === 'string' 
+      ? col.header 
+      : String(col.id || '');
     
-    // Handle accessorKey which might be in different places
+    // Extract accessor key from different possible locations
     let accessorKey = '';
     if ('accessorKey' in col && typeof col.accessorKey === 'string') {
       accessorKey = col.accessorKey;
+    } else if (col.accessorFn) {
+      accessorKey = String(col.id || '');
     }
     
-    // Handle cell render function - convert to our expected format
-    let cellFunction: (({ row }: { row: { original: T } }) => ReactNode) | undefined = undefined;
-    if (col.cell) {
-      // Create a wrapper function that calls the original cell function
-      cellFunction = ({ row }) => {
-        if (typeof col.cell === 'function') {
-          return col.cell({ row: { original: row.original } } as any);
-        }
-        return null;
-      };
-    }
+    // Create a cell render function compatible with our DataTable
+    const cellFunction = ({ row }: { row: { original: T } }) => {
+      if (typeof col.cell === 'function') {
+        return col.cell({ row: { original: row.original } } as any);
+      }
+      return null;
+    };
     
-    // Extract className from meta if it exists
-    let className = '';
-    if (col.meta && typeof col.meta === 'object' && col.meta !== null) {
-      // Need to use type assertion since TypeScript doesn't know about className
-      className = (col.meta as any).className || '';
-    }
+    // Extract className safely
+    const className = col.meta && typeof col.meta === 'object' && col.meta !== null
+      ? (col.meta as any).className || ''
+      : '';
     
     return {
       header,
@@ -77,7 +74,7 @@ export function SalesContent() {
     handleReturn
   } = useSalesDialogs();
 
-  // Use the columns from SaleTableColumns with the adapter
+  // Get the columns and adapt them to the DataTable format
   const tanstackColumns = getSaleTableColumns({
     onEdit: handleEditSale,
     onDelete: handleDelete,
@@ -87,6 +84,7 @@ export function SalesContent() {
   // Convert columns to the format expected by our DataTable
   const columns = adaptColumns<Sale>(tanstackColumns);
 
+  // Filter sales based on search and filters
   const filteredSales = sales.filter(sale => {
     const matchesSearch = 
       sale.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

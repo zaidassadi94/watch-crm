@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from '@/components/ui/dialog';
 import { Sale } from '@/types/sales';
 import { useAuth } from '@/hooks/useAuth';
@@ -24,28 +24,6 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const { user } = useAuth();
   const { toast } = useToast();
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
-  const formInitialized = useRef(false);
-  const dialogMounted = useRef(false);
-  
-  // Local state for controlling dialog visibility
-  const [localOpen, setLocalOpen] = useState(open);
-  
-  // Synchronize local state with prop
-  useEffect(() => {
-    if (open) {
-      setLocalOpen(true);
-    }
-  }, [open]);
-  
-  // Mark component as mounted
-  useEffect(() => {
-    dialogMounted.current = true;
-    
-    // Cleanup on unmount
-    return () => {
-      dialogMounted.current = false;
-    };
-  }, []);
   
   const {
     productSuggestions,
@@ -60,30 +38,16 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setCustomerSearchTerm
   } = useSuggestions(user?.id);
 
-  // Safe dialog close handler
-  const handleClose = () => {
-    if (isFormSubmitting) return;
-    
-    setLocalOpen(false);
-    
-    // Delay the parent notification
-    setTimeout(() => {
-      if (dialogMounted.current) {
-        onOpenChange(false);
-      }
-    }, 200);
-  };
-
   // Handle successful save
   const handleSaved = () => {
     onSaved();
-    handleClose();
+    onOpenChange(false);
   };
 
   // Create safe cancel handler
   const handleCancel = () => {
     if (isFormSubmitting) return;
-    handleClose();
+    onOpenChange(false);
   };
   
   // Initialize form with error handling
@@ -110,60 +74,46 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         variant: "destructive",
       });
     } finally {
-      if (dialogMounted.current) {
-        setIsFormSubmitting(false);
-      }
+      setIsFormSubmitting(false);
     }
   };
 
-  // Initialize form data when dialog opens
+  // Initialize form data when sale changes
   useEffect(() => {
-    if (localOpen && !formInitialized.current && dialogMounted.current) {
-      formInitialized.current = true;
-      
-      if (!sale) {
-        // Initialize new sale form
+    if (!sale) {
+      // Initialize new sale form
+      form.reset({
+        customer_name: '',
+        customer_email: '',
+        customer_phone: '',
+        payment_method: 'cash',
+        status: 'completed',
+        notes: '',
+        items: [{ product_name: '', quantity: 1, price: 0, cost_price: 0 }]
+      });
+      updateProductSearchTerms(['']);
+    } else {
+      // Fetch items for existing sale
+      const fetchSaleItems = async () => {
         try {
-          form.reset({
-            customer_name: '',
-            customer_email: '',
-            customer_phone: '',
-            payment_method: 'cash',
-            status: 'completed',
-            notes: '',
-            items: [{ product_name: '', quantity: 1, price: 0, cost_price: 0 }]
-          });
-          updateProductSearchTerms(['']);
-        } catch (error) {
-          console.error("Error initializing new sale form:", error);
-        }
-      } else {
-        // Fetch items for existing sale
-        const fetchSaleItems = async () => {
-          try {
-            const { data, error } = await supabase
-              .from('sale_items')
-              .select('*')
-              .eq('sale_id', sale.id);
-              
-            if (error) throw error;
-              
-            if (data) {
-              updateProductSearchTerms(Array(data.length).fill(""));
-            }
-          } catch (error) {
-            console.error("Error fetching sale items:", error);
+          const { data, error } = await supabase
+            .from('sale_items')
+            .select('*')
+            .eq('sale_id', sale.id);
+            
+          if (error) throw error;
+            
+          if (data) {
+            updateProductSearchTerms(Array(data.length).fill(""));
           }
-        };
-        
-        fetchSaleItems();
-      }
+        } catch (error) {
+          console.error("Error fetching sale items:", error);
+        }
+      };
+      
+      fetchSaleItems();
     }
-    
-    if (!localOpen) {
-      formInitialized.current = false;
-    }
-  }, [sale, updateProductSearchTerms, localOpen, form]);
+  }, [sale, updateProductSearchTerms, form]);
 
   // Product selection handler
   const selectProduct = (product: ProductSuggestion, index: number) => {
@@ -182,17 +132,12 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setShowCustomerSuggestions(false);
   };
 
-  // Don't render content if dialog isn't open
-  if (!localOpen) {
-    return null;
-  }
-
   return (
     <Dialog 
-      open={localOpen} 
+      open={open} 
       onOpenChange={(newOpen) => {
         if (!newOpen && !isFormSubmitting && !isSubmitting) {
-          handleClose();
+          onOpenChange(false);
         }
       }}
     >

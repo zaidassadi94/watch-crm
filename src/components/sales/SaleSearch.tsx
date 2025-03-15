@@ -1,23 +1,16 @@
 
-import React, { useState } from 'react';
-import { Search, Filter, ChevronDown, X } from 'lucide-react';
+import React from 'react';
+import { Search, Filter } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetTrigger,
-  SheetFooter
-} from '@/components/ui/sheet';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 
 interface SaleSearchProps {
@@ -37,15 +30,32 @@ export function SaleSearch({
   paymentMethod,
   onPaymentMethodChange
 }: SaleSearchProps) {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
-  
+  const hasActiveFilters = status !== '' || paymentMethod !== '';
+  const activeFilterCount = (status !== '' ? 1 : 0) + (paymentMethod !== '' ? 1 : 0);
+
+  // Status options for the dropdown
+  const statusOptions = [
+    { label: 'All Statuses', value: '' },
+    { label: 'Quote', value: 'quote' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Completed', value: 'completed' },
+    { label: 'Cancelled', value: 'cancelled' }
+  ];
+
+  // Payment method options for the dropdown
+  const paymentOptions = [
+    { label: 'All Payment Methods', value: '' },
+    { label: 'Cash', value: 'cash' },
+    { label: 'Card', value: 'card' },
+    { label: 'Bank Transfer', value: 'bank_transfer' },
+    { label: 'Other', value: 'other' }
+  ];
+
+  // Function to reset all filters
   const resetFilters = () => {
     onStatusChange('');
     onPaymentMethodChange('');
   };
-
-  const hasActiveFilters = status !== '' || paymentMethod !== '';
-  const activeFilterCount = (status !== '' ? 1 : 0) + (paymentMethod !== '' ? 1 : 0);
 
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -59,67 +69,64 @@ export function SaleSearch({
         />
       </div>
       
-      <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <SheetTrigger asChild>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="h-10 gap-1">
-            <Filter className="h-4 w-4" /> 
+            <Filter className="h-4 w-4 mr-1" /> 
             Filter
             {hasActiveFilters && (
               <Badge variant="secondary" className="ml-1 rounded-full text-xs">
                 {activeFilterCount}
               </Badge>
             )}
-            <ChevronDown className="h-3 w-3 opacity-50" />
           </Button>
-        </SheetTrigger>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Filter Sales</SheetTitle>
-          </SheetHeader>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56">
+          <DropdownMenuLabel>Filter Sales</DropdownMenuLabel>
+          <DropdownMenuSeparator />
           
-          <div className="py-6 space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={status} onValueChange={onStatusChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
-                  <SelectItem value="quote">Quote</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Payment Method</label>
-              <Select value={paymentMethod} onValueChange={onPaymentMethodChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Payment Methods" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Payment Methods</SelectItem>
-                  <SelectItem value="cash">Cash</SelectItem>
-                  <SelectItem value="card">Card</SelectItem>
-                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-            
-          <SheetFooter>
-            <Button variant="outline" size="sm" onClick={resetFilters}>
-              <X className="mr-1 h-4 w-4" />
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground pt-2">
+            Status
+          </DropdownMenuLabel>
+          {statusOptions.map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option.value}
+              checked={status === option.value}
+              onCheckedChange={() => onStatusChange(option.value)}
+            >
+              {option.label}
+            </DropdownMenuCheckboxItem>
+          ))}
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground pt-2">
+            Payment Method
+          </DropdownMenuLabel>
+          {paymentOptions.map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option.value}
+              checked={paymentMethod === option.value}
+              onCheckedChange={() => onPaymentMethodChange(option.value)}
+            >
+              {option.label}
+            </DropdownMenuCheckboxItem>
+          ))}
+          
+          <DropdownMenuSeparator />
+          
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground h-8 mt-2"
+              onClick={resetFilters}
+            >
               Reset Filters
             </Button>
-            <Button size="sm" onClick={() => setIsFilterOpen(false)}>Apply</Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }
