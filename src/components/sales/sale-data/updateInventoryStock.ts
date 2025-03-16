@@ -1,7 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
 import { getStockStatusBasedOnLevel } from '../hooks/calculations';
-import { useToast } from '@/components/ui/use-toast';
 
 /**
  * Update inventory stock when a sale is completed or returned
@@ -43,16 +42,18 @@ export async function updateInventoryStock(
     console.log("Current inventory data:", inventoryData);
     
     // If it's a sale, decrease stock. If it's a return, increase stock
+    const currentStock = inventoryData?.stock_level || 0;
     const newStockLevel = isSale 
-      ? Math.max(0, (inventoryData?.stock_level || 0) - item.quantity)
-      : (inventoryData?.stock_level || 0) + item.quantity;
+      ? Math.max(0, currentStock - item.quantity)
+      : (currentStock + item.quantity);
     
     // Get the stock status based on the new stock level
     const newStockStatus = getStockStatusBasedOnLevel(newStockLevel);
     
     console.log("Updating stock:", {
-      oldLevel: inventoryData?.stock_level,
+      oldLevel: currentStock,
       newLevel: newStockLevel,
+      oldStatus: inventoryData?.stock_status,
       newStatus: newStockStatus
     });
       

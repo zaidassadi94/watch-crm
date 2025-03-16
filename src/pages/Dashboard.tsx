@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from 'react';
 import { 
   IndianRupee, 
@@ -99,7 +98,7 @@ const Dashboard = () => {
     {
       title: 'Total Revenue',
       value: `₹${totalRevenue.toLocaleString()}`,
-      secondaryValue: [
+      secondaryValues: [
         { label: 'Sales', value: `₹${dashboardStats.totalSalesRevenue.toLocaleString()}` },
         { label: 'Services', value: `₹${dashboardStats.totalServiceRevenue.toLocaleString()}` }
       ],
@@ -140,7 +139,7 @@ const Dashboard = () => {
             key={index}
             title={stat.title}
             value={stat.value}
-            secondaryValues={stat.secondaryValue}
+            secondaryValues={stat.secondaryValues}
             icon={stat.icon}
             trend={stat.trend}
           />

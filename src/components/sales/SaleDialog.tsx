@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogTitle, DialogHeader, DialogDescription } from '@/components/ui/dialog';
 import { Form } from '@/components/ui/form';
 import { Sale } from '@/types/sales';
@@ -25,17 +25,29 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const { user } = useAuth();
   const { toast } = useToast();
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
   
   // Create handlers before form init to avoid timing issues
-  const handleSaved = () => {
+  const handleSaved = useCallback(() => {
+    setIsClosing(true);
     onSaved();
-    onOpenChange(false);
-  };
+    
+    // Delay the dialog close slightly to allow the success toast to show first
+    setTimeout(() => {
+      onOpenChange(false);
+      setIsClosing(false);
+    }, 100);
+  }, [onSaved, onOpenChange]);
   
-  const handleCancel = () => {
-    if (isFormSubmitting) return;
-    onOpenChange(false);
-  };
+  const handleCancel = useCallback(() => {
+    if (isFormSubmitting || isClosing) return;
+    
+    setIsClosing(true);
+    setTimeout(() => {
+      onOpenChange(false);
+      setIsClosing(false);
+    }, 100);
+  }, [isFormSubmitting, onOpenChange, isClosing]);
   
   // Initialize form with proper handlers
   const { form, isSubmitting, onSubmit: formSubmit } = useSaleForm(
@@ -60,8 +72,8 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   } = useSuggestions(user?.id);
 
   // Enhanced form submission handler with error protection
-  const handleFormSubmit = async (data: any) => {
-    if (isFormSubmitting) return;
+  const handleFormSubmit = useCallback(async (data: any) => {
+    if (isFormSubmitting || isClosing) return;
     
     setIsFormSubmitting(true);
     
@@ -76,7 +88,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       });
       setIsFormSubmitting(false);
     }
-  };
+  }, [formSubmit, isFormSubmitting, toast, isClosing]);
 
   // Initialize form data when sale changes
   useEffect(() => {
@@ -152,40 +164,40 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   }, [sale, open, updateProductSearchTerms, form, toast]);
 
   // Product selection handler
-  const selectProduct = (product: ProductSuggestion, index: number) => {
+  const selectProduct = useCallback((product: ProductSuggestion, index: number) => {
     form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name} (${product.sku})`);
     form.setValue(`items.${index}.price`, product.price);
     form.setValue(`items.${index}.cost_price`, product.cost_price || 0);
     form.setValue(`items.${index}.inventory_id`, product.id);
     setShowProductSuggestions(null);
-  };
+  }, [form, setShowProductSuggestions]);
 
   // Customer selection handler
-  const selectCustomer = (customer: CustomerSuggestion) => {
+  const selectCustomer = useCallback((customer: CustomerSuggestion) => {
     form.setValue('customer_name', customer.name);
     if (customer.email) form.setValue('customer_email', customer.email);
     if (customer.phone) form.setValue('customer_phone', customer.phone);
     setShowCustomerSuggestions(false);
-  };
+  }, [form, setShowCustomerSuggestions]);
 
   return (
     <Dialog 
       open={open} 
       onOpenChange={(newOpen) => {
-        if (!newOpen && !isFormSubmitting && !isSubmitting) {
-          onOpenChange(false);
+        if (!newOpen && !isFormSubmitting && !isSubmitting && !isClosing) {
+          handleCancel();
         }
       }}
     >
       <DialogContent 
         className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto"
         onInteractOutside={(e) => {
-          if (isFormSubmitting || isSubmitting) {
+          if (isFormSubmitting || isSubmitting || isClosing) {
             e.preventDefault();
           }
         }}
         onEscapeKeyDown={(e) => {
-          if (isFormSubmitting || isSubmitting) {
+          if (isFormSubmitting || isSubmitting || isClosing) {
             e.preventDefault();
           }
         }}

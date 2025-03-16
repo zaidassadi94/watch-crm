@@ -1,128 +1,126 @@
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { ProductSuggestion, CustomerSuggestion } from '@/types/inventory';
+import { useInventoryData } from '@/hooks/useInventoryData';
 
 export function useSuggestions(userId: string | undefined) {
   const [productSuggestions, setProductSuggestions] = useState<ProductSuggestion[]>([]);
-  const [productSearchTerms, setProductSearchTerms] = useState<string[]>(['']);
   const [showProductSuggestions, setShowProductSuggestions] = useState<number | null>(null);
+  const [productSearchTerms, setProductSearchTerms] = useState<string[]>(['']);
   
   const [customerSuggestions, setCustomerSuggestions] = useState<CustomerSuggestion[]>([]);
-  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
   const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [customerSearchTerm, setCustomerSearchTerm] = useState('');
+
+  const { inventory } = useInventoryData();
   
+  // Load inventory for product suggestions
+  useEffect(() => {
+    if (inventory.length > 0) {
+      // Format inventory as product suggestions
+      const suggestions: ProductSuggestion[] = inventory.map(item => ({
+        id: item.id,
+        name: item.name,
+        brand: item.brand,
+        sku: item.sku,
+        price: Number(item.price),
+        cost_price: Number(item.cost_price),
+        stock_level: item.stock_level,
+        stock_status: item.stock_status,
+        category: item.category
+      }));
+      
+      // Start with all inventory items as suggestions
+      setProductSuggestions(suggestions);
+    }
+  }, [inventory]);
+
+  // Update product search terms
   const updateProductSearchTerms = useCallback((terms: string[]) => {
     setProductSearchTerms(terms);
   }, []);
 
-  const handleProductSearch = useCallback(async (term: string, index: number) => {
-    const newSearchTerms = [...productSearchTerms];
-    newSearchTerms[index] = term;
-    setProductSearchTerms(newSearchTerms);
+  // Handle product search
+  const handleProductSearch = useCallback((value: string, index: number) => {
+    // Update search term
+    const newTerms = [...productSearchTerms];
+    newTerms[index] = value;
+    setProductSearchTerms(newTerms);
     
-    if (!userId) {
-      setProductSuggestions([]);
-      return;
-    }
-    
-    try {
-      let query = supabase
-        .from('inventory')
-        .select('id, name, brand, sku, price, cost_price, stock_level, stock_status, category')
-        .eq('user_id', userId)
-        .order('name');
-        
-      // If search term provided, filter results
-      if (term && term.length >= 2) {
-        query = query.or(`name.ilike.%${term}%,sku.ilike.%${term}%,brand.ilike.%${term}%`);
-      }
+    // Filter product suggestions based on search term
+    if (value.trim() === '') {
+      // If search term is empty, show all products
+      const suggestions: ProductSuggestion[] = inventory.map(item => ({
+        id: item.id,
+        name: item.name,
+        brand: item.brand,
+        sku: item.sku,
+        price: Number(item.price),
+        cost_price: Number(item.cost_price),
+        stock_level: item.stock_level,
+        stock_status: item.stock_status,
+        category: item.category
+      }));
       
-      // Limit results for better performance
-      query = query.limit(50);
-        
-      const { data, error } = await query;
-        
-      if (error) throw error;
+      setProductSuggestions(suggestions);
+    } else {
+      // Filter inventory based on search term
+      const searchLower = value.toLowerCase();
+      const filtered = inventory.filter(item => 
+        item.name.toLowerCase().includes(searchLower) || 
+        item.brand.toLowerCase().includes(searchLower) || 
+        item.sku.toLowerCase().includes(searchLower) ||
+        item.category.toLowerCase().includes(searchLower)
+      );
       
-      setProductSuggestions(data as ProductSuggestion[]);
-    } catch (error) {
-      console.error('Error searching products:', error);
-      setProductSuggestions([]);
+      // Format filtered inventory as product suggestions
+      const suggestions: ProductSuggestion[] = filtered.map(item => ({
+        id: item.id,
+        name: item.name,
+        brand: item.brand,
+        sku: item.sku,
+        price: Number(item.price),
+        cost_price: Number(item.cost_price),
+        stock_level: item.stock_level,
+        stock_status: item.stock_status,
+        category: item.category
+      }));
+      
+      setProductSuggestions(suggestions);
     }
-  }, [userId, productSearchTerms]);
+  }, [inventory, productSearchTerms]);
 
-  // Search for customers in the customers table first, then fall back to sales
-  const searchCustomers = useCallback(async (term: string) => {
-    if (!userId || term.length < 2) {
-      setCustomerSuggestions([]);
-      return;
-    }
+  // Handle customer search
+  useEffect(() => {
+    if (!userId || !showCustomerSuggestions) return;
     
-    try {
-      // First try to get customers from the customers table
-      const { data: customersData, error: customersError } = await supabase
+    const fetchCustomers = async () => {
+      const query = supabase
         .from('customers')
-        .select('name, email, phone, type')
-        .eq('user_id', userId)
-        .ilike('name', `%${term}%`)
-        .order('name')
-        .limit(10);
+        .select('*')
+        .eq('user_id', userId);
         
-      if (customersError && customersError.code !== '42P01') {
-        throw customersError;
+      if (customerSearchTerm) {
+        query.ilike('name', `%${customerSearchTerm}%`);
       }
       
-      if (customersData && customersData.length > 0) {
-        const suggestions = customersData.map(customer => ({
+      query.limit(10);
+      
+      const { data, error } = await query;
+      
+      if (error) console.error('Error fetching customers:', error);
+      else {
+        setCustomerSuggestions(data.map(customer => ({
           name: customer.name,
           email: customer.email,
           phone: customer.phone
-        }));
-        
-        setCustomerSuggestions(suggestions);
-        return;
+        })));
       }
-      
-      // If no results from customers table, try sales table
-      const { data: salesData, error: salesError } = await supabase
-        .from('sales')
-        .select('customer_name, customer_email, customer_phone')
-        .eq('user_id', userId)
-        .ilike('customer_name', `%${term}%`)
-        .order('created_at', { ascending: false })
-        .limit(5);
-          
-      if (salesError) throw salesError;
-      
-      // Remove duplicates based on customer name
-      const uniqueCustomers = Array.from(
-        new Map(salesData.map(item => 
-          [item.customer_name, { 
-            name: item.customer_name, 
-            email: item.customer_email, 
-            phone: item.customer_phone 
-          }]
-        )).values()
-      );
-      
-      setCustomerSuggestions(uniqueCustomers);
-    } catch (error) {
-      console.error('Error searching customers:', error);
-      setCustomerSuggestions([]);
-    }
-  }, [userId]);
-  
-  useMemo(() => {
-    // Debounce search
-    const timeoutId = setTimeout(() => {
-      if (customerSearchTerm) {
-        searchCustomers(customerSearchTerm);
-      }
-    }, 300);
+    };
     
-    return () => clearTimeout(timeoutId);
-  }, [customerSearchTerm, searchCustomers]);
+    fetchCustomers();
+  }, [userId, customerSearchTerm, showCustomerSuggestions]);
 
   return {
     productSuggestions,
@@ -134,6 +132,7 @@ export function useSuggestions(userId: string | undefined) {
     customerSuggestions,
     showCustomerSuggestions,
     setShowCustomerSuggestions,
+    customerSearchTerm,
     setCustomerSearchTerm
   };
 }

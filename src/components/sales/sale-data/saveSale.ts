@@ -48,8 +48,8 @@ export async function saveSale(
     console.log("Updating existing sale:", existingSale.id);
     
     // Load original items and status before updating
+    const originalStatus = existingSale.status;
     let originalItems: SaleItemWithInventory[] = [];
-    let originalStatus = existingSale.status;
     
     try {
       originalItems = await loadSaleItems(existingSale.id);
@@ -110,9 +110,28 @@ export async function saveSale(
       throw itemsError;
     }
     
-    // If status changed to completed, update inventory
-    if (originalStatus !== 'completed' && data.status === 'completed') {
-      console.log("Sale status changed to completed, updating inventory");
+    // If original status was 'completed', need to restore inventory first
+    if (originalStatus === 'completed') {
+      console.log("Original sale was completed, restoring inventory before applying new changes");
+
+      // Step 1: Restore inventory for the original items (treat as returns)
+      for (const originalItem of originalItems) {
+        if (originalItem.inventory_id) {
+          console.log("Restoring inventory for original item:", originalItem);
+          await updateInventoryStock({
+            product_name: originalItem.product_name,
+            quantity: originalItem.quantity,
+            price: originalItem.price,
+            cost_price: originalItem.cost_price || 0,
+            inventory_id: originalItem.inventory_id
+          }, false); // false = return (increases stock)
+        }
+      }
+    }
+    
+    // Step 2: If new status is 'completed', update inventory with new quantities
+    if (data.status === 'completed') {
+      console.log("Sale is now completed, updating inventory with new quantities");
       
       for (const item of data.items) {
         if (item.inventory_id && item.product_name) {
@@ -123,7 +142,7 @@ export async function saveSale(
             price: item.price,
             cost_price: item.cost_price || 0,
             inventory_id: item.inventory_id
-          }, true);
+          }, true); // true = sale (decreases stock)
         } else {
           console.log("Skipping inventory update for item without inventory_id:", item);
         }
@@ -192,7 +211,7 @@ export async function saveSale(
             price: item.price,
             cost_price: item.cost_price || 0,
             inventory_id: item.inventory_id
-          }, true);
+          }, true); // true for sale (decreases stock)
         } else {
           console.log("Skipping inventory update for item without inventory_id:", item);
         }
