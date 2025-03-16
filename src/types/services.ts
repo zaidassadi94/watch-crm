@@ -1,3 +1,4 @@
+
 export interface ServiceRequest {
   id: string;
   user_id: string;
@@ -14,6 +15,8 @@ export interface ServiceRequest {
   price: number | null;
   created_at: string;
   updated_at: string | null;
+  payment_status: string | null;
+  payment_method: string | null;
 }
 
 export const serviceStatusStyles = {
@@ -36,5 +39,20 @@ export const serviceStatusStyles = {
   cancelled: { 
     color: "text-red-700 bg-red-100", 
     icon: "XCircle" 
+  }
+};
+
+export const paymentStatusStyles = {
+  unpaid: {
+    color: "text-red-700 bg-red-100",
+    icon: "AlertCircle"
+  },
+  partially_paid: {
+    color: "text-amber-700 bg-amber-100",
+    icon: "CircleDollarSign"
+  },
+  paid: {
+    color: "text-green-700 bg-green-100",
+    icon: "CheckCircle"
   }
 };

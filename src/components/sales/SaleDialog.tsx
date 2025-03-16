@@ -13,6 +13,8 @@ import { SaleDialogActions } from './SaleDialogActions';
 import { useSaleForm } from './hooks/useSaleForm';
 import { useSuggestions } from './useSuggestions';
 import { useToast } from '@/components/ui/use-toast';
+import { PaymentMethodSelect } from './PaymentMethodSelect';
+import { StatusSelect } from './StatusSelect';
 
 interface SaleDialogProps {
   open: boolean;
@@ -240,6 +242,11 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
               handleProductSearch={handleProductSearch}
               selectProduct={selectProduct}
             />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <StatusSelect form={form} />
+              <PaymentMethodSelect form={form} />
+            </div>
             
             <SaleNotesField form={form} />
             

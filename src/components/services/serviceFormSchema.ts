@@ -13,6 +13,8 @@ export const serviceFormSchema = z.object({
   status: z.string(),
   estimated_completion: z.string().optional().or(z.literal('')),
   price: z.number().optional().nullable(),
+  payment_status: z.string().default('unpaid'),
+  payment_method: z.string().optional().or(z.literal('')),
 });
 
 export type ServiceFormValues = z.infer<typeof serviceFormSchema>;

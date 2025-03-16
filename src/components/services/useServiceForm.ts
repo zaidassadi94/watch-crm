@@ -37,6 +37,8 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
       price: service?.price !== undefined && service?.price !== null 
         ? Number(service.price) 
         : null,
+      payment_status: service?.payment_status || 'unpaid',
+      payment_method: service?.payment_method || '',
     }
   });
 
@@ -68,6 +70,8 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
             status: data.status,
             estimated_completion: data.estimated_completion || null,
             price: data.price,
+            payment_status: data.payment_status || 'unpaid',
+            payment_method: data.payment_method || null,
             updated_at: new Date().toISOString(),
           })
           .eq('id', service.id);
@@ -94,6 +98,8 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
             status: data.status,
             estimated_completion: data.estimated_completion || null,
             price: data.price,
+            payment_status: data.payment_status || 'unpaid',
+            payment_method: data.payment_method || null,
           });
 
         if (error) throw error;

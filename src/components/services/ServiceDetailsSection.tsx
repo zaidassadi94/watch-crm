@@ -14,15 +14,18 @@ interface ServiceDetailsSectionProps {
 export function ServiceDetailsSection({ form }: ServiceDetailsSectionProps) {
   return (
     <div className="space-y-4">
-      <h3 className="text-sm font-medium">Service Details</h3>
+      <h3 className="text-lg font-medium">Service Details</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="service_type"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Service Type *</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <FormLabel>Service Type</FormLabel>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select service type" />
@@ -31,10 +34,14 @@ export function ServiceDetailsSection({ form }: ServiceDetailsSectionProps) {
                 <SelectContent>
                   <SelectItem value="repair">Repair</SelectItem>
                   <SelectItem value="maintenance">Maintenance</SelectItem>
-                  <SelectItem value="battery replacement">Battery Replacement</SelectItem>
-                  <SelectItem value="overhaul">Complete Overhaul</SelectItem>
-                  <SelectItem value="restoration">Restoration</SelectItem>
-                  <SelectItem value="custom">Custom Service</SelectItem>
+                  <SelectItem value="battery_replacement">Battery Replacement</SelectItem>
+                  <SelectItem value="crystal_replacement">Crystal Replacement</SelectItem>
+                  <SelectItem value="water_resistance_testing">Water Resistance Testing</SelectItem>
+                  <SelectItem value="movement_replacement">Movement Replacement</SelectItem>
+                  <SelectItem value="polishing">Polishing</SelectItem>
+                  <SelectItem value="strap_replacement">Strap Replacement</SelectItem>
+                  <SelectItem value="engraving">Engraving</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
               <FormMessage />
@@ -48,7 +55,10 @@ export function ServiceDetailsSection({ form }: ServiceDetailsSectionProps) {
           render={({ field }) => (
             <FormItem>
               <FormLabel>Status</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select
+                value={field.value}
+                onValueChange={field.onChange}
+              >
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select status" />
@@ -66,7 +76,9 @@ export function ServiceDetailsSection({ form }: ServiceDetailsSectionProps) {
             </FormItem>
           )}
         />
-        
+      </div>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <FormField
           control={form.control}
           name="estimated_completion"
@@ -86,19 +98,13 @@ export function ServiceDetailsSection({ form }: ServiceDetailsSectionProps) {
           name="price"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Price (₹)</FormLabel>
+              <FormLabel>Price</FormLabel>
               <FormControl>
                 <Input 
                   type="number" 
-                  step="0.01" 
-                  min="0" 
-                  placeholder="Enter price or leave blank for TBD"
-                  {...field}
+                  {...field} 
                   value={field.value === null ? '' : field.value}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    field.onChange(value === '' ? null : parseFloat(value));
-                  }}
+                  onChange={e => field.onChange(e.target.value === '' ? null : Number(e.target.value))} 
                 />
               </FormControl>
               <FormMessage />
@@ -107,6 +113,62 @@ export function ServiceDetailsSection({ form }: ServiceDetailsSectionProps) {
         />
       </div>
       
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormField
+          control={form.control}
+          name="payment_status"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment Status</FormLabel>
+              <Select
+                value={field.value || 'unpaid'}
+                onValueChange={field.onChange}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment status" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="partially_paid">Partially Paid</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="payment_method"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Payment Method</FormLabel>
+              <Select
+                value={field.value || ''}
+                onValueChange={field.onChange}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment method" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  <SelectItem value="cash">Cash</SelectItem>
+                  <SelectItem value="card">Card</SelectItem>
+                  <SelectItem value="upi">UPI</SelectItem>
+                  <SelectItem value="bank_transfer">Bank Transfer</SelectItem>
+                  <SelectItem value="cheque">Cheque</SelectItem>
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
       <FormField
         control={form.control}
         name="description"
@@ -115,9 +177,10 @@ export function ServiceDetailsSection({ form }: ServiceDetailsSectionProps) {
             <FormLabel>Description</FormLabel>
             <FormControl>
               <Textarea 
-                placeholder="Describe the issue or service needed" 
-                className="min-h-24" 
+                placeholder="Describe the service needed" 
+                className="resize-none" 
                 {...field} 
+                value={field.value || ''}
               />
             </FormControl>
             <FormMessage />

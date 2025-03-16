@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { format } from 'date-fns';
-import { ServiceRequest } from '@/types/services';
+import { ServiceRequest, paymentStatusStyles } from '@/types/services';
 import { MoreHorizontal, Edit, Trash, ClipboardList } from 'lucide-react';
 import { useSettings } from '@/hooks/useSettings';
 
@@ -63,6 +63,25 @@ export function getServiceTableColumns({
       cell: ({ row }) => {
         const price = row.original.price;
         return <div>{price ? `${currencySymbol}${Number(price).toFixed(2)}` : '-'}</div>;
+      },
+    },
+    {
+      accessorKey: 'payment_status',
+      header: 'Payment',
+      cell: ({ row }) => {
+        const paymentStatus = row.original.payment_status || 'unpaid';
+        const style = paymentStatusStyles[paymentStatus as keyof typeof paymentStatusStyles] || paymentStatusStyles.unpaid;
+        
+        return (
+          <div className="flex flex-col">
+            <Badge className={style.color}>
+              {paymentStatus.replace('_', ' ')}
+            </Badge>
+            <div className="text-xs text-muted-foreground mt-1">
+              {row.original.payment_method || '-'}
+            </div>
+          </div>
+        );
       },
     },
     {

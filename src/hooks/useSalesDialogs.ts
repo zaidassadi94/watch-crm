@@ -23,30 +23,31 @@ export function useSalesDialogs() {
     }, 300);
   }, []);
 
-  // Handle safe dialog closing to prevent freezing
-  const safeCloseDialog = useCallback(() => {
-    if (isProcessing) return; // Do not close while processing
-    setIsDialogOpen(false);
-    clearState();
-  }, [clearState, isProcessing]);
-
-  // Set dialog open state with safeguards
-  const safeSetDialogOpen = useCallback((isOpen: boolean) => {
-    if (!isOpen) {
-      safeCloseDialog();
-    } else {
-      setIsDialogOpen(true);
-    }
-  }, [safeCloseDialog]);
-
-  // Handle edit sale action
+  // Handle edit sale action with better error management
   const handleEditSale = useCallback(async (sale: Sale) => {
     if (isProcessing) return;
-    setIsProcessing(true);
     
     try {
-      setSelectedSale(sale);
-      setIsDialogOpen(true);
+      setIsProcessing(true);
+      
+      // Make sure we have a fresh copy of the sale
+      const { data: freshSale, error: refreshError } = await supabase
+        .from('sales')
+        .select('*')
+        .eq('id', sale.id)
+        .single();
+        
+      if (refreshError) throw refreshError;
+      
+      // Use the fresh data to avoid stale state issues
+      setSelectedSale(freshSale);
+      
+      // Important: Set dialog open AFTER setting the selected sale to avoid race conditions
+      setTimeout(() => {
+        setIsDialogOpen(true);
+        setIsProcessing(false);
+      }, 50);
+      
     } catch (error) {
       console.error("Error preparing sale edit:", error);
       toast({
@@ -54,14 +55,22 @@ export function useSalesDialogs() {
         description: "Could not load sale details for editing",
         variant: "destructive"
       });
-    } finally {
       setIsProcessing(false);
     }
   }, [toast, isProcessing]);
 
+  // Create a safe handle close that respects processing state
+  const handleCloseDialog = useCallback(() => {
+    if (isProcessing) return;
+    
+    setIsDialogOpen(false);
+    clearState();
+  }, [clearState, isProcessing]);
+
   // Handle create sale action
   const handleCreateSale = useCallback(() => {
     if (isProcessing) return;
+    
     setSelectedSale(null);
     setIsDialogOpen(true);
   }, [isProcessing]);
@@ -103,7 +112,7 @@ export function useSalesDialogs() {
   return {
     selectedSale,
     isDialogOpen,
-    setIsDialogOpen: safeSetDialogOpen,
+    setIsDialogOpen,
     isInvoiceDialogOpen,
     setIsInvoiceDialogOpen,
     isReturnDialogOpen,
@@ -114,6 +123,7 @@ export function useSalesDialogs() {
     handleCreateSale,
     handleViewInvoice,
     handleReturn,
-    clearState
+    clearState,
+    handleCloseDialog
   };
 }
