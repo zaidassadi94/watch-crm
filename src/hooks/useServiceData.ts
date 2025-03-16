@@ -35,11 +35,11 @@ export function useServiceData() {
       
       // Map the returned data to ensure it matches the ServiceRequest type
       // This handles cases where payment_status or payment_method may be null
-      const formattedServices: ServiceRequest[] = (data || []).map(service => ({
+      const formattedServices: ServiceRequest[] = data ? data.map(service => ({
         ...service,
         payment_status: service.payment_status || 'unpaid',
         payment_method: service.payment_method || null
-      }));
+      })) : [];
       
       setServices(formattedServices);
     } catch (error: any) {
