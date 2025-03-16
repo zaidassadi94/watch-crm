@@ -21,6 +21,7 @@ interface SaleItemWithInventory {
   inventory_id?: string;
 }
 
+// This hook is kept for backward compatibility, but it's using similar logic as the new hooks
 export function useReturnForm(onComplete: () => void) {
   const { user } = useAuth();
   const { toast } = useToast();
