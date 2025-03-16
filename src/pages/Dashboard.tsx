@@ -16,6 +16,7 @@ import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Link } from 'react-router-dom';
+import { useInitializeUserData } from '@/hooks/useInitializeUserData';
 
 const Dashboard = () => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -28,6 +29,7 @@ const Dashboard = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+  const { createSampleData, isInitializing } = useInitializeUserData();
 
   useEffect(() => {
     setTimeout(() => {
@@ -90,6 +92,11 @@ const Dashboard = () => {
     
     fetchDashboardData();
   }, [user]);
+
+  useEffect(() => {
+    // Try to create sample data when dashboard loads (if needed)
+    createSampleData();
+  }, [createSampleData]);
 
   // Calculate total revenue from both sales and services
   const totalRevenue = dashboardStats.totalSalesRevenue + dashboardStats.totalServiceRevenue;
