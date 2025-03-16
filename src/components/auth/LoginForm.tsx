@@ -34,9 +34,13 @@ export function LoginForm() {
 
       if (error) throw error;
 
-      // Redirect to dashboard on successful login
-      navigate('/dashboard');
+      // Redirect will be handled by auth state change in useAuth
+      toast({
+        title: "Login successful",
+        description: "Welcome back!",
+      });
     } catch (error: any) {
+      console.error('Login error:', error);
       toast({
         title: "Login failed",
         description: error.message || "An error occurred during login",

@@ -33,7 +33,7 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
       setLoading(true);
       
       // Create the user with metadata
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -46,14 +46,24 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
 
       if (error) throw error;
 
-      toast({
-        title: "Sign up successful",
-        description: "Please check your email to verify your account",
-      });
-      
-      // Switch to login tab
-      onSuccess();
+      if (data.user) {
+        toast({
+          title: "Sign up successful",
+          description: "Your account has been created successfully.",
+        });
+        
+        // Switch to login tab
+        onSuccess();
+      } else {
+        // This is for when email confirmation is enabled
+        toast({
+          title: "Sign up pending",
+          description: "Please check your email to verify your account",
+        });
+        onSuccess();
+      }
     } catch (error: any) {
+      console.error('Signup error:', error);
       toast({
         title: "Sign up failed",
         description: error.message || "An error occurred during sign up",

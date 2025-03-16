@@ -51,6 +51,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Redirect to auth page on sign out
         if (event === 'SIGNED_OUT') {
           navigate('/auth');
+        } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          // On sign in, redirect to dashboard if currently on auth page
+          const currentPath = window.location.pathname;
+          if (currentPath === '/auth') {
+            navigate('/dashboard');
+          }
         }
       }
     );
