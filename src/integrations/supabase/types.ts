@@ -323,6 +323,8 @@ export type Database = {
           description: string | null
           estimated_completion: string | null
           id: string
+          payment_method: string | null
+          payment_status: string | null
           price: number | null
           serial_number: string | null
           service_type: string
@@ -340,6 +342,8 @@ export type Database = {
           description?: string | null
           estimated_completion?: string | null
           id?: string
+          payment_method?: string | null
+          payment_status?: string | null
           price?: number | null
           serial_number?: string | null
           service_type: string
@@ -357,6 +361,8 @@ export type Database = {
           description?: string | null
           estimated_completion?: string | null
           id?: string
+          payment_method?: string | null
+          payment_status?: string | null
           price?: number | null
           serial_number?: string | null
           service_type?: string
