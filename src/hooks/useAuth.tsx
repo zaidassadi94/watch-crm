@@ -22,16 +22,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Get current session
     const fetchSession = async () => {
-      const { data, error } = await supabase.auth.getSession();
-      if (error) {
-        console.error('Error fetching session:', error);
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        if (error) {
+          console.error('Error fetching session:', error);
+          setIsLoading(false);
+          return;
+        }
+        
+        setSession(data.session);
+        setUser(data.session?.user || null);
+      } catch (err) {
+        console.error('Unexpected error during session fetch:', err);
+      } finally {
         setIsLoading(false);
-        return;
       }
-      
-      setSession(data.session);
-      setUser(data.session?.user || null);
-      setIsLoading(false);
     };
 
     fetchSession();
