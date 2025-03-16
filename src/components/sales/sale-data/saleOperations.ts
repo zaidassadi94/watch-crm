@@ -1,21 +1,38 @@
 
 import { supabase } from '@/integrations/supabase/client';
-import { Sale } from '@/types/sales';
 import { SaleFormValues, SaleItemInternal } from '../saleFormSchema';
-import { loadSaleItems, SaleItemWithInventory } from './loadSaleItems';
+import { Sale } from '@/types/sales';
+import { SaleItemWithInventory } from './loadSaleItems';
 
 /**
- * Create a new sale record in the database
+ * Get original sale items for inventory restoration
+ */
+export async function getOriginalSaleItems(saleId: string): Promise<SaleItemWithInventory[]> {
+  try {
+    const { data, error } = await supabase
+      .from('sale_items')
+      .select('*')
+      .eq('sale_id', saleId);
+      
+    if (error) throw error;
+    
+    return data || [];
+  } catch (error) {
+    console.error('Error fetching original sale items:', error);
+    return [];
+  }
+}
+
+/**
+ * Create a new sale
  */
 export async function createSale(
-  data: SaleFormValues,
-  userId: string,
-  totalAmount: number,
-  totalProfit: number,
+  data: SaleFormValues, 
+  userId: string, 
+  totalAmount: number, 
+  totalProfit: number, 
   invoiceNumber: string | null
 ) {
-  console.log("Creating new sale");
-  
   const { data: newSale, error } = await supabase
     .from('sales')
     .insert({
@@ -33,27 +50,21 @@ export async function createSale(
     .select()
     .single();
 
-  if (error) {
-    console.error("Error creating sale:", error);
-    throw error;
-  }
-
-  console.log("New sale created:", newSale);
+  if (error) throw error;
+  
   return newSale;
 }
 
 /**
- * Update an existing sale in the database
+ * Update an existing sale
  */
 export async function updateSale(
-  data: SaleFormValues,
-  existingSale: Sale,
-  totalAmount: number,
-  totalProfit: number,
+  data: SaleFormValues, 
+  existingSale: Sale, 
+  totalAmount: number, 
+  totalProfit: number, 
   invoiceNumber: string | null
 ) {
-  console.log("Updating existing sale:", existingSale.id);
-  
   const { error } = await supabase
     .from('sales')
     .update({
@@ -70,10 +81,7 @@ export async function updateSale(
     })
     .eq('id', existingSale.id);
 
-  if (error) {
-    console.error("Error updating sale:", error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 /**
@@ -85,10 +93,7 @@ export async function deleteSaleItems(saleId: string) {
     .delete()
     .eq('sale_id', saleId);
 
-  if (error) {
-    console.error("Error deleting sale items:", error);
-    throw error;
-  }
+  if (error) throw error;
 }
 
 /**
@@ -105,24 +110,10 @@ export async function addSaleItems(saleId: string, items: SaleFormValues['items'
         price: item.price,
         cost_price: item.cost_price || 0,
         subtotal: item.quantity * item.price,
-        inventory_id: item.inventory_id
+        inventory_id: item.inventory_id,
+        sku: item.sku // Add SKU field for better inventory tracking
       }))
     );
 
-  if (error) {
-    console.error("Error inserting sale items:", error);
-    throw error;
-  }
-}
-
-/**
- * Load original items for a sale
- */
-export async function getOriginalSaleItems(saleId: string): Promise<SaleItemWithInventory[]> {
-  try {
-    return await loadSaleItems(saleId);
-  } catch (error) {
-    console.error('Error fetching original sale items:', error);
-    return [];
-  }
+  if (error) throw error;
 }

@@ -74,6 +74,18 @@ export function useSuggestions(userId: string | undefined) {
         item.category.toLowerCase().includes(searchLower)
       );
       
+      // If it's shown from a SKU field (index >= 100), prioritize SKU matches
+      if (index >= 100) {
+        filtered.sort((a, b) => {
+          const aStartsWithSku = a.sku.toLowerCase().startsWith(searchLower);
+          const bStartsWithSku = b.sku.toLowerCase().startsWith(searchLower);
+          
+          if (aStartsWithSku && !bStartsWithSku) return -1;
+          if (!aStartsWithSku && bStartsWithSku) return 1;
+          return 0;
+        });
+      }
+      
       // Format filtered inventory as product suggestions
       const suggestions: ProductSuggestion[] = filtered.map(item => ({
         id: item.id,
@@ -91,7 +103,7 @@ export function useSuggestions(userId: string | undefined) {
     }
   }, [inventory, productSearchTerms]);
 
-  // Handle customer search
+  // Handle customer search - now prioritize phone number search
   useEffect(() => {
     if (!userId || !showCustomerSuggestions) return;
     
@@ -102,7 +114,7 @@ export function useSuggestions(userId: string | undefined) {
         .eq('user_id', userId);
         
       if (customerSearchTerm) {
-        query.ilike('name', `%${customerSearchTerm}%`);
+        query.or(`phone.ilike.%${customerSearchTerm}%,name.ilike.%${customerSearchTerm}%,email.ilike.%${customerSearchTerm}%`);
       }
       
       query.limit(10);

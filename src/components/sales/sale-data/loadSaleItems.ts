@@ -11,22 +11,30 @@ export interface SaleItemWithInventory {
   subtotal: number;
   created_at: string;
   inventory_id?: string;
+  sku?: string;
 }
 
 /**
- * Loads sale items for a given sale
+ * Load items for a specific sale
  */
 export async function loadSaleItems(saleId: string): Promise<SaleItemWithInventory[]> {
   try {
+    console.log(`Loading sale items for sale ID: ${saleId}`);
+    
     const { data, error } = await supabase
       .from('sale_items')
       .select('*')
       .eq('sale_id', saleId);
-
-    if (error) throw error;
-    return data as SaleItemWithInventory[];
+      
+    if (error) {
+      console.error('Error loading sale items:', error);
+      throw error;
+    }
+    
+    console.log(`Loaded ${data?.length || 0} sale items`);
+    return data as SaleItemWithInventory[] || [];
   } catch (error) {
-    console.error('Error loading sale items:', error);
+    console.error('Error in loadSaleItems:', error);
     throw error;
   }
 }

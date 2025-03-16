@@ -11,6 +11,7 @@ export const saleFormSchema = z.object({
   invoice_number: z.string().optional(),
   items: z.array(z.object({
     product_name: z.string().min(1, 'Product name is required'),
+    sku: z.string().optional(), // Add SKU field for better inventory matching
     quantity: z.number().min(1, 'Quantity must be at least 1'),
     price: z.number().min(0, 'Price must be 0 or higher'),
     cost_price: z.number().min(0, 'Cost price must be 0 or higher').optional(),
@@ -22,6 +23,7 @@ export type SaleFormValues = z.infer<typeof saleFormSchema>;
 
 export interface SaleItemInternal {
   product_name: string;
+  sku?: string; // Add SKU field
   quantity: number;
   price: number;
   cost_price?: number;
@@ -58,6 +60,7 @@ export const returnFormSchema = z.object({
   reason: z.string().optional(),
   items: z.array(z.object({
     product_name: z.string().min(1, 'Product name is required'),
+    sku: z.string().optional(), // Add SKU field
     quantity: z.number().min(1, 'Quantity must be at least 1'),
     price: z.number().min(0, 'Price must be 0 or higher'),
     cost_price: z.number().min(0, 'Cost price must be 0 or higher').optional(),

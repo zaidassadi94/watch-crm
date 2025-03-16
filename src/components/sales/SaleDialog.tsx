@@ -26,6 +26,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
   const { toast } = useToast();
   const [isFormSubmitting, setIsFormSubmitting] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // Create handlers before form init to avoid timing issues
   const handleSaved = useCallback(() => {
@@ -36,7 +37,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setTimeout(() => {
       onOpenChange(false);
       setIsClosing(false);
-    }, 100);
+    }, 300);
   }, [onSaved, onOpenChange]);
   
   const handleCancel = useCallback(() => {
@@ -46,7 +47,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     setTimeout(() => {
       onOpenChange(false);
       setIsClosing(false);
-    }, 100);
+    }, 300);
   }, [isFormSubmitting, onOpenChange, isClosing]);
   
   // Initialize form with proper handlers
@@ -90,9 +91,18 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
     }
   }, [formSubmit, isFormSubmitting, toast, isClosing]);
 
-  // Initialize form data when sale changes
+  // Initialize form data when sale changes - with better initialization tracking
   useEffect(() => {
-    if (!open) return; // Only initialize when dialog is open
+    if (!open) {
+      // Reset initialization flag when dialog closes
+      setIsInitialized(false);
+      return;
+    }
+    
+    // Only initialize once per dialog open
+    if (isInitialized) return;
+    
+    setIsInitialized(true);
     
     if (!sale) {
       // Initialize new sale form with empty values
@@ -103,7 +113,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
         payment_method: 'cash',
         status: 'completed',
         notes: '',
-        items: [{ product_name: '', quantity: 1, price: 0, cost_price: 0 }]
+        items: [{ product_name: '', sku: '', quantity: 1, price: 0, cost_price: 0 }]
       });
       updateProductSearchTerms(['']);
     } else {
@@ -128,6 +138,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
               invoice_number: sale.invoice_number || '',
               items: data.map(item => ({
                 product_name: item.product_name || '',
+                sku: item.sku || '',
                 quantity: item.quantity || 1,
                 price: Number(item.price) || 0,
                 cost_price: Number(item.cost_price) || 0,
@@ -145,7 +156,7 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
               payment_method: sale.payment_method || 'cash',
               notes: sale.notes || '',
               invoice_number: sale.invoice_number || '',
-              items: [{ product_name: '', quantity: 1, price: 0, cost_price: 0 }]
+              items: [{ product_name: '', sku: '', quantity: 1, price: 0, cost_price: 0 }]
             });
             updateProductSearchTerms(['']);
           }
@@ -161,22 +172,23 @@ export function SaleDialog({ open, onOpenChange, sale, onSaved }: SaleDialogProp
       
       fetchSaleItems();
     }
-  }, [sale, open, updateProductSearchTerms, form, toast]);
+  }, [sale, open, updateProductSearchTerms, form, toast, isInitialized]);
 
   // Product selection handler
   const selectProduct = useCallback((product: ProductSuggestion, index: number) => {
-    form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name} (${product.sku})`);
+    form.setValue(`items.${index}.product_name`, `${product.brand} ${product.name}`);
+    form.setValue(`items.${index}.sku`, product.sku);
     form.setValue(`items.${index}.price`, product.price);
     form.setValue(`items.${index}.cost_price`, product.cost_price || 0);
     form.setValue(`items.${index}.inventory_id`, product.id);
     setShowProductSuggestions(null);
   }, [form, setShowProductSuggestions]);
 
-  // Customer selection handler
+  // Customer selection handler with phone priority
   const selectCustomer = useCallback((customer: CustomerSuggestion) => {
     form.setValue('customer_name', customer.name);
-    if (customer.email) form.setValue('customer_email', customer.email);
     if (customer.phone) form.setValue('customer_phone', customer.phone);
+    if (customer.email) form.setValue('customer_email', customer.email);
     setShowCustomerSuggestions(false);
   }, [form, setShowCustomerSuggestions]);
 

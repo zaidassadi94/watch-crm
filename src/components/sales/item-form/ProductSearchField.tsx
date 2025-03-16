@@ -59,7 +59,7 @@ export function ProductSearchField({
       control={form.control}
       name={`items.${index}.product_name`}
       render={({ field }) => (
-        <FormItem className="flex-1 w-full sm:w-auto">
+        <FormItem className="flex-1 w-full">
           <FormLabel className={isFirstItem ? "" : "sr-only"}>
             Product
           </FormLabel>
@@ -79,7 +79,7 @@ export function ProductSearchField({
                   <FormControl>
                     <div className="relative">
                       <Input 
-                        placeholder="Select a product" 
+                        placeholder="Product Name" 
                         {...field} 
                         className={`pr-16 flex-grow ${isOutOfStock ? 'border-red-300 text-red-600' : ''}`}
                         onChange={(e) => {
@@ -131,8 +131,9 @@ export function ProductSearchField({
                           className="flex flex-col px-3 py-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
                           onClick={() => {
                             selectProduct(product, index);
-                            // Set inventory_id when selecting a product
+                            // Set inventory_id and SKU when selecting a product
                             form.setValue(`items.${index}.inventory_id`, product.id);
+                            form.setValue(`items.${index}.sku`, product.sku);
                             
                             // Don't allow quantity more than stock
                             const currentQty = form.getValues(`items.${index}.quantity`);
