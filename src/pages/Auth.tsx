@@ -11,6 +11,8 @@ import { SignupForm } from '@/components/auth/SignupForm';
 const Auth = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('login');
+  const [loginEmail, setLoginEmail] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
 
   useEffect(() => {
     // Check if user is already logged in
@@ -23,6 +25,12 @@ const Auth = () => {
     
     checkAuth();
   }, [navigate]);
+
+  const handleSignupSuccess = (email: string, password: string) => {
+    setLoginEmail(email);
+    setLoginPassword(password);
+    setActiveTab('login');
+  };
 
   return (
     <div className="flex flex-col min-h-screen items-center justify-center p-4 bg-slate-50">
@@ -42,11 +50,17 @@ const Auth = () => {
             </TabsList>
             
             <TabsContent value="login">
-              <LoginForm />
+              <LoginForm 
+                defaultEmail={loginEmail} 
+                defaultPassword={loginPassword} 
+              />
             </TabsContent>
             
             <TabsContent value="signup">
-              <SignupForm onSuccess={() => setActiveTab('login')} />
+              <SignupForm 
+                onSuccess={() => setActiveTab('login')} 
+                onSignupSuccess={handleSignupSuccess}
+              />
             </TabsContent>
           </Tabs>
         </CardContent>

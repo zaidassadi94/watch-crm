@@ -55,7 +55,7 @@ export function Sidebar() {
   return (
     <aside 
       className={cn(
-        "bg-sidebar transition-all duration-300 ease-in-out border-r border-border flex flex-col",
+        "bg-sidebar transition-all duration-300 ease-in-out border-r border-border flex flex-col h-screen",
         collapsed ? "w-[70px]" : "w-[240px]"
       )}
     >
@@ -110,7 +110,7 @@ export function Sidebar() {
         </ul>
       </nav>
 
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border mt-auto">
         <div className="space-y-1">
           <Button 
             variant="ghost" 

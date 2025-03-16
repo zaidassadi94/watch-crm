@@ -8,9 +8,10 @@ import { useToast } from '@/components/ui/use-toast';
 
 interface SignupFormProps {
   onSuccess: () => void;
+  onSignupSuccess?: (email: string, password: string) => void;
 }
 
-export function SignupForm({ onSuccess }: SignupFormProps) {
+export function SignupForm({ onSuccess, onSignupSuccess }: SignupFormProps) {
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -32,8 +33,8 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
     try {
       setLoading(true);
       
-      // Create the user with metadata
-      const { data, error } = await supabase.auth.signUp({
+      // Create the user but do not sign in
+      const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -41,27 +42,26 @@ export function SignupForm({ onSuccess }: SignupFormProps) {
             first_name: firstName,
             last_name: lastName,
           },
+          emailRedirectTo: `${window.location.origin}/auth`,
         },
       });
 
       if (error) throw error;
 
-      if (data.user) {
-        toast({
-          title: "Sign up successful",
-          description: "Your account has been created successfully.",
-        });
-        
-        // Switch to login tab
-        onSuccess();
-      } else {
-        // This is for when email confirmation is enabled
-        toast({
-          title: "Sign up pending",
-          description: "Please check your email to verify your account",
-        });
-        onSuccess();
+      // Show success message
+      toast({
+        title: "Sign up successful",
+        description: "Your account has been created. Please log in.",
+      });
+      
+      // Pass the email and password back to the Auth component
+      if (onSignupSuccess) {
+        onSignupSuccess(email, password);
       }
+      
+      // Switch to login tab
+      onSuccess();
+      
     } catch (error: any) {
       console.error('Signup error:', error);
       toast({

@@ -7,12 +7,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useNavigate } from 'react-router-dom';
 
-export function LoginForm() {
+interface LoginFormProps {
+  defaultEmail?: string;
+  defaultPassword?: string;
+}
+
+export function LoginForm({ defaultEmail = '', defaultPassword = '' }: LoginFormProps) {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(defaultEmail);
+  const [password, setPassword] = useState(defaultPassword);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
