@@ -4,8 +4,17 @@ import { Sale } from '@/types/sales';
 import { SaleFormValues } from '../saleFormSchema';
 import { SaleItemInternal } from '../saleFormSchema';
 import { calculateSaleTotals, generateInvoiceNumber } from '../hooks/calculations';
-import { loadSaleItems, SaleItemWithInventory } from './loadSaleItems';
-import { updateInventoryStock } from './updateInventoryStock';
+import { 
+  createSale, 
+  updateSale, 
+  deleteSaleItems, 
+  addSaleItems,
+  getOriginalSaleItems 
+} from './saleOperations';
+import { 
+  updateInventoryForCompletedSale, 
+  restoreInventoryForItems 
+} from './inventoryHandler';
 
 /**
  * Save or update a sale in the database
@@ -26,6 +35,7 @@ export async function saveSale(
     status: data.status
   });
   
+  // Calculate sale totals
   const saleItems: SaleItemInternal[] = data.items.map(item => ({
     product_name: item.product_name,
     quantity: item.quantity,
@@ -38,184 +48,50 @@ export async function saveSale(
   const totalAmount = calculation.totalPrice;
   const totalProfit = calculation.totalProfit;
   
+  // Generate invoice number if needed
   let invoiceNumber = data.invoice_number;
   if (data.status === 'completed' && !invoiceNumber) {
     invoiceNumber = await generateInvoiceNumber(supabase);
   }
 
-  // Update existing sale
+  // Handle existing sale
   if (existingSale) {
-    console.log("Updating existing sale:", existingSale.id);
-    
-    // Load original items and status before updating
+    // Load original status before updating
     const originalStatus = existingSale.status;
-    let originalItems: SaleItemWithInventory[] = [];
+    const originalItems = await getOriginalSaleItems(existingSale.id);
     
-    try {
-      originalItems = await loadSaleItems(existingSale.id);
-      console.log("Original items:", originalItems);
-    } catch (error) {
-      console.error('Error fetching original sale items:', error);
-    }
+    // Update the sale record
+    await updateSale(data, existingSale, totalAmount, totalProfit, invoiceNumber);
     
-    const { error } = await supabase
-      .from('sales')
-      .update({
-        customer_name: data.customer_name,
-        customer_email: data.customer_email || null,
-        customer_phone: data.customer_phone || null,
-        total_amount: totalAmount,
-        total_profit: totalProfit,
-        status: data.status,
-        payment_method: data.payment_method || null,
-        notes: data.notes || null,
-        invoice_number: invoiceNumber,
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', existingSale.id);
-
-    if (error) {
-      console.error("Error updating sale:", error);
-      throw error;
-    }
-
-    // Delete existing items
-    const { error: deleteError } = await supabase
-      .from('sale_items')
-      .delete()
-      .eq('sale_id', existingSale.id);
-
-    if (deleteError) {
-      console.error("Error deleting sale items:", deleteError);
-      throw deleteError;
-    }
-
-    // Insert new items
-    const { error: itemsError } = await supabase
-      .from('sale_items')
-      .insert(
-        data.items.map(item => ({
-          sale_id: existingSale.id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          price: item.price,
-          cost_price: item.cost_price || 0,
-          subtotal: item.quantity * item.price,
-          inventory_id: item.inventory_id
-        }))
-      );
-
-    if (itemsError) {
-      console.error("Error inserting sale items:", itemsError);
-      throw itemsError;
-    }
+    // Update sale items
+    await deleteSaleItems(existingSale.id);
+    await addSaleItems(existingSale.id, data.items);
     
-    // If original status was 'completed', need to restore inventory first
+    // Handle inventory updates based on sale status changes
+    
+    // If original status was 'completed', restore inventory first
     if (originalStatus === 'completed') {
-      console.log("Original sale was completed, restoring inventory before applying new changes");
-
-      // Step 1: Restore inventory for the original items (treat as returns)
-      for (const originalItem of originalItems) {
-        if (originalItem.inventory_id) {
-          console.log("Restoring inventory for original item:", originalItem);
-          await updateInventoryStock({
-            product_name: originalItem.product_name,
-            quantity: originalItem.quantity,
-            price: originalItem.price,
-            cost_price: originalItem.cost_price || 0,
-            inventory_id: originalItem.inventory_id
-          }, false); // false = return (increases stock)
-        }
-      }
+      await restoreInventoryForItems(originalItems);
     }
     
-    // Step 2: If new status is 'completed', update inventory with new quantities
+    // If new status is 'completed', update inventory with new quantities
     if (data.status === 'completed') {
-      console.log("Sale is now completed, updating inventory with new quantities");
-      
-      for (const item of data.items) {
-        if (item.inventory_id && item.product_name) {
-          console.log("Updating inventory for item:", item);
-          await updateInventoryStock({
-            product_name: item.product_name,
-            quantity: item.quantity,
-            price: item.price,
-            cost_price: item.cost_price || 0,
-            inventory_id: item.inventory_id
-          }, true); // true = sale (decreases stock)
-        } else {
-          console.log("Skipping inventory update for item without inventory_id:", item);
-        }
-      }
+      await updateInventoryForCompletedSale(data.items);
     }
     
     return existingSale.id;
-  } else {
-    // Create new sale
-    console.log("Creating new sale");
+  } 
+  // Handle new sale
+  else {
+    // Create new sale record
+    const newSale = await createSale(data, userId, totalAmount, totalProfit, invoiceNumber);
     
-    const { data: newSale, error } = await supabase
-      .from('sales')
-      .insert({
-        user_id: userId,
-        customer_name: data.customer_name,
-        customer_email: data.customer_email || null,
-        customer_phone: data.customer_phone || null,
-        total_amount: totalAmount,
-        total_profit: totalProfit,
-        status: data.status,
-        payment_method: data.payment_method || null,
-        notes: data.notes || null,
-        invoice_number: invoiceNumber,
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error("Error creating sale:", error);
-      throw error;
-    }
-
-    console.log("New sale created:", newSale);
-
-    // Insert new items
-    const { error: itemsError } = await supabase
-      .from('sale_items')
-      .insert(
-        data.items.map(item => ({
-          sale_id: newSale.id,
-          product_name: item.product_name,
-          quantity: item.quantity,
-          price: item.price,
-          cost_price: item.cost_price || 0,
-          subtotal: item.quantity * item.price,
-          inventory_id: item.inventory_id
-        }))
-      );
-
-    if (itemsError) {
-      console.error("Error inserting sale items:", itemsError);
-      throw itemsError;
-    }
+    // Add sale items
+    await addSaleItems(newSale.id, data.items);
     
     // Update inventory if new sale is completed
     if (data.status === 'completed') {
-      console.log("New sale is completed, updating inventory");
-      
-      for (const item of data.items) {
-        if (item.inventory_id && item.product_name) {
-          console.log("Updating inventory for item:", item);
-          await updateInventoryStock({
-            product_name: item.product_name,
-            quantity: item.quantity,
-            price: item.price,
-            cost_price: item.cost_price || 0,
-            inventory_id: item.inventory_id
-          }, true); // true for sale (decreases stock)
-        } else {
-          console.log("Skipping inventory update for item without inventory_id:", item);
-        }
-      }
+      await updateInventoryForCompletedSale(data.items);
     }
     
     return newSale.id;

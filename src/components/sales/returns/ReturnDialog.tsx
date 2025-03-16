@@ -1,14 +1,17 @@
 
 import React, { useState, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { ReturnDialogProvider } from './ReturnDialogContext';
-import { SaleSelector } from './SaleSelector';
-import { ReturnItemsList } from './ReturnItemsList';
-import { ReturnReason } from './ReturnReason';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
+import { Form } from "@/components/ui/form";
 import { Button } from '@/components/ui/button';
-import { DialogFooter } from '@/components/ui/dialog';
-import { Form } from '@/components/ui/form';
-import { useReturnDialog } from './ReturnDialogContext';
+import { Undo2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { supabase } from '@/integrations/supabase/client';
+import { Sale } from '@/types/sales';
+import { useToast } from '@/components/ui/use-toast';
+import { useReturnForm } from './useReturnForm';
+import { SaleSelection } from './SaleSelection';
+import { ReturnReason } from './ReturnReason';
+import { ReturnItems } from './ReturnItems';
 
 interface ReturnDialogProps {
   open: boolean;
@@ -17,14 +20,49 @@ interface ReturnDialogProps {
 }
 
 export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogProps) {
+  const { user } = useAuth();
+  const { toast } = useToast();
   const [localOpen, setLocalOpen] = useState(false);
+  const [sales, setSales] = useState<Sale[]>([]);
+  
+  const { 
+    form, 
+    isSubmitting, 
+    selectedSale, 
+    handleSaleChange, 
+    processReturn 
+  } = useReturnForm(onComplete);
   
   // Use local state to ensure dialog stays visible during form submission
   useEffect(() => {
     if (open) {
       setLocalOpen(true);
+      fetchSales();
     }
   }, [open]);
+  
+  const fetchSales = async () => {
+    if (!user) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('sales')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false });
+        
+      if (error) throw error;
+      setSales(data || []);
+    } catch (error) {
+      console.error('Error fetching sales:', error);
+      toast({
+        title: 'Error fetching sales',
+        description: 'Could not load completed sales',
+        variant: 'destructive'
+      });
+    }
+  };
   
   const handleComplete = () => {
     onComplete();
@@ -36,12 +74,12 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
     setLocalOpen(false);
     onOpenChange(false);
   };
-
+  
   return (
     <Dialog 
       open={localOpen} 
       onOpenChange={(newOpen) => {
-        if (!newOpen) {
+        if (!newOpen && !isSubmitting) {
           handleCancel();
         }
       }}
@@ -49,36 +87,45 @@ export function ReturnDialog({ open, onOpenChange, onComplete }: ReturnDialogPro
       <DialogContent className="max-w-3xl w-[95vw] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Process Return</DialogTitle>
+          <DialogDescription>
+            Select a sale and items to return
+          </DialogDescription>
         </DialogHeader>
         
-        <ReturnDialogProvider onComplete={handleComplete}>
-          {(dialogContext) => (
-            <Form {...dialogContext.form}>
-              <form onSubmit={dialogContext.form.handleSubmit(dialogContext.processReturn)} className="space-y-6">
-                <SaleSelector form={dialogContext.form} />
-                <ReturnItemsList form={dialogContext.form} />
-                <ReturnReason form={dialogContext.form} />
-                
-                <DialogFooter className="flex flex-row justify-end gap-2 mt-6">
-                  <Button 
-                    type="button" 
-                    variant="outline" 
-                    onClick={handleCancel}
-                    disabled={dialogContext.isSubmitting}
-                  >
-                    Cancel
-                  </Button>
-                  <Button 
-                    type="submit" 
-                    disabled={dialogContext.isSubmitting || !dialogContext.selectedSale}
-                  >
-                    {dialogContext.isSubmitting ? 'Processing...' : 'Process Return'}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          )}
-        </ReturnDialogProvider>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(processReturn)} className="space-y-6">
+            <SaleSelection 
+              form={form} 
+              sales={sales} 
+              onSaleChange={handleSaleChange} 
+            />
+            
+            {selectedSale && (
+              <>
+                <ReturnReason form={form} />
+                <ReturnItems form={form} />
+              </>
+            )}
+            
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handleCancel}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !selectedSale || form.watch('items').length === 0}
+              >
+                <Undo2 className="w-4 h-4 mr-2" />
+                {isSubmitting ? 'Processing...' : 'Process Return'}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );
