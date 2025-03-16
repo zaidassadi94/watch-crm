@@ -134,6 +134,7 @@ export type Database = {
           product_name: string
           quantity: number
           return_id: string
+          sku: string | null
           subtotal: number
         }
         Insert: {
@@ -143,6 +144,7 @@ export type Database = {
           product_name: string
           quantity?: number
           return_id: string
+          sku?: string | null
           subtotal: number
         }
         Update: {
@@ -152,6 +154,7 @@ export type Database = {
           product_name?: string
           quantity?: number
           return_id?: string
+          sku?: string | null
           subtotal?: number
         }
         Relationships: [
@@ -226,6 +229,7 @@ export type Database = {
           product_name: string
           quantity: number
           sale_id: string
+          sku: string | null
           subtotal: number
         }
         Insert: {
@@ -237,6 +241,7 @@ export type Database = {
           product_name: string
           quantity?: number
           sale_id: string
+          sku?: string | null
           subtotal: number
         }
         Update: {
@@ -248,6 +253,7 @@ export type Database = {
           product_name?: string
           quantity?: number
           sale_id?: string
+          sku?: string | null
           subtotal?: number
         }
         Relationships: [
