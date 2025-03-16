@@ -30,6 +30,7 @@ export function StatusSelect({ form }: StatusSelectProps) {
               <SelectItem value="pending">Pending</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
               <SelectItem value="cancelled">Cancelled</SelectItem>
+              <SelectItem value="returned">Returned</SelectItem>
             </SelectContent>
           </Select>
           <FormMessage />

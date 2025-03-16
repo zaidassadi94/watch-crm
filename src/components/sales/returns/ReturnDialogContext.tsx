@@ -145,6 +145,7 @@ export function ReturnDialogProvider({
         0
       );
       
+      // Create the return record
       const { data: returnData, error: returnError } = await supabase
         .from('returns')
         .insert({
@@ -159,6 +160,7 @@ export function ReturnDialogProvider({
         
       if (returnError) throw returnError;
       
+      // Add return items
       const returnItems = data.items.map(item => ({
         return_id: returnData.id,
         product_name: item.product_name,
@@ -173,6 +175,14 @@ export function ReturnDialogProvider({
         .insert(returnItems);
         
       if (itemsError) throw itemsError;
+      
+      // Update the sale status to "returned"
+      const { error: updateSaleError } = await supabase
+        .from('sales')
+        .update({ status: 'returned' })
+        .eq('id', data.sale_id);
+        
+      if (updateSaleError) throw updateSaleError;
       
       // Update inventory for each returned item
       for (const item of data.items) {
