@@ -79,6 +79,8 @@ const Auth = () => {
 
     try {
       setLoading(true);
+      
+      // Fixed: Only include each profile data element once
       const { error } = await supabase.auth.signUp({
         email,
         password,
