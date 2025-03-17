@@ -47,8 +47,11 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     service,
     user,
     onSaved: () => {
-      onSaved();
+      // First perform cleanup
       cleanupCustomerSuggestions();
+      // Then notify parent components that saving is done
+      onSaved();
+      // Finally close the dialog
       onOpenChange(false);
     },
     onCancel: () => {
@@ -66,16 +69,24 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     } else {
       // Cleanup when dialog closes
       cleanupCustomerSuggestions();
-      setTimeout(() => {
+      // Set a short timeout to avoid UI flicker
+      const timeout = window.setTimeout(() => {
         setMounted(false);
-      }, 300);
+      }, 200);
+      
+      // Clean up the timeout
+      return () => {
+        window.clearTimeout(timeout);
+      };
     }
-    
-    // Clean up on unmount
+  }, [open, cleanupCustomerSuggestions]);
+
+  // Make sure we cleanup when component unmounts
+  useEffect(() => {
     return () => {
       cleanupCustomerSuggestions();
     };
-  }, [open, cleanupCustomerSuggestions]);
+  }, [cleanupCustomerSuggestions]);
 
   // Memoize the customer selection function to prevent re-renders
   const selectCustomer = useCallback((customer: CustomerSuggestion) => {
@@ -92,18 +103,21 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     onOpenChange(false);
   }, [cleanupCustomerSuggestions, onOpenChange]);
 
-  // Optimization: Do not render content when dialog is closed
+  // Safe dialog close handler that ensures cleanup
+  const handleDialogChange = useCallback((isOpen: boolean) => {
+    if (!isOpen) {
+      cleanupCustomerSuggestions();
+    }
+    onOpenChange(isOpen);
+  }, [cleanupCustomerSuggestions, onOpenChange]);
+
+  // Don't render anything until open is true
   if (!open) {
     return null;
   }
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) {
-        cleanupCustomerSuggestions();
-      }
-      onOpenChange(isOpen);
-    }}>
+    <Dialog open={open} onOpenChange={handleDialogChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Service Request' : 'New Service Request'}</DialogTitle>

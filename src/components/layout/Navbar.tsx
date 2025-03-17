@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { 
-  Bell, Search, User,
+  Bell, Search, Building,
   ChevronDown 
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -74,10 +74,10 @@ export function Navbar() {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
-                  <User className="h-4 w-4 text-primary-foreground" />
+                  <Building className="h-4 w-4 text-primary-foreground" />
                 </div>
                 <span className="hidden md:inline-block font-medium">
-                  {!isLoading ? settings.company_name : 'Loading...'}
+                  {!isLoading && settings?.company_name ? settings.company_name : 'My Company'}
                 </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>

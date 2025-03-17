@@ -61,11 +61,11 @@ export function InventoryContent() {
         <CardContent className="p-6">
           <InventorySearch 
             searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
+            onSearchChange={setSearchTerm}
             category={category}
-            setCategory={setCategory}
+            onCategoryChange={setCategory}
             stockStatus={stockStatus}
-            setStockStatus={setStockStatus}
+            onStockStatusChange={setStockStatus}
           />
 
           <DataTable 
