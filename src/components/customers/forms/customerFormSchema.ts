@@ -7,6 +7,10 @@ export const customerFormSchema = z.object({
   phone: z.string().optional().or(z.literal('')),
   type: z.enum(["Regular", "VIP"]),
   status: z.enum(["Active", "Inactive"]),
+  communication_preferences: z.object({
+    sms: z.boolean().default(true),
+    whatsapp: z.boolean().default(false)
+  }).default({ sms: true, whatsapp: false })
 });
 
 export type CustomerFormValues = z.infer<typeof customerFormSchema>;

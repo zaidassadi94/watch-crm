@@ -10,6 +10,7 @@ import {
   FormMessage 
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
+import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -19,6 +20,7 @@ import {
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { CustomerFormValues } from './customerFormSchema';
+import { MessageSquare } from 'lucide-react';
 
 interface CustomerFormProps {
   form: UseFormReturn<CustomerFormValues>;
@@ -131,6 +133,57 @@ export function CustomerForm({
             </FormItem>
           )}
         />
+        
+        <div className="border rounded-md p-4">
+          <div className="font-medium flex items-center mb-3">
+            <MessageSquare className="h-4 w-4 mr-2" />
+            Communication Preferences
+          </div>
+          
+          <div className="space-y-3">
+            <FormField
+              control={form.control}
+              name="communication_preferences.sms"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between">
+                  <div>
+                    <FormLabel>SMS Messages</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Allow sending SMS notifications
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="communication_preferences.whatsapp"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between">
+                  <div>
+                    <FormLabel>WhatsApp Messages</FormLabel>
+                    <p className="text-sm text-muted-foreground">
+                      Allow sending WhatsApp notifications
+                    </p>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </div>
+        </div>
         
         <div className="flex justify-end space-x-4 pt-4">
           <Button 

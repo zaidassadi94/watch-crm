@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ServiceRequest } from '@/types/services';
+import { useCommunication } from '@/hooks/useCommunication';
 
 export function useServiceData() {
   const { user } = useAuth();
@@ -11,6 +12,7 @@ export function useServiceData() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [services, setServices] = useState<ServiceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { sendMessage } = useCommunication();
   
   useEffect(() => {
     fetchServices();
@@ -78,11 +80,119 @@ export function useServiceData() {
     }
   };
 
+  const sendServiceStatusNotification = async (service: ServiceRequest, statusBefore: string) => {
+    if (!user) return;
+
+    try {
+      // If status hasn't changed, no notification needed
+      if (statusBefore === service.status) return;
+      
+      // Get notification settings
+      const { data: settingsData, error: settingsError } = await supabase
+        .from('notification_settings')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (settingsError) {
+        console.error("Error fetching notification settings:", settingsError);
+        return;
+      }
+      
+      // Check if notification is enabled for this status
+      let shouldSend = false;
+      
+      switch (service.status) {
+        case 'pending':
+          shouldSend = settingsData.service_check_in;
+          break;
+        case 'in progress':
+          shouldSend = settingsData.service_in_progress;
+          break;
+        case 'ready for pickup':
+          shouldSend = settingsData.service_ready;
+          break;
+        case 'completed':
+          shouldSend = settingsData.service_completed;
+          break;
+        default:
+          shouldSend = false;
+      }
+      
+      if (!shouldSend || !service.customer_phone) return;
+      
+      // Get appropriate template for this status
+      const { data: templateData, error: templateError } = await supabase
+        .from('message_templates')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('event_type', service.status === 'pending' ? 'service_check_in' : 
+                         service.status === 'in progress' ? 'service_in_progress' :
+                         service.status === 'ready for pickup' ? 'service_ready' : 
+                         'service_completed')
+        .eq('type', 'sms')  // Default to SMS
+        .single();
+      
+      if (templateError && templateError.code !== 'PGRST116') {
+        console.error("Error fetching template:", templateError);
+        return;
+      }
+      
+      // Default template text if no template found
+      let templateText = '';
+      if (!templateData) {
+        switch (service.status) {
+          case 'pending':
+            templateText = 'Hello {{customer_name}}, your watch ({{watch_brand}} {{watch_model}}) has been checked in for service. We will update you on progress.';
+            break;
+          case 'in progress':
+            templateText = 'Hello {{customer_name}}, your watch ({{watch_brand}} {{watch_model}}) service is now in progress. Estimated completion: {{estimated_completion}}.';
+            break;
+          case 'ready for pickup':
+            templateText = 'Hello {{customer_name}}, your watch ({{watch_brand}} {{watch_model}}) is now ready for pickup. Please visit our store to collect it.';
+            break;
+          case 'completed':
+            templateText = 'Hello {{customer_name}}, your watch ({{watch_brand}} {{watch_model}}) service has been completed. Thank you for your business.';
+            break;
+        }
+      }
+      
+      // Calculate readable estimated completion date
+      let formattedDate = '';
+      if (service.estimated_completion) {
+        const date = new Date(service.estimated_completion);
+        formattedDate = date.toLocaleDateString();
+      }
+      
+      // Send the notification
+      await sendMessage({
+        customerId: service.id,
+        customerPhone: service.customer_phone,
+        customerName: service.customer_name,
+        messageType: 'sms', // Default to SMS
+        templateId: templateData?.id,
+        templateText: templateText,
+        variables: {
+          customer_name: service.customer_name,
+          watch_brand: service.watch_brand,
+          watch_model: service.watch_model || '',
+          estimated_completion: formattedDate,
+          service_type: service.service_type
+        },
+        eventReference: service.id
+      });
+      
+    } catch (error) {
+      console.error("Error sending notification:", error);
+    }
+  };
+
   return {
     services,
     isLoading,
     isLoaded,
     fetchServices,
-    handleDelete
+    handleDelete,
+    sendServiceStatusNotification
   };
 }

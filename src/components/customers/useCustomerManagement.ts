@@ -12,6 +12,10 @@ export interface Customer {
   lastPurchase: string;
   status: 'Active' | 'Inactive';
   avatarUrl?: string;
+  communication_preferences?: {
+    sms: boolean;
+    whatsapp: boolean;
+  };
 }
 
 export function useCustomerManagement() {

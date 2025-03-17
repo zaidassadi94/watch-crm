@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { PlusCircle, UserPlus, Edit, Trash2, MoreHorizontal, Eye } from 'lucide-react';
+import { PlusCircle, UserPlus, Edit, Trash2, MoreHorizontal, Eye, MessageSquare, SmartphoneNfc } from 'lucide-react';
 import { DataTable, Column } from '@/components/ui-custom/DataTable';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -62,6 +62,28 @@ export function CustomersList({
     {
       header: 'Phone',
       accessorKey: 'phone',
+    },
+    {
+      header: 'Communications',
+      cell: ({ row }: { row: { original: Customer } }) => (
+        <div className="flex items-center gap-2">
+          {row.original.communication_preferences?.sms && (
+            <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200">
+              <MessageSquare className="mr-1 h-3 w-3" />
+              SMS
+            </Badge>
+          )}
+          {row.original.communication_preferences?.whatsapp && (
+            <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
+              <SmartphoneNfc className="mr-1 h-3 w-3" />
+              WhatsApp
+            </Badge>
+          )}
+          {(!row.original.communication_preferences?.sms && !row.original.communication_preferences?.whatsapp) && (
+            <span className="text-muted-foreground text-sm">None</span>
+          )}
+        </div>
+      ),
     },
     {
       header: 'Type',

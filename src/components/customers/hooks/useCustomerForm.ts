@@ -1,158 +1,114 @@
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useToast } from '@/components/ui/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/components/ui/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import { Customer } from '@/components/customers/useCustomerManagement';
-import { customerFormSchema, CustomerFormValues } from '../forms/customerFormSchema';
+import { customerFormSchema, CustomerFormValues } from '@/components/customers/forms/customerFormSchema';
 
 export function useCustomerForm(
   customer: Customer | null,
   onSaved: () => void,
-  onClose: () => void
+  onCancel: () => void
 ) {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { user } = useAuth();
   const { toast } = useToast();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
+  // Form setup with Zod validation
   const form = useForm<CustomerFormValues>({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
-      name: '',
-      email: '',
-      phone: '',
-      type: 'Regular',
-      status: 'Active',
+      name: customer?.name || "",
+      email: customer?.email || "",
+      phone: customer?.phone || "",
+      type: (customer?.type as any) || "Regular",
+      status: (customer?.status as any) || "Active",
+      communication_preferences: customer?.communication_preferences || { sms: true, whatsapp: false }
     }
   });
-
-  // Reset form when customer changes
-  useEffect(() => {
-    if (customer) {
-      form.reset({
-        name: customer.name,
-        email: customer.email || '',
-        phone: customer.phone || '',
-        type: customer.type as "Regular" | "VIP",
-        status: customer.status as "Active" | "Inactive",
+  
+  // Handle form submission
+  const onSubmit = async (data: CustomerFormValues) => {
+    if (!user) {
+      toast({
+        title: "Authentication required",
+        description: "You must be logged in to perform this action",
+        variant: "destructive",
       });
-    } else {
-      form.reset({
-        name: '',
-        email: '',
-        phone: '',
-        type: 'Regular',
-        status: 'Active',
-      });
+      return;
     }
-  }, [customer, form]);
-
-  // Safe close handler
-  const handleClose = useCallback(() => {
-    if (!isSubmitting) {
-      form.reset();
-      onClose();
-    }
-  }, [isSubmitting, form, onClose]);
-
-  // Form submission handler
-  const onSubmit = useCallback(async (data: CustomerFormValues) => {
+    
     try {
       setIsSubmitting(true);
       
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData?.user) {
-        throw new Error("You must be logged in to perform this action");
-      }
-      
-      const userId = userData.user.id;
-      
-      // Update or create customer in database
       if (customer) {
-        // Check if customer exists in the new customers table
-        const { data: existingCustomers, error: lookupError } = await supabase
-          .from('customers')
-          .select('id')
-          .eq('user_id', userId)
-          .eq('name', customer.name)
-          .maybeSingle();
-        
-        if (lookupError && lookupError.code !== '42P01') {
-          throw lookupError;
-        }
-        
-        if (existingCustomers) {
-          // Update existing customer in customers table
-          const { error } = await supabase
-            .from('customers')
-            .update({
-              name: data.name,
-              email: data.email || null,
-              phone: data.phone || null,
-              type: data.type,
-              status: data.status,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', existingCustomers.id);
-          
-          if (error) {
-            throw error;
-          }
-        } else {
-          // Insert new record in customers table
-          const { error } = await supabase
-            .from('customers')
-            .insert({
-              user_id: userId,
-              name: data.name,
-              email: data.email || null,
-              phone: data.phone || null,
-              type: data.type,
-              status: data.status
-            });
-            
-          if (error && error.code !== '42P01') {
-            throw error;
-          }
-        }
-      } else {
-        // Create new customer in customers table
+        // Update existing customer
         const { error } = await supabase
           .from('customers')
-          .insert({
-            user_id: userId,
+          .update({
             name: data.name,
             email: data.email || null,
             phone: data.phone || null,
             type: data.type,
-            status: data.status
+            status: data.status,
+            communication_preferences: data.communication_preferences,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', customer.id)
+          .eq('user_id', user.id);
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Customer updated",
+          description: "Customer details have been updated successfully",
+        });
+      } else {
+        // Create new customer
+        const { error } = await supabase
+          .from('customers')
+          .insert({
+            user_id: user.id,
+            name: data.name,
+            email: data.email || null,
+            phone: data.phone || null,
+            type: data.type,
+            status: data.status,
+            communication_preferences: data.communication_preferences
           });
-          
-        if (error && error.code !== '42P01') {
-          throw error;
-        }
+        
+        if (error) throw error;
+        
+        toast({
+          title: "Customer added",
+          description: "New customer has been added successfully",
+        });
       }
       
-      toast({
-        title: customer ? "Customer Updated" : "Customer Added",
-        description: `${data.name} has been ${customer ? 'updated' : 'added'} successfully.`,
-      });
-      
-      // Call onSaved callback to refresh data
+      // Call the onSaved callback to refresh the customers list
       onSaved();
-      handleClose();
     } catch (error: any) {
-      console.error('Error saving customer:', error);
       toast({
         title: "Error",
-        description: error.message || "Something went wrong. Please try again.",
+        description: error.message,
         variant: "destructive",
       });
     } finally {
       setIsSubmitting(false);
     }
-  }, [customer, toast, onSaved, handleClose]);
-
+  };
+  
+  // Handle dialog close
+  const handleClose = () => {
+    if (!isSubmitting) {
+      form.reset();
+      onCancel();
+    }
+  };
+  
   return {
     form,
     isSubmitting,

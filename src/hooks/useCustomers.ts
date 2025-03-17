@@ -5,6 +5,22 @@ import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { Customer } from '@/components/customers/useCustomerManagement';
 
+export interface CustomerData {
+  id: number | string;
+  name: string;
+  email?: string;
+  phone?: string;
+  type: 'Regular' | 'VIP';
+  status: 'Active' | 'Inactive';
+  avatarUrl?: string;
+  communication_preferences?: {
+    sms: boolean;
+    whatsapp: boolean;
+  };
+  totalSpent: number;
+  lastPurchase: string;
+}
+
 export function useCustomers() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -14,135 +30,76 @@ export function useCustomers() {
   const fetchCustomers = async () => {
     if (!user) return;
     
-    setIsLoading(true);
     try {
-      // First try to get customers from the customers table
-      const { data: customersData, error: customersError } = await supabase
+      setIsLoading(true);
+      
+      // Fetch customers from the database
+      const { data, error } = await supabase
         .from('customers')
         .select('*')
-        .eq('user_id', user.id)
-        .order('name', { ascending: true });
-        
-      if (customersError && customersError.code !== '42P01') {
-        throw customersError;
-      }
+        .eq('user_id', user.id);
       
-      if (customersData && customersData.length > 0) {
-        // Convert from customers table format to Customer interface
-        const mappedCustomers: Customer[] = customersData.map(customer => ({
-          id: customer.id,
-          name: customer.name,
-          email: customer.email,
-          phone: customer.phone,
-          type: (customer.type as "Regular" | "VIP") || "Regular",
-          totalSpent: 0, // Will be updated below
-          lastPurchase: customer.updated_at,
-          status: (customer.status as "Active" | "Inactive") || "Active",
-          avatarUrl: undefined
-        }));
-        
-        // Get the sales data to calculate total spent
-        const { data: salesData } = await supabase
-          .from('sales')
-          .select('customer_name, customer_email, created_at, total_amount')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-          
-        if (salesData) {
-          // Update the totalSpent and lastPurchase for each customer
-          mappedCustomers.forEach(customer => {
-            const customerSales = salesData.filter(sale => 
-              sale.customer_name === customer.name || 
-              (customer.email && sale.customer_email === customer.email)
-            );
-            
-            if (customerSales.length > 0) {
-              customer.totalSpent = customerSales.reduce(
-                (sum, sale) => sum + Number(sale.total_amount), 0
-              );
-              
-              // Find the most recent purchase
-              const latestSale = customerSales.reduce((latest, current) => 
-                new Date(current.created_at) > new Date(latest.created_at) ? current : latest
-              );
-              
-              customer.lastPurchase = latestSale.created_at;
-              
-              // Update type based on total spent
-              customer.type = customer.totalSpent > 5000 ? 'VIP' : 'Regular';
-            }
-          });
-        }
-        
-        setCustomers(mappedCustomers);
-        setIsLoading(false);
-        return;
-      }
+      if (error) throw error;
       
-      // Fallback: If no customers in customers table, get from sales and service requests
+      // Fetch sales data to calculate total spent and last purchase date
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
-        .select('customer_name, customer_email, customer_phone, created_at, total_amount')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
+        .select('customer_name, total_amount, created_at')
+        .eq('user_id', user.id);
       
       if (salesError) throw salesError;
       
-      const { data: serviceData, error: serviceError } = await supabase
-        .from('service_requests')
-        .select('customer_name, customer_email, customer_phone, created_at, price')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      
-      if (serviceError) throw serviceError;
-      
-      // Combine and deduplicate customers
-      const combinedData = [...(salesData || []), ...(serviceData || [])];
-      const uniqueCustomers = new Map();
-      
-      combinedData.forEach(item => {
-        const key = item.customer_name.toLowerCase();
+      // Process the customer data
+      const processedCustomers: Customer[] = (data || []).map(customer => {
+        // Find all sales for this customer
+        const customerSales = salesData?.filter(sale => 
+          sale.customer_name === customer.name
+        ) || [];
         
-        if (!uniqueCustomers.has(key)) {
-          const amount = 'total_amount' in item ? Number(item.total_amount) : Number(item.price || 0);
-          const customerType = amount > 5000 ? 'VIP' as const : 'Regular' as const;
-          
-          uniqueCustomers.set(key, {
-            id: key, // Use name as ID for now
-            name: item.customer_name,
-            email: item.customer_email,
-            phone: item.customer_phone,
-            totalSpent: amount,
-            lastPurchase: item.created_at,
-            type: customerType,
-            status: 'Active' as const
-          });
-        } else {
-          // Update existing customer data
-          const existingCustomer = uniqueCustomers.get(key);
-          const amount = 'total_amount' in item ? Number(item.total_amount) : Number(item.price || 0);
-          
-          existingCustomer.totalSpent += amount;
-          
-          // Update last purchase if newer
-          if (new Date(item.created_at) > new Date(existingCustomer.lastPurchase)) {
-            existingCustomer.lastPurchase = item.created_at;
-          }
-          
-          // Update type based on total spent
-          existingCustomer.type = existingCustomer.totalSpent > 5000 ? 'VIP' : 'Regular';
+        // Calculate total spent
+        const totalSpent = customerSales.reduce(
+          (sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 
+          0
+        );
+        
+        // Find last purchase date
+        const sortedSales = [...customerSales].sort(
+          (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+        );
+        
+        // Default last purchase date to current date if no sales
+        const lastPurchase = sortedSales[0]?.created_at || new Date().toISOString();
+        
+        // Default avatar based on name
+        let initialsAvatar = '';
+        if (customer.name) {
+          const nameParts = customer.name.split(' ');
+          initialsAvatar = nameParts.length > 1
+            ? `https://ui-avatars.com/api/?name=${nameParts[0]}+${nameParts[1]}&background=random`
+            : `https://ui-avatars.com/api/?name=${nameParts[0]}&background=random`;
         }
+        
+        return {
+          id: customer.id,
+          name: customer.name,
+          email: customer.email || undefined,
+          phone: customer.phone || undefined,
+          type: customer.type as 'Regular' | 'VIP',
+          status: customer.status as 'Active' | 'Inactive',
+          avatarUrl: customer.avatar_url || initialsAvatar,
+          communication_preferences: customer.communication_preferences || { sms: true, whatsapp: false },
+          totalSpent,
+          lastPurchase
+        };
       });
       
-      setCustomers(Array.from(uniqueCustomers.values()));
+      setCustomers(processedCustomers);
     } catch (error: any) {
-      console.error('Error fetching customers:', error);
       toast({
-        title: "Error loading customers",
+        title: "Error fetching customers",
         description: error.message,
-        variant: "destructive"
+        variant: "destructive",
       });
-      setCustomers([]);
     } finally {
       setIsLoading(false);
     }
@@ -152,13 +109,9 @@ export function useCustomers() {
     fetchCustomers();
   }, [user]);
 
-  const refreshCustomers = () => {
-    fetchCustomers();
-  };
-
   return {
     customers,
     isLoading,
-    refreshCustomers
+    refreshCustomers: fetchCustomers
   };
 }

@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,11 +13,13 @@ interface UseServiceFormProps {
   user: User | null;
   onSaved: () => void;
   onCancel: () => void;
+  onStatusChange?: (service: ServiceRequest, previousStatus: string) => void;
 }
 
-export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceFormProps) {
+export function useServiceForm({ service, user, onSaved, onCancel, onStatusChange }: UseServiceFormProps) {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previousStatus, setPreviousStatus] = useState<string>(service?.status || 'pending');
   
   const form = useForm<ServiceFormValues>({
     resolver: zodResolver(serviceFormSchema),
@@ -42,6 +44,12 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
     }
   });
 
+  useEffect(() => {
+    if (service) {
+      setPreviousStatus(service.status);
+    }
+  }, [service]);
+
   const onSubmit = async (data: ServiceFormValues) => {
     if (!user) {
       toast({
@@ -56,7 +64,7 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
       setIsSubmitting(true);
 
       if (service) {
-        const { error } = await supabase
+        const { data: updatedService, error } = await supabase
           .from('service_requests')
           .update({
             customer_name: data.customer_name,
@@ -74,7 +82,9 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
             payment_method: data.payment_method || null,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', service.id);
+          .eq('id', service.id)
+          .select()
+          .single();
 
         if (error) throw error;
 
@@ -82,8 +92,13 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
           title: "Service updated",
           description: "Service request has been updated successfully",
         });
+        
+        // If status changed, trigger notification
+        if (onStatusChange && updatedService && previousStatus !== data.status) {
+          onStatusChange(updatedService as ServiceRequest, previousStatus);
+        }
       } else {
-        const { error } = await supabase
+        const { data: newService, error } = await supabase
           .from('service_requests')
           .insert({
             user_id: user.id,
@@ -100,7 +115,9 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
             price: data.price,
             payment_status: data.payment_status || 'unpaid',
             payment_method: data.payment_method || null,
-          });
+          })
+          .select()
+          .single();
 
         if (error) throw error;
 
@@ -108,6 +125,11 @@ export function useServiceForm({ service, user, onSaved, onCancel }: UseServiceF
           title: "Service created",
           description: "New service request has been created successfully",
         });
+        
+        // New service - also send notification if it's not in pending status
+        if (onStatusChange && newService && data.status !== 'pending') {
+          onStatusChange(newService as ServiceRequest, 'pending');
+        }
       }
 
       // Call the onSaved callback after the operation is complete
