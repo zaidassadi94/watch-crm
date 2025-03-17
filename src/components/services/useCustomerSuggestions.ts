@@ -12,17 +12,36 @@ export function useCustomerSuggestions(user: User | null) {
   
   // Add debounce mechanism for search term
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  const [debounceTimer, setDebounceTimer] = useState<NodeJS.Timeout | null>(null);
   
   // Debounce search term
   useEffect(() => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    
     const timerId = setTimeout(() => {
       setDebouncedSearchTerm(searchTerm);
     }, 300); // 300ms debounce time
     
+    setDebounceTimer(timerId);
+    
     return () => {
-      clearTimeout(timerId);
+      if (timerId) clearTimeout(timerId);
     };
   }, [searchTerm]);
+
+  // Cleanup function that will be exposed to parent components
+  const cleanupCustomerSuggestions = useCallback(() => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    setSearchTerm("");
+    setDebouncedSearchTerm("");
+    setShowCustomerSuggestions(false);
+    setCustomerSuggestions([]);
+    setIsLoading(false);
+  }, [debounceTimer]);
 
   // Memoize the loadCustomerSuggestions function to prevent recreating on every render
   const loadCustomerSuggestions = useCallback(async (term: string) => {
@@ -67,6 +86,9 @@ export function useCustomerSuggestions(user: User | null) {
       const uniqueCustomers: CustomerSuggestion[] = [];
       
       combinedData.forEach(item => {
+        // Skip items without a customer name
+        if (!item.customer_name) return;
+        
         const existingCustomer = uniqueCustomers.find(c => 
           c.name === item.customer_name &&
           c.email === item.customer_email &&
@@ -101,7 +123,7 @@ export function useCustomerSuggestions(user: User | null) {
               existingCustomer.watches.push(watch);
             }
           }
-        } else if (item.customer_name) { // Make sure customer name exists
+        } else {
           const newCustomer: CustomerSuggestion = {
             name: item.customer_name,
             email: item.customer_email || null,
@@ -142,6 +164,12 @@ export function useCustomerSuggestions(user: User | null) {
     }
     
     loadCustomerSuggestions(debouncedSearchTerm);
+    
+    // Cleanup on unmount
+    return () => {
+      setCustomerSuggestions([]);
+      setIsLoading(false);
+    };
   }, [debouncedSearchTerm, user, showCustomerSuggestions, loadCustomerSuggestions]);
 
   return {
@@ -150,6 +178,7 @@ export function useCustomerSuggestions(user: User | null) {
     setShowCustomerSuggestions,
     searchTerm,
     setSearchTerm,
-    isLoading
+    isLoading,
+    cleanupCustomerSuggestions
   };
 }

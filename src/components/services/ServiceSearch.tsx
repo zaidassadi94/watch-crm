@@ -42,6 +42,7 @@ export function ServiceSearch({
   const resetFilters = () => {
     setStatus('');
     setServiceType('');
+    setIsFilterOpen(false);
   };
 
   const hasActiveFilters = status !== '' || serviceType !== '';
@@ -80,14 +81,15 @@ export function ServiceSearch({
           <div className="py-6 space-y-6">
             <div className="space-y-2">
               <label className="text-sm font-medium">Status</label>
-              <Select value={status} onValueChange={setStatus}>
+              <Select value={status} onValueChange={(value) => setStatus(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Statuses" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="in progress">In Progress</SelectItem>
+                  <SelectItem value="ready for pickup">Ready for Pickup</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
@@ -96,7 +98,7 @@ export function ServiceSearch({
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Service Type</label>
-              <Select value={serviceType} onValueChange={setServiceType}>
+              <Select value={serviceType} onValueChange={(value) => setServiceType(value)}>
                 <SelectTrigger>
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>

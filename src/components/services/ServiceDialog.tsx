@@ -34,7 +34,8 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     setShowCustomerSuggestions,
     searchTerm,
     setSearchTerm,
-    isLoading
+    isLoading,
+    cleanupCustomerSuggestions
   } = useCustomerSuggestions(user);
   
   const {
@@ -47,9 +48,13 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     user,
     onSaved: () => {
       onSaved();
+      cleanupCustomerSuggestions();
       onOpenChange(false);
     },
-    onCancel: () => onOpenChange(false),
+    onCancel: () => {
+      cleanupCustomerSuggestions();
+      onOpenChange(false);
+    },
     onStatusChange: sendServiceStatusNotification
   });
 
@@ -60,11 +65,17 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
       setMounted(true);
     } else {
       // Cleanup when dialog closes
+      cleanupCustomerSuggestions();
       setTimeout(() => {
         setMounted(false);
       }, 300);
     }
-  }, [open]);
+    
+    // Clean up on unmount
+    return () => {
+      cleanupCustomerSuggestions();
+    };
+  }, [open, cleanupCustomerSuggestions]);
 
   // Memoize the customer selection function to prevent re-renders
   const selectCustomer = useCallback((customer: CustomerSuggestion) => {
@@ -74,13 +85,23 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     setShowCustomerSuggestions(false);
   }, [form, setShowCustomerSuggestions]);
 
+  const handleCancel = useCallback(() => {
+    cleanupCustomerSuggestions();
+    onOpenChange(false);
+  }, [cleanupCustomerSuggestions, onOpenChange]);
+
   // Optimization: Do not render content when dialog is closed
   if (!open) {
     return null;
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={(isOpen) => {
+      if (!isOpen) {
+        cleanupCustomerSuggestions();
+      }
+      onOpenChange(isOpen);
+    }}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{isEditMode ? 'Edit Service Request' : 'New Service Request'}</DialogTitle>
@@ -109,7 +130,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
                   />
                   
                   <div className="flex justify-between">
-                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                    <Button type="button" variant="outline" onClick={handleCancel}>
                       Cancel
                     </Button>
                     <Button type="button" onClick={() => setActiveTab('watch')}>

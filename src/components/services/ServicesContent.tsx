@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { DataTable } from '@/components/ui-custom/DataTable';
 import { useServiceData } from '@/hooks/useServiceData';
@@ -76,15 +76,23 @@ export function ServicesContent() {
   // Convert columns to the format expected by our DataTable
   const columns = adaptColumns<ServiceRequest>(tanstackColumns);
 
+  // Apply filters
   const filteredServices = services.filter(service => {
-    const matchesSearch = 
+    // Text search filter
+    const matchesSearch = searchTerm === "" || 
       service.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       service.watch_brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (service.watch_model && service.watch_model.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (service.customer_email && service.customer_email.toLowerCase().includes(searchTerm.toLowerCase()));
+      (service.customer_email && service.customer_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (service.customer_phone && service.customer_phone.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    const matchesStatus = status === '' || service.status === status;
-    const matchesType = serviceType === '' || service.service_type === serviceType;
+    // Status filter - fixed to use case-insensitive comparison
+    const matchesStatus = status === '' || 
+                         service.status.toLowerCase() === status.toLowerCase();
+    
+    // Service type filter - fixed to use case-insensitive comparison
+    const matchesType = serviceType === '' || 
+                       service.service_type.toLowerCase() === serviceType.toLowerCase();
     
     return matchesSearch && matchesStatus && matchesType;
   });
