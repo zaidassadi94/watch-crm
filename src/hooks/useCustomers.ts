@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/components/ui/use-toast';
 import { Customer } from '@/components/customers/useCustomerManagement';
+import { Json } from '@/integrations/supabase/types';
 
 export interface CustomerData {
   id: number | string;
@@ -58,7 +59,7 @@ export function useCustomers() {
         
         // Calculate total spent
         const totalSpent = customerSales.reduce(
-          (sum, sale) => sum + (parseFloat(sale.total_amount as string) || 0), 
+          (sum, sale) => sum + (parseFloat(String(sale.total_amount)) || 0), 
           0
         );
         
@@ -83,9 +84,11 @@ export function useCustomers() {
         let communicationPrefs: { sms: boolean; whatsapp: boolean };
         
         if (typeof customer.communication_preferences === 'object' && customer.communication_preferences !== null) {
+          // We need to cast and safely access the properties
+          const prefs = customer.communication_preferences as Record<string, unknown>;
           communicationPrefs = {
-            sms: Boolean(customer.communication_preferences.sms),
-            whatsapp: Boolean(customer.communication_preferences.whatsapp)
+            sms: typeof prefs.sms === 'boolean' ? prefs.sms : true,
+            whatsapp: typeof prefs.whatsapp === 'boolean' ? prefs.whatsapp : false
           };
         } else {
           // Default if missing or invalid
