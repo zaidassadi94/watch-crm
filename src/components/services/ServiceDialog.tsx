@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   const { sendServiceStatusNotification } = useServiceData();
   const [activeTab, setActiveTab] = useState('customer');
   
+  // Optimization: Only initialize customer suggestions when dialog is open
   const {
     customerSuggestions,
     showCustomerSuggestions,
@@ -55,14 +56,15 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     }
   }, [open]);
 
-  const selectCustomer = (customer: any) => {
+  // Memoize the customer selection function to prevent re-renders
+  const selectCustomer = useCallback((customer: any) => {
     form.setValue('customer_name', customer.name);
     form.setValue('customer_email', customer.email || '');
     form.setValue('customer_phone', customer.phone || '');
     setShowCustomerSuggestions(false);
-  };
+  }, [form, setShowCustomerSuggestions]);
 
-  // Only render the content when the dialog is open to prevent unnecessary calculations
+  // Optimization: Do not render content when dialog is closed
   if (!open) {
     return null;
   }

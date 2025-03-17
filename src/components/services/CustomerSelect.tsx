@@ -10,6 +10,7 @@ interface CustomerSelectProps {
   customerSuggestions: CustomerSuggestion[];
   showCustomerSuggestions: boolean;
   setShowCustomerSuggestions: (show: boolean) => void;
+  searchTerm: string; // Add this prop to match CustomerInfoSection
   setSearchTerm: (term: string) => void;
   selectCustomer: (customer: CustomerSuggestion) => void;
 }
@@ -20,6 +21,7 @@ export const CustomerSelect = memo(function CustomerSelect({
   customerSuggestions,
   showCustomerSuggestions,
   setShowCustomerSuggestions,
+  searchTerm,
   setSearchTerm,
   selectCustomer
 }: CustomerSelectProps) {
@@ -29,6 +31,7 @@ export const CustomerSelect = memo(function CustomerSelect({
       customerSuggestions={customerSuggestions}
       showCustomerSuggestions={showCustomerSuggestions}
       setShowCustomerSuggestions={setShowCustomerSuggestions}
+      searchTerm={searchTerm}
       setSearchTerm={setSearchTerm}
       selectCustomer={selectCustomer}
     />

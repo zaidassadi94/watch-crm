@@ -12,6 +12,7 @@ interface CustomerInfoSectionProps {
   customerSuggestions: CustomerSuggestion[];
   showCustomerSuggestions: boolean;
   setShowCustomerSuggestions: (show: boolean) => void;
+  searchTerm: string; // Add this prop to fix the type error
   setSearchTerm: (term: string) => void;
   selectCustomer: (customer: CustomerSuggestion) => void;
 }
@@ -21,6 +22,7 @@ export function CustomerInfoSection({
   customerSuggestions,
   showCustomerSuggestions,
   setShowCustomerSuggestions,
+  searchTerm,
   setSearchTerm,
   selectCustomer
 }: CustomerInfoSectionProps) {
