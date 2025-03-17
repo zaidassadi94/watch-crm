@@ -1,8 +1,10 @@
 
-import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { useToast } from '@/components/ui/use-toast';
+import { useMessageTemplates } from './communication/useMessageTemplates';
+import { useMessageLogs } from './communication/useMessageLogs';
+import { useNotificationSettings } from './communication/useNotificationSettings';
+import { useMessageSender } from './communication/useMessageSender';
 import { 
   MessageTemplate, 
   MessageLog, 
@@ -12,393 +14,67 @@ import {
   MessageChannel
 } from '@/types/messages';
 
+// Re-export the types for backward compatibility
 export type { MessageTemplate, MessageLog, NotificationSettings, EventType, MessageChannel };
 
 export function useCommunication() {
   const { user } = useAuth();
-  const { toast } = useToast();
-  const [templates, setTemplates] = useState<MessageTemplate[]>([]);
-  const [logs, setLogs] = useState<MessageLog[]>([]);
-  const [notificationSettings, setNotificationSettings] = useState<NotificationSettings | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-
-  // Fetch all message templates
-  const fetchTemplates = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase
-        .from('message_templates')
-        .select('*')
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      
-      setTemplates(data as MessageTemplate[]);
-    } catch (error: any) {
-      console.error('Error fetching message templates:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load message templates',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, toast]);
   
-  // Fetch message logs
-  const fetchLogs = useCallback(async () => {
-    if (!user) return;
-    
-    try {
-      setIsLoading(true);
-      
-      const { data, error } = await supabase
-        .from('message_logs')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('sent_at', { ascending: false });
-        
-      if (error) throw error;
-      
-      setLogs(data as MessageLog[]);
-    } catch (error: any) {
-      console.error('Error fetching message logs:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load message logs',
-        variant: 'destructive'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, toast]);
-  
-  // Add a new template or update existing one
-  const saveTemplate = useCallback(async (
-    template: Partial<MessageTemplate> & { name: string; type: MessageChannel; template_text: string; event_type: EventType }
-  ) => {
-    if (!user) return null;
-    
-    try {
-      if (template.id) {
-        // Update existing template
-        const { data, error } = await supabase
-          .from('message_templates')
-          .update({
-            name: template.name,
-            type: template.type,
-            template_text: template.template_text,
-            event_type: template.event_type,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', template.id)
-          .eq('user_id', user.id)
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        setTemplates(prev => 
-          prev.map(t => t.id === template.id ? data as MessageTemplate : t)
-        );
-        
-        toast({
-          title: 'Success',
-          description: 'Template updated successfully'
-        });
-        
-        return data as MessageTemplate;
-      } else {
-        // Create new template
-        const { data, error } = await supabase
-          .from('message_templates')
-          .insert({
-            name: template.name,
-            type: template.type,
-            template_text: template.template_text,
-            event_type: template.event_type,
-            user_id: user.id
-          })
-          .select()
-          .single();
-          
-        if (error) throw error;
-        
-        setTemplates(prev => [...prev, data as MessageTemplate]);
-        toast({
-          title: 'Success',
-          description: 'Template created successfully'
-        });
-        
-        return data as MessageTemplate;
-      }
-    } catch (error: any) {
-      console.error('Error saving template:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to save template',
-        variant: 'destructive'
-      });
-      return null;
-    }
-  }, [user, toast]);
-  
-  // Add a new template
-  const addTemplate = useCallback(async (template: Omit<MessageTemplate, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
-    if (!user) return null;
-    
-    try {
-      const { data, error } = await supabase
-        .from('message_templates')
-        .insert({
-          ...template,
-          user_id: user.id
-        })
-        .select()
-        .single();
-        
-      if (error) throw error;
-      
-      setTemplates(prev => [...prev, data as MessageTemplate]);
-      toast({
-        title: 'Success',
-        description: 'Template created successfully'
-      });
-      
-      return data as MessageTemplate;
-    } catch (error: any) {
-      console.error('Error adding template:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to create template',
-        variant: 'destructive'
-      });
-      return null;
-    }
-  }, [user, toast]);
-  
-  // Update an existing template
-  const updateTemplate = useCallback(async (
-    id: string, 
-    updates: Partial<Omit<MessageTemplate, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
-  ) => {
-    if (!user) return false;
-    
-    try {
-      const { error } = await supabase
-        .from('message_templates')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      
-      // Update local state
-      setTemplates(prev => 
-        prev.map(template => 
-          template.id === id 
-            ? { ...template, ...updates, updated_at: new Date().toISOString() } 
-            : template
-        )
-      );
-      
-      toast({
-        title: 'Success',
-        description: 'Template updated successfully'
-      });
-      
-      return true;
-    } catch (error: any) {
-      console.error('Error updating template:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update template',
-        variant: 'destructive'
-      });
-      return false;
-    }
-  }, [user, toast]);
-  
-  // Delete a template
-  const deleteTemplate = useCallback(async (id: string) => {
-    if (!user) return false;
-    
-    try {
-      const { error } = await supabase
-        .from('message_templates')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      
-      // Update local state
-      setTemplates(prev => prev.filter(template => template.id !== id));
-      
-      toast({
-        title: 'Success',
-        description: 'Template deleted successfully'
-      });
-      
-      return true;
-    } catch (error: any) {
-      console.error('Error deleting template:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to delete template',
-        variant: 'destructive'
-      });
-      return false;
-    }
-  }, [user, toast]);
-  
-  // Send a message
-  const sendMessage = useCallback(async (params: SendMessageParams) => {
-    if (!user) return false;
-    
-    try {
-      // Call the edge function
-      const { data, error } = await supabase.functions.invoke('send-message', {
-        body: {
-          ...params,
-          userToken: await supabase.auth.getSession()
-        }
-      });
-      
-      if (error) throw error;
-      
-      // Refresh logs after sending a message
-      fetchLogs();
-      
-      toast({
-        title: 'Message sent',
-        description: `Message was sent to ${params.customerPhone} via ${params.messageType}`
-      });
-      
-      return true;
-    } catch (error: any) {
-      console.error('Error sending message:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to send message',
-        variant: 'destructive'
-      });
-      return false;
-    }
-  }, [user, toast, fetchLogs]);
-  
-  // Fetch notification settings
-  const fetchNotificationSettings = useCallback(async () => {
-    if (!user) return null;
-    
-    try {
-      const { data, error } = await supabase
-        .from('notification_settings')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
-        
-      if (error) throw error;
-      
-      if (data) {
-        setNotificationSettings(data as NotificationSettings);
-        return data as NotificationSettings;
-      } else {
-        // Create default settings if none exist
-        const { data: newSettings, error: createError } = await supabase
-          .from('notification_settings')
-          .insert({
-            user_id: user.id,
-            sale_confirmation: true,
-            service_check_in: true,
-            service_in_progress: true,
-            service_ready: true,
-            service_completed: true
-          })
-          .select()
-          .single();
-          
-        if (createError) throw createError;
-        
-        setNotificationSettings(newSettings as NotificationSettings);
-        return newSettings as NotificationSettings;
-      }
-    } catch (error: any) {
-      console.error('Error fetching notification settings:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load notification settings',
-        variant: 'destructive'
-      });
-      return null;
-    }
-  }, [user, toast]);
-  
-  // Update notification settings
-  const updateNotificationSettings = useCallback(async (updates: Partial<NotificationSettings>) => {
-    if (!user || !notificationSettings) return false;
-    
-    try {
-      const { error } = await supabase
-        .from('notification_settings')
-        .update({
-          ...updates,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', notificationSettings.id)
-        .eq('user_id', user.id);
-        
-      if (error) throw error;
-      
-      // Update local state
-      setNotificationSettings(prev => prev ? { ...prev, ...updates } : null);
-      
-      toast({
-        title: 'Success',
-        description: 'Notification settings updated'
-      });
-      
-      return true;
-    } catch (error: any) {
-      console.error('Error updating notification settings:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to update notification settings',
-        variant: 'destructive'
-      });
-      return false;
-    }
-  }, [user, toast, notificationSettings]);
+  // Use the individual hooks
+  const messageTemplates = useMessageTemplates();
+  const messageLogs = useMessageLogs();
+  const notificationSettingsHook = useNotificationSettings();
+  const messageSender = useMessageSender();
   
   // Initialize data on mount
   useEffect(() => {
-    if (user) {
-      fetchTemplates();
-      fetchLogs();
-      fetchNotificationSettings();
-    }
-  }, [user, fetchTemplates, fetchLogs, fetchNotificationSettings]);
+    const initializeData = async () => {
+      if (user) {
+        setIsLoading(true);
+        try {
+          await Promise.all([
+            messageTemplates.fetchTemplates(),
+            messageLogs.fetchLogs(),
+            notificationSettingsHook.fetchNotificationSettings()
+          ]);
+        } catch (error) {
+          console.error('Error initializing communication data:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    initializeData();
+  }, [user]);
   
+  // Combine all functionality into a single hook interface for backward compatibility
   return {
-    templates,
-    logs,
-    notificationSettings,
-    isLoading,
-    fetchTemplates,
-    fetchLogs,
-    addTemplate,
-    updateTemplate,
-    deleteTemplate,
-    sendMessage,
-    fetchNotificationSettings,
-    updateNotificationSettings,
-    saveTemplate // Add the new method
+    // Templates
+    templates: messageTemplates.templates,
+    fetchTemplates: messageTemplates.fetchTemplates,
+    addTemplate: messageTemplates.addTemplate,
+    updateTemplate: messageTemplates.updateTemplate,
+    deleteTemplate: messageTemplates.deleteTemplate,
+    saveTemplate: messageTemplates.saveTemplate,
+    
+    // Logs
+    logs: messageLogs.logs,
+    fetchLogs: messageLogs.fetchLogs,
+    
+    // Notification settings
+    notificationSettings: notificationSettingsHook.notificationSettings,
+    fetchNotificationSettings: notificationSettingsHook.fetchNotificationSettings,
+    updateNotificationSettings: notificationSettingsHook.updateNotificationSettings,
+    
+    // Message sending
+    sendMessage: messageSender.sendMessage,
+    
+    // General
+    isLoading: isLoading || 
+               messageTemplates.isLoading || 
+               messageLogs.isLoading || 
+               notificationSettingsHook.isLoading
   };
 }
