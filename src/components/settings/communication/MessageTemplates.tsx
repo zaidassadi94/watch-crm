@@ -4,10 +4,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, MessageSquare, Edit, Trash2 } from 'lucide-react';
-import { useCommunication, MessageTemplate, EventType, MessageChannel } from '@/hooks/useCommunication';
+import { useMessageTemplates } from '@/hooks/communication/useMessageTemplates';
 import { TemplateDialog } from './TemplateDialog';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { MessageTemplate, EventType, MessageChannel } from '@/types/messages';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -20,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 
 export function MessageTemplates() {
-  const { templates, fetchTemplates, deleteTemplate, isLoading } = useCommunication();
+  const { templates, fetchTemplates, deleteTemplate, isLoading, saveTemplate } = useMessageTemplates();
   const [activeChannel, setActiveChannel] = useState<MessageChannel>('sms');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<MessageTemplate | null>(null);
@@ -157,6 +158,7 @@ export function MessageTemplates() {
         template={selectedTemplate}
         defaultChannel={activeChannel}
         onSaved={fetchTemplates}
+        saveTemplate={saveTemplate}
       />
 
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>

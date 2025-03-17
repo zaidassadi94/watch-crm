@@ -98,13 +98,6 @@ export function SalesContent() {
     return matchesSearch && matchesStatus && matchesPaymentMethod;
   });
 
-  console.log("SalesContent rendering:", { 
-    salesCount: sales.length,
-    isDialogOpen,
-    selectedSale,
-    isReturnDialogOpen
-  });
-
   return (
     <div 
       className={cn(

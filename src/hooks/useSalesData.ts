@@ -4,12 +4,12 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Sale } from '@/types/sales';
-import { useCommunication } from '@/hooks/useCommunication';
+import { useMessageSender } from '@/hooks/communication/useMessageSender';
 
 export function useSalesData() {
   const { user } = useAuth();
   const { toast } = useToast();
-  const { sendMessage } = useCommunication();
+  const { sendMessage } = useMessageSender();
   const [isLoaded, setIsLoaded] = useState(false);
   const [sales, setSales] = useState<Sale[]>([]);
   const [isLoading, setIsLoading] = useState(true);

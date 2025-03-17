@@ -6,14 +6,14 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { MessageTemplates } from './communication/MessageTemplates';
 import { MessageLogs } from './communication/MessageLogs';
-import { useCommunication } from '@/hooks/useCommunication';
+import { useNotificationSettings } from '@/hooks/communication/useNotificationSettings';
 import { Button } from '@/components/ui/button';
 import { BellRing, MessageSquare, Save } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 
 export function CommunicationSettings() {
   const [activeTab, setActiveTab] = useState('notifications');
-  const { isLoading, fetchNotificationSettings, updateNotificationSettings, notificationSettings } = useCommunication();
+  const { isLoading, fetchNotificationSettings, updateNotificationSettings, notificationSettings } = useNotificationSettings();
   const [settings, setSettings] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
 

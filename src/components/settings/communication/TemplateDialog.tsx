@@ -14,7 +14,6 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { useCommunication } from '@/hooks/useCommunication';
 import { MessageSquare, Save } from 'lucide-react';
 import { MessageTemplate, EventType, MessageChannel } from '@/types/messages';
 
@@ -24,6 +23,7 @@ interface TemplateDialogProps {
   template: MessageTemplate | null;
   defaultChannel: MessageChannel;
   onSaved: () => void;
+  saveTemplate: (template: Partial<MessageTemplate>) => Promise<boolean>;
 }
 
 export function TemplateDialog({ 
@@ -31,9 +31,10 @@ export function TemplateDialog({
   onOpenChange, 
   template, 
   defaultChannel, 
-  onSaved 
+  onSaved,
+  saveTemplate
 }: TemplateDialogProps) {
-  const { saveTemplate, isLoading } = useCommunication();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState<{
     id?: string;
     name: string;
@@ -73,7 +74,10 @@ export function TemplateDialog({
   const handleSubmit = async () => {
     if (!formData.name || !formData.template_text) return;
     
+    setIsLoading(true);
     const result = await saveTemplate(formData);
+    setIsLoading(false);
+    
     if (result) {
       onSaved();
       onOpenChange(false);

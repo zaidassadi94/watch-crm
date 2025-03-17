@@ -1,16 +1,17 @@
 
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { useCommunication, MessageLog } from '@/hooks/useCommunication';
+import { useMessageLogs } from '@/hooks/communication/useMessageLogs';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MessageSquare, RefreshCw, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format } from 'date-fns';
+import { MessageLog } from '@/types/messages';
 
 export function MessageLogs() {
-  const { logs, fetchLogs, isLoading } = useCommunication();
+  const { logs, fetchLogs, isLoading } = useMessageLogs();
   const [activeChannel, setActiveChannel] = useState<'all' | 'sms' | 'whatsapp'>('all');
 
   useEffect(() => {

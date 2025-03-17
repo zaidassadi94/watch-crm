@@ -10,7 +10,7 @@ import { CustomerInfoSection } from './CustomerInfoSection';
 import { WatchDetailsSection } from './WatchDetailsSection';
 import { ServiceDetailsSection } from './ServiceDetailsSection';
 import { useServiceData } from '@/hooks/useServiceData';
-import { CustomerSuggestion } from '@/types/inventory';
+import { useCustomerSuggestions } from './useCustomerSuggestions';
 
 interface ServiceDialogProps {
   open: boolean;
@@ -23,9 +23,14 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   const { user } = useAuth();
   const { sendServiceStatusNotification } = useServiceData();
   const [activeTab, setActiveTab] = useState('customer');
-  const [customerSuggestions, setCustomerSuggestions] = useState<CustomerSuggestion[]>([]);
-  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  
+  const {
+    customerSuggestions,
+    showCustomerSuggestions,
+    setShowCustomerSuggestions,
+    searchTerm,
+    setSearchTerm
+  } = useCustomerSuggestions(user);
   
   const {
     form,
@@ -50,7 +55,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     }
   }, [open]);
 
-  const selectCustomer = (customer: CustomerSuggestion) => {
+  const selectCustomer = (customer: any) => {
     form.setValue('customer_name', customer.name);
     form.setValue('customer_email', customer.email || '');
     form.setValue('customer_phone', customer.phone || '');

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/components/ui/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { ServiceRequest } from '@/types/services';
-import { useCommunication } from '@/hooks/useCommunication';
+import { useMessageSender } from '@/hooks/communication/useMessageSender';
 
 export function useServiceData() {
   const { user } = useAuth();
@@ -12,7 +12,7 @@ export function useServiceData() {
   const [isLoaded, setIsLoaded] = useState(false);
   const [services, setServices] = useState<ServiceRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { sendMessage } = useCommunication();
+  const { sendMessage } = useMessageSender();
   
   useEffect(() => {
     fetchServices();
