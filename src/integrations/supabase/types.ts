@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       customers: {
         Row: {
+          communication_preferences: Json | null
           created_at: string
           email: string | null
           id: string
@@ -22,6 +23,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          communication_preferences?: Json | null
           created_at?: string
           email?: string | null
           id?: string
@@ -33,6 +35,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          communication_preferences?: Json | null
           created_at?: string
           email?: string | null
           id?: string
@@ -92,6 +95,125 @@ export type Database = {
           stock_level?: number
           stock_status?: string
           updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      message_logs: {
+        Row: {
+          channel: string
+          customer_id: string | null
+          error_message: string | null
+          event_reference: string | null
+          id: string
+          message_text: string
+          recipient: string
+          sent_at: string | null
+          status: string
+          template_id: string | null
+          user_id: string
+        }
+        Insert: {
+          channel: string
+          customer_id?: string | null
+          error_message?: string | null
+          event_reference?: string | null
+          id?: string
+          message_text: string
+          recipient: string
+          sent_at?: string | null
+          status: string
+          template_id?: string | null
+          user_id: string
+        }
+        Update: {
+          channel?: string
+          customer_id?: string | null
+          error_message?: string | null
+          event_reference?: string | null
+          id?: string
+          message_text?: string
+          recipient?: string
+          sent_at?: string | null
+          status?: string
+          template_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "message_logs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "message_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      message_templates: {
+        Row: {
+          created_at: string | null
+          event_type: string
+          id: string
+          name: string
+          template_text: string
+          type: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          event_type: string
+          id?: string
+          name: string
+          template_text: string
+          type: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          event_type?: string
+          id?: string
+          name?: string
+          template_text?: string
+          type?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          sale_confirmation: boolean | null
+          service_check_in: boolean | null
+          service_completed: boolean | null
+          service_in_progress: boolean | null
+          service_ready: boolean | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          sale_confirmation?: boolean | null
+          service_check_in?: boolean | null
+          service_completed?: boolean | null
+          service_in_progress?: boolean | null
+          service_ready?: boolean | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          sale_confirmation?: boolean | null
+          service_check_in?: boolean | null
+          service_completed?: boolean | null
+          service_in_progress?: boolean | null
+          service_ready?: boolean | null
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []

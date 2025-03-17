@@ -58,7 +58,7 @@ export function useCustomers() {
         
         // Calculate total spent
         const totalSpent = customerSales.reduce(
-          (sum, sale) => sum + (parseFloat(sale.total_amount) || 0), 
+          (sum, sale) => sum + (parseFloat(sale.total_amount as string) || 0), 
           0
         );
         
@@ -86,7 +86,7 @@ export function useCustomers() {
           phone: customer.phone || undefined,
           type: customer.type as 'Regular' | 'VIP',
           status: customer.status as 'Active' | 'Inactive',
-          avatarUrl: customer.avatar_url || initialsAvatar,
+          avatarUrl: initialsAvatar,
           communication_preferences: customer.communication_preferences || { sms: true, whatsapp: false },
           totalSpent,
           lastPurchase
