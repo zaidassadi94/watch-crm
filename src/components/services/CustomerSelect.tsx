@@ -10,9 +10,10 @@ interface CustomerSelectProps {
   customerSuggestions: CustomerSuggestion[];
   showCustomerSuggestions: boolean;
   setShowCustomerSuggestions: (show: boolean) => void;
-  searchTerm: string; // Add this prop to match CustomerInfoSection
+  searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectCustomer: (customer: CustomerSuggestion) => void;
+  isLoading?: boolean;
 }
 
 // Use React.memo to prevent unnecessary re-renders
@@ -23,7 +24,8 @@ export const CustomerSelect = memo(function CustomerSelect({
   setShowCustomerSuggestions,
   searchTerm,
   setSearchTerm,
-  selectCustomer
+  selectCustomer,
+  isLoading = false
 }: CustomerSelectProps) {
   return (
     <CustomerInfoSection 
@@ -34,6 +36,7 @@ export const CustomerSelect = memo(function CustomerSelect({
       searchTerm={searchTerm}
       setSearchTerm={setSearchTerm}
       selectCustomer={selectCustomer}
+      isLoading={isLoading}
     />
   );
 });

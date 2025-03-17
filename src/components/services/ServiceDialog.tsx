@@ -6,11 +6,13 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { ServiceRequest } from '@/types/services';
 import { useServiceForm } from './useServiceForm';
-import { CustomerInfoSection } from './CustomerInfoSection';
+import { CustomerSelect } from './CustomerSelect';
 import { WatchDetailsSection } from './WatchDetailsSection';
 import { ServiceDetailsSection } from './ServiceDetailsSection';
 import { useServiceData } from '@/hooks/useServiceData';
 import { useCustomerSuggestions } from './useCustomerSuggestions';
+import { FormProvider } from 'react-hook-form';
+import { CustomerSuggestion } from '@/types/inventory';
 
 interface ServiceDialogProps {
   open: boolean;
@@ -23,6 +25,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   const { user } = useAuth();
   const { sendServiceStatusNotification } = useServiceData();
   const [activeTab, setActiveTab] = useState('customer');
+  const [mounted, setMounted] = useState(false);
   
   // Optimization: Only initialize customer suggestions when dialog is open
   const {
@@ -30,7 +33,8 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     showCustomerSuggestions,
     setShowCustomerSuggestions,
     searchTerm,
-    setSearchTerm
+    setSearchTerm,
+    isLoading
   } = useCustomerSuggestions(user);
   
   const {
@@ -49,15 +53,21 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     onStatusChange: sendServiceStatusNotification
   });
 
-  // Reset active tab when dialog opens
+  // Reset active tab when dialog opens and track mounting state
   useEffect(() => {
     if (open) {
       setActiveTab('customer');
+      setMounted(true);
+    } else {
+      // Cleanup when dialog closes
+      setTimeout(() => {
+        setMounted(false);
+      }, 300);
     }
   }, [open]);
 
   // Memoize the customer selection function to prevent re-renders
-  const selectCustomer = useCallback((customer: any) => {
+  const selectCustomer = useCallback((customer: CustomerSuggestion) => {
     form.setValue('customer_name', customer.name);
     form.setValue('customer_email', customer.email || '');
     form.setValue('customer_phone', customer.phone || '');
@@ -76,62 +86,67 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
           <DialogTitle>{isEditMode ? 'Edit Service Request' : 'New Service Request'}</DialogTitle>
         </DialogHeader>
         
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-3 mb-4">
-              <TabsTrigger value="customer">Customer Info</TabsTrigger>
-              <TabsTrigger value="watch">Watch Details</TabsTrigger>
-              <TabsTrigger value="service">Service Details</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="customer" className="space-y-4">
-              <CustomerInfoSection 
-                form={form} 
-                customerSuggestions={customerSuggestions}
-                showCustomerSuggestions={showCustomerSuggestions}
-                setShowCustomerSuggestions={setShowCustomerSuggestions}
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                selectCustomer={selectCustomer}
-              />
-              
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="button" onClick={() => setActiveTab('watch')}>
-                  Next
-                </Button>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="watch" className="space-y-4">
-              <WatchDetailsSection form={form} />
-              
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setActiveTab('customer')}>
-                  Back
-                </Button>
-                <Button type="button" onClick={() => setActiveTab('service')}>
-                  Next
-                </Button>
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="service" className="space-y-4">
-              <ServiceDetailsSection form={form} />
-              
-              <div className="flex justify-between">
-                <Button type="button" variant="outline" onClick={() => setActiveTab('watch')}>
-                  Back
-                </Button>
-                <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : isEditMode ? "Update Service" : "Create Service"}
-                </Button>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </form>
+        {mounted && (
+          <FormProvider {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid grid-cols-3 mb-4">
+                  <TabsTrigger value="customer">Customer Info</TabsTrigger>
+                  <TabsTrigger value="watch">Watch Details</TabsTrigger>
+                  <TabsTrigger value="service">Service Details</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="customer" className="space-y-4">
+                  <CustomerSelect 
+                    form={form} 
+                    customerSuggestions={customerSuggestions}
+                    showCustomerSuggestions={showCustomerSuggestions}
+                    setShowCustomerSuggestions={setShowCustomerSuggestions}
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    selectCustomer={selectCustomer}
+                    isLoading={isLoading}
+                  />
+                  
+                  <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                      Cancel
+                    </Button>
+                    <Button type="button" onClick={() => setActiveTab('watch')}>
+                      Next
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="watch" className="space-y-4">
+                  <WatchDetailsSection form={form} />
+                  
+                  <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={() => setActiveTab('customer')}>
+                      Back
+                    </Button>
+                    <Button type="button" onClick={() => setActiveTab('service')}>
+                      Next
+                    </Button>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="service" className="space-y-4">
+                  <ServiceDetailsSection form={form} />
+                  
+                  <div className="flex justify-between">
+                    <Button type="button" variant="outline" onClick={() => setActiveTab('watch')}>
+                      Back
+                    </Button>
+                    <Button type="submit" disabled={isSubmitting}>
+                      {isSubmitting ? "Saving..." : isEditMode ? "Update Service" : "Create Service"}
+                    </Button>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </form>
+          </FormProvider>
+        )}
       </DialogContent>
     </Dialog>
   );

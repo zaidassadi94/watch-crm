@@ -26,8 +26,9 @@ export function useCustomerSuggestions(user: User | null) {
 
   // Memoize the loadCustomerSuggestions function to prevent recreating on every render
   const loadCustomerSuggestions = useCallback(async (term: string) => {
-    if (term.length < 2 || !user) {
+    if (!term || term.length < 2 || !user) {
       setCustomerSuggestions([]);
+      setIsLoading(false);
       return;
     }
     
@@ -42,7 +43,12 @@ export function useCustomerSuggestions(user: User | null) {
         .order('created_at', { ascending: false })
         .limit(10); // Limit results for better performance
         
-      if (serviceError) throw serviceError;
+      if (serviceError) {
+        console.error("Error fetching service data:", serviceError);
+        setCustomerSuggestions([]);
+        setIsLoading(false);
+        return;
+      }
       
       const { data: salesData, error: salesError } = await supabase
         .from('sales')
@@ -52,7 +58,10 @@ export function useCustomerSuggestions(user: User | null) {
         .order('created_at', { ascending: false })
         .limit(10); // Limit results for better performance
         
-      if (salesError) throw salesError;
+      if (salesError) {
+        console.error("Error fetching sales data:", salesError);
+        // Continue with service data only
+      }
       
       const combinedData = [...(serviceData || []), ...(salesData || [])];
       const uniqueCustomers: CustomerSuggestion[] = [];
@@ -92,11 +101,11 @@ export function useCustomerSuggestions(user: User | null) {
               existingCustomer.watches.push(watch);
             }
           }
-        } else {
+        } else if (item.customer_name) { // Make sure customer name exists
           const newCustomer: CustomerSuggestion = {
             name: item.customer_name,
-            email: item.customer_email,
-            phone: item.customer_phone,
+            email: item.customer_email || null,
+            phone: item.customer_phone || null,
           };
           
           if ('watch_brand' in item && item.watch_brand) {

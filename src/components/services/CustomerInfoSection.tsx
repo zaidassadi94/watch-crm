@@ -12,9 +12,10 @@ interface CustomerInfoSectionProps {
   customerSuggestions: CustomerSuggestion[];
   showCustomerSuggestions: boolean;
   setShowCustomerSuggestions: (show: boolean) => void;
-  searchTerm: string; // Add this prop to fix the type error
+  searchTerm: string;
   setSearchTerm: (term: string) => void;
   selectCustomer: (customer: CustomerSuggestion) => void;
+  isLoading?: boolean;
 }
 
 export function CustomerInfoSection({
@@ -24,8 +25,14 @@ export function CustomerInfoSection({
   setShowCustomerSuggestions,
   searchTerm,
   setSearchTerm,
-  selectCustomer
+  selectCustomer,
+  isLoading = false
 }: CustomerInfoSectionProps) {
+  // Check that form control is available
+  if (!form?.control) {
+    return <div>Loading form...</div>;
+  }
+
   return (
     <div className="space-y-4">
       <h3 className="text-sm font-medium">Customer Information</h3>
@@ -43,7 +50,9 @@ export function CustomerInfoSection({
                   onChange={(e) => {
                     field.onChange(e);
                     setSearchTerm(e.target.value);
+                    setShowCustomerSuggestions(true);
                   }}
+                  onFocus={() => setShowCustomerSuggestions(true)}
                 />
               </FormControl>
               <FormMessage />
@@ -80,25 +89,29 @@ export function CustomerInfoSection({
               {showCustomerSuggestions && customerSuggestions.length > 0 && (
                 <div className="absolute z-50 bg-popover border rounded-md w-full mt-1 shadow-md">
                   <div className="max-h-60 overflow-auto py-1">
-                    {customerSuggestions.map((customer, idx) => (
-                      <div
-                        key={idx}
-                        className="px-2 py-1.5 hover:bg-accent cursor-pointer"
-                        onClick={() => selectCustomer(customer)}
-                      >
-                        <div className="font-medium">{customer.name}</div>
-                        <div className="text-xs text-muted-foreground">
-                          {customer.phone} {customer.email ? `• ${customer.email}` : ''}
-                          {customer.watches && customer.watches.length > 0 && (
-                            <div className="mt-1">
-                              <span className="font-medium text-xs">Watch: </span>
-                              {customer.watches[0].brand} 
-                              {customer.watches[0].model && ` - ${customer.watches[0].model}`}
-                            </div>
-                          )}
+                    {isLoading ? (
+                      <div className="px-2 py-1.5 text-center">Loading...</div>
+                    ) : (
+                      customerSuggestions.map((customer, idx) => (
+                        <div
+                          key={idx}
+                          className="px-2 py-1.5 hover:bg-accent cursor-pointer"
+                          onClick={() => selectCustomer(customer)}
+                        >
+                          <div className="font-medium">{customer.name}</div>
+                          <div className="text-xs text-muted-foreground">
+                            {customer.phone} {customer.email ? `• ${customer.email}` : ''}
+                            {customer.watches && customer.watches.length > 0 && (
+                              <div className="mt-1">
+                                <span className="font-medium text-xs">Watch: </span>
+                                {customer.watches[0].brand} 
+                                {customer.watches[0].model && ` - ${customer.watches[0].model}`}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))
+                    )}
                   </div>
                 </div>
               )}
