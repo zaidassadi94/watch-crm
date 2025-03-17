@@ -57,7 +57,7 @@ export function useCustomerForm(
             communication_preferences: data.communication_preferences,
             updated_at: new Date().toISOString()
           })
-          .eq('id', customer.id)
+          .eq('id', String(customer.id))
           .eq('user_id', user.id);
         
         if (error) throw error;

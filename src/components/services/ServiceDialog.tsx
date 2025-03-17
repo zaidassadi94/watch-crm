@@ -10,6 +10,7 @@ import { CustomerInfoSection } from './CustomerInfoSection';
 import { WatchDetailsSection } from './WatchDetailsSection';
 import { ServiceDetailsSection } from './ServiceDetailsSection';
 import { useServiceData } from '@/hooks/useServiceData';
+import { CustomerSuggestion } from '@/types/inventory';
 
 interface ServiceDialogProps {
   open: boolean;
@@ -22,6 +23,9 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
   const { user } = useAuth();
   const { sendServiceStatusNotification } = useServiceData();
   const [activeTab, setActiveTab] = useState('customer');
+  const [customerSuggestions, setCustomerSuggestions] = useState<CustomerSuggestion[]>([]);
+  const [showCustomerSuggestions, setShowCustomerSuggestions] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   
   const {
     form,
@@ -46,6 +50,13 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     }
   }, [open]);
 
+  const selectCustomer = (customer: CustomerSuggestion) => {
+    form.setValue('customer_name', customer.name);
+    form.setValue('customer_email', customer.email || '');
+    form.setValue('customer_phone', customer.phone || '');
+    setShowCustomerSuggestions(false);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -62,7 +73,14 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
             </TabsList>
             
             <TabsContent value="customer" className="space-y-4">
-              <CustomerInfoSection form={form} />
+              <CustomerInfoSection 
+                form={form} 
+                customerSuggestions={customerSuggestions}
+                showCustomerSuggestions={showCustomerSuggestions}
+                setShowCustomerSuggestions={setShowCustomerSuggestions}
+                setSearchTerm={setSearchTerm}
+                selectCustomer={selectCustomer}
+              />
               
               <div className="flex justify-between">
                 <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

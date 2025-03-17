@@ -7,8 +7,12 @@ import {
   MessageTemplate, 
   MessageLog, 
   NotificationSettings,
-  SendMessageParams
+  SendMessageParams,
+  EventType,
+  MessageChannel
 } from '@/types/messages';
+
+export type { MessageTemplate, MessageLog, NotificationSettings, EventType, MessageChannel };
 
 export function useCommunication() {
   const { user } = useAuth();
@@ -70,6 +74,76 @@ export function useCommunication() {
       });
     } finally {
       setIsLoading(false);
+    }
+  }, [user, toast]);
+  
+  // Add a new template or update existing one
+  const saveTemplate = useCallback(async (
+    template: Partial<MessageTemplate> & { name: string; type: MessageChannel; template_text: string; event_type: EventType }
+  ) => {
+    if (!user) return null;
+    
+    try {
+      if (template.id) {
+        // Update existing template
+        const { data, error } = await supabase
+          .from('message_templates')
+          .update({
+            name: template.name,
+            type: template.type,
+            template_text: template.template_text,
+            event_type: template.event_type,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', template.id)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        setTemplates(prev => 
+          prev.map(t => t.id === template.id ? data as MessageTemplate : t)
+        );
+        
+        toast({
+          title: 'Success',
+          description: 'Template updated successfully'
+        });
+        
+        return data as MessageTemplate;
+      } else {
+        // Create new template
+        const { data, error } = await supabase
+          .from('message_templates')
+          .insert({
+            name: template.name,
+            type: template.type,
+            template_text: template.template_text,
+            event_type: template.event_type,
+            user_id: user.id
+          })
+          .select()
+          .single();
+          
+        if (error) throw error;
+        
+        setTemplates(prev => [...prev, data as MessageTemplate]);
+        toast({
+          title: 'Success',
+          description: 'Template created successfully'
+        });
+        
+        return data as MessageTemplate;
+      }
+    } catch (error: any) {
+      console.error('Error saving template:', error);
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save template',
+        variant: 'destructive'
+      });
+      return null;
     }
   }, [user, toast]);
   
@@ -222,7 +296,7 @@ export function useCommunication() {
   
   // Fetch notification settings
   const fetchNotificationSettings = useCallback(async () => {
-    if (!user) return;
+    if (!user) return null;
     
     try {
       const { data, error } = await supabase
@@ -235,6 +309,7 @@ export function useCommunication() {
       
       if (data) {
         setNotificationSettings(data as NotificationSettings);
+        return data as NotificationSettings;
       } else {
         // Create default settings if none exist
         const { data: newSettings, error: createError } = await supabase
@@ -253,6 +328,7 @@ export function useCommunication() {
         if (createError) throw createError;
         
         setNotificationSettings(newSettings as NotificationSettings);
+        return newSettings as NotificationSettings;
       }
     } catch (error: any) {
       console.error('Error fetching notification settings:', error);
@@ -261,6 +337,7 @@ export function useCommunication() {
         description: 'Failed to load notification settings',
         variant: 'destructive'
       });
+      return null;
     }
   }, [user, toast]);
   
@@ -321,6 +398,7 @@ export function useCommunication() {
     deleteTemplate,
     sendMessage,
     fetchNotificationSettings,
-    updateNotificationSettings
+    updateNotificationSettings,
+    saveTemplate // Add the new method
   };
 }

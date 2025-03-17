@@ -13,18 +13,24 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export function CommunicationSettings() {
   const [activeTab, setActiveTab] = useState('notifications');
-  const { isLoading, getNotificationSettings, updateNotificationSettings } = useCommunication();
+  const { isLoading, fetchNotificationSettings, updateNotificationSettings, notificationSettings } = useCommunication();
   const [settings, setSettings] = useState<any>(null);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     const loadSettings = async () => {
-      const data = await getNotificationSettings();
+      const data = await fetchNotificationSettings();
       setSettings(data);
     };
     
     loadSettings();
-  }, []);
+  }, [fetchNotificationSettings]);
+
+  useEffect(() => {
+    if (notificationSettings) {
+      setSettings(notificationSettings);
+    }
+  }, [notificationSettings]);
 
   const handleSettingsChange = (key: string, value: boolean) => {
     setSettings(prev => ({

@@ -14,8 +14,9 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
-import { useCommunication, MessageTemplate, EventType, MessageChannel } from '@/hooks/useCommunication';
+import { useCommunication } from '@/hooks/useCommunication';
 import { MessageSquare, Save } from 'lucide-react';
+import { MessageTemplate, EventType, MessageChannel } from '@/types/messages';
 
 interface TemplateDialogProps {
   open: boolean;
@@ -127,7 +128,7 @@ export function TemplateDialog({
             {template ? 'Edit Message Template' : 'Create Message Template'}
           </DialogTitle>
           <DialogDescription>
-            Create templates for automated customer messages. Use variables like {{customer_name}} to personalize your messages.
+            Create templates for automated customer messages. Use variables like {"{{customer_name}}"} to personalize your messages.
           </DialogDescription>
         </DialogHeader>
         
@@ -147,7 +148,7 @@ export function TemplateDialog({
             <Label htmlFor="type" className="text-right">Channel</Label>
             <Select
               value={formData.type}
-              onValueChange={(value) => handleChange('type', value)}
+              onValueChange={(value) => handleChange('type', value as MessageChannel)}
             >
               <SelectTrigger className="col-span-3">
                 <SelectValue placeholder="Select channel" />

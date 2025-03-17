@@ -50,7 +50,7 @@ export function useCustomers() {
       if (salesError) throw salesError;
       
       // Process the customer data
-      const processedCustomers: Customer[] = (data || []).map(customer => {
+      const processedCustomers = (data || []).map(customer => {
         // Find all sales for this customer
         const customerSales = salesData?.filter(sale => 
           sale.customer_name === customer.name
@@ -79,6 +79,19 @@ export function useCustomers() {
             : `https://ui-avatars.com/api/?name=${nameParts[0]}&background=random`;
         }
         
+        // Ensure communication_preferences is properly formed
+        let communicationPrefs: { sms: boolean; whatsapp: boolean };
+        
+        if (typeof customer.communication_preferences === 'object' && customer.communication_preferences !== null) {
+          communicationPrefs = {
+            sms: Boolean(customer.communication_preferences.sms),
+            whatsapp: Boolean(customer.communication_preferences.whatsapp)
+          };
+        } else {
+          // Default if missing or invalid
+          communicationPrefs = { sms: true, whatsapp: false };
+        }
+        
         return {
           id: customer.id,
           name: customer.name,
@@ -87,10 +100,10 @@ export function useCustomers() {
           type: customer.type as 'Regular' | 'VIP',
           status: customer.status as 'Active' | 'Inactive',
           avatarUrl: initialsAvatar,
-          communication_preferences: customer.communication_preferences || { sms: true, whatsapp: false },
+          communication_preferences: communicationPrefs,
           totalSpent,
           lastPurchase
-        };
+        } as Customer;
       });
       
       setCustomers(processedCustomers);
