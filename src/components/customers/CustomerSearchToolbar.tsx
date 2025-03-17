@@ -3,14 +3,14 @@ import { useState } from 'react';
 import { Search, Filter, Download, ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 
 interface CustomerSearchToolbarProps {
@@ -30,14 +30,28 @@ export function CustomerSearchToolbar({
   customerStatus,
   onCustomerStatusChange 
 }: CustomerSearchToolbarProps) {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const hasActiveFilters = customerType !== '' || customerStatus !== '';
+  const activeFilterCount = (status !== '' ? 1 : 0) + (customerType !== '' ? 1 : 0);
   
+  // Type options for dropdown
+  const typeOptions = [
+    { label: 'All Types', value: '' },
+    { label: 'Regular', value: 'Regular' },
+    { label: 'VIP', value: 'VIP' }
+  ];
+  
+  // Status options for dropdown
+  const statusOptions = [
+    { label: 'All Statuses', value: '' },
+    { label: 'Active', value: 'Active' },
+    { label: 'Inactive', value: 'Inactive' }
+  ];
+
+  // Function to reset all filters
   const resetFilters = () => {
     onCustomerTypeChange('');
     onCustomerStatusChange('');
   };
-
-  const hasActiveFilters = customerType !== '' || customerStatus !== '';
 
   return (
     <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
@@ -52,61 +66,66 @@ export function CustomerSearchToolbar({
         />
       </div>
       <div className="flex gap-2">
-        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-          <PopoverTrigger asChild>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="h-10 gap-1">
-              <Filter className="h-4 w-4" /> 
+              <Filter className="h-4 w-4 mr-1" /> 
               Filter
               {hasActiveFilters && (
                 <Badge variant="secondary" className="ml-1 rounded-full text-xs">
-                  {(customerType !== '' ? 1 : 0) + (customerStatus !== '' ? 1 : 0)}
+                  {activeFilterCount}
                 </Badge>
               )}
-              <ChevronDown className="h-3 w-3 opacity-50" />
+              <ChevronDown className="h-3 w-3 opacity-50 ml-1" />
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="space-y-4">
-              <h4 className="font-medium">Filter Customers</h4>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Customer Type</label>
-                <Select value={customerType} onValueChange={onCustomerTypeChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Types</SelectItem>
-                    <SelectItem value="Regular">Regular</SelectItem>
-                    <SelectItem value="VIP">VIP</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Status</label>
-                <Select value={customerStatus} onValueChange={onCustomerStatusChange}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Statuses</SelectItem>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex justify-between">
-                <Button variant="outline" size="sm" onClick={resetFilters}>
-                  <X className="mr-1 h-4 w-4" />
-                  Reset Filters
-                </Button>
-                <Button size="sm" onClick={() => setIsFilterOpen(false)}>Apply</Button>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-56">
+            <DropdownMenuLabel>Filter Customers</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground pt-2">
+              Customer Type
+            </DropdownMenuLabel>
+            {typeOptions.map((option) => (
+              <DropdownMenuCheckboxItem
+                key={option.value || 'empty-type'}
+                checked={customerType === option.value}
+                onCheckedChange={() => onCustomerTypeChange(option.value)}
+              >
+                {option.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+            
+            <DropdownMenuSeparator />
+            
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground pt-2">
+              Status
+            </DropdownMenuLabel>
+            {statusOptions.map((option) => (
+              <DropdownMenuCheckboxItem
+                key={option.value || 'empty-status'}
+                checked={customerStatus === option.value}
+                onCheckedChange={() => onCustomerStatusChange(option.value)}
+              >
+                {option.label}
+              </DropdownMenuCheckboxItem>
+            ))}
+            
+            <DropdownMenuSeparator />
+            
+            {hasActiveFilters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start text-muted-foreground h-8 mt-2"
+                onClick={resetFilters}
+              >
+                <X className="mr-1 h-4 w-4" />
+                Reset Filters
+              </Button>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
         
         <Button variant="outline" size="sm" className="h-10 gap-1">
           <Download className="h-4 w-4" /> Export

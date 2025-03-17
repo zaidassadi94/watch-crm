@@ -1,121 +1,133 @@
 
 import { useState } from 'react';
-import { Search, Filter, Download, ChevronDown, X } from 'lucide-react';
+import { Search, Filter, ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuLabel, 
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem,
+  DropdownMenuTrigger 
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 
 interface InventorySearchProps {
   searchTerm: string;
-  setSearchTerm: (value: string) => void;
-  category: string;
-  setCategory: (value: string) => void;
+  onSearchChange: (value: string) => void;
   stockStatus: string;
-  setStockStatus: (value: string) => void;
+  onStockStatusChange: (value: string) => void;
+  category: string;
+  onCategoryChange: (value: string) => void;
 }
 
 export function InventorySearch({ 
   searchTerm, 
-  setSearchTerm,
-  category,
-  setCategory,
+  onSearchChange,
   stockStatus,
-  setStockStatus
+  onStockStatusChange,
+  category,
+  onCategoryChange
 }: InventorySearchProps) {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const hasActiveFilters = stockStatus !== '' || category !== '';
+  const activeFilterCount = (stockStatus !== '' ? 1 : 0) + (category !== '' ? 1 : 0);
   
+  // Stock status options
+  const stockStatusOptions = [
+    { label: 'All Stock Statuses', value: '' },
+    { label: 'In Stock', value: 'in_stock' },
+    { label: 'Low Stock', value: 'low_stock' },
+    { label: 'Out of Stock', value: 'out_of_stock' }
+  ];
+  
+  // Category options
+  const categoryOptions = [
+    { label: 'All Categories', value: '' },
+    { label: 'Watches', value: 'watches' },
+    { label: 'Parts', value: 'parts' },
+    { label: 'Accessories', value: 'accessories' },
+    { label: 'Tools', value: 'tools' }
+  ];
+
+  // Function to reset all filters
   const resetFilters = () => {
-    setCategory('');
-    setStockStatus('');
+    onStockStatusChange('');
+    onCategoryChange('');
   };
 
-  const hasActiveFilters = category !== '' || stockStatus !== '';
-
   return (
-    <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
-      <div className="relative w-full md:w-80">
+    <div className="flex flex-col md:flex-row gap-4">
+      <div className="relative flex-1">
         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          type="search"
           placeholder="Search inventory..."
-          className="pl-8 w-full"
+          className="pl-8"
           value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
+          onChange={(e) => onSearchChange(e.target.value)}
         />
       </div>
-      <div className="flex gap-2">
-        <Popover open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-10 gap-1">
-              <Filter className="h-4 w-4" /> 
-              Filter
-              {hasActiveFilters && (
-                <Badge variant="secondary" className="ml-1 rounded-full text-xs">
-                  {(category !== '' ? 1 : 0) + (stockStatus !== '' ? 1 : 0)}
-                </Badge>
-              )}
-              <ChevronDown className="h-3 w-3 opacity-50" />
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="h-10 gap-1">
+            <Filter className="h-4 w-4 mr-1" /> 
+            Filter
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="ml-1 rounded-full text-xs">
+                {activeFilterCount}
+              </Badge>
+            )}
+            <ChevronDown className="h-3 w-3 opacity-50 ml-1" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56">
+          <DropdownMenuLabel>Filter Inventory</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground pt-2">
+            Stock Status
+          </DropdownMenuLabel>
+          {stockStatusOptions.map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option.value || 'empty-stock'}
+              checked={stockStatus === option.value}
+              onCheckedChange={() => onStockStatusChange(option.value)}
+            >
+              {option.label}
+            </DropdownMenuCheckboxItem>
+          ))}
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground pt-2">
+            Category
+          </DropdownMenuLabel>
+          {categoryOptions.map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option.value || 'empty-category'}
+              checked={category === option.value}
+              onCheckedChange={() => onCategoryChange(option.value)}
+            >
+              {option.label}
+            </DropdownMenuCheckboxItem>
+          ))}
+          
+          <DropdownMenuSeparator />
+          
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground h-8 mt-2"
+              onClick={resetFilters}
+            >
+              <X className="mr-1 h-4 w-4" />
+              Reset Filters
             </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-80">
-            <div className="space-y-4">
-              <h4 className="font-medium">Filter Inventory</h4>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Categories" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Categories</SelectItem>
-                    <SelectItem value="watches">Watches</SelectItem>
-                    <SelectItem value="parts">Parts</SelectItem>
-                    <SelectItem value="accessories">Accessories</SelectItem>
-                    <SelectItem value="tools">Tools</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Stock Status</label>
-                <Select value={stockStatus} onValueChange={setStockStatus}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All Statuses" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All Statuses</SelectItem>
-                    <SelectItem value="in_stock">In Stock</SelectItem>
-                    <SelectItem value="low_stock">Low Stock</SelectItem>
-                    <SelectItem value="out_of_stock">Out of Stock</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex justify-between">
-                <Button variant="outline" size="sm" onClick={resetFilters}>
-                  <X className="mr-1 h-4 w-4" />
-                  Reset Filters
-                </Button>
-                <Button size="sm" onClick={() => setIsFilterOpen(false)}>Apply</Button>
-              </div>
-            </div>
-          </PopoverContent>
-        </Popover>
-        
-        <Button variant="outline" size="sm" className="h-10 gap-1">
-          <Download className="h-4 w-4" /> Export
-        </Button>
-      </div>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

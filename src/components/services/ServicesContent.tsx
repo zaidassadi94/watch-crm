@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { DataTable } from '@/components/ui-custom/DataTable';
@@ -14,22 +13,17 @@ import { ColumnDef } from '@tanstack/react-table';
 import { Column } from '@/components/ui-custom/DataTable';
 import { ReactNode } from 'react';
 
-// Function to adapt TanStack table columns to our DataTable component format
 function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
   return columns.map(col => {
-    // Extract header - fallback to id if header is not a string
     const header = typeof col.header === 'string' ? col.header : String(col.id || '');
     
-    // Handle accessorKey which might be in different places
     let accessorKey = '';
     if ('accessorKey' in col && typeof col.accessorKey === 'string') {
       accessorKey = col.accessorKey;
     }
     
-    // Handle cell render function - convert to our expected format
     let cellFunction: (({ row }: { row: { original: T } }) => ReactNode) | undefined = undefined;
     if (col.cell) {
-      // Create a wrapper function that calls the original cell function
       cellFunction = ({ row }) => {
         if (typeof col.cell === 'function') {
           return col.cell({ row: { original: row.original } } as any);
@@ -38,10 +32,8 @@ function adaptColumns<T extends object>(columns: ColumnDef<T>[]): Column<T>[] {
       };
     }
     
-    // Extract className from meta if it exists
     let className = '';
     if (col.meta && typeof col.meta === 'object' && col.meta !== null) {
-      // Need to use type assertion since TypeScript doesn't know about className
       className = (col.meta as any).className || '';
     }
     
@@ -65,20 +57,25 @@ export function ServicesContent() {
     setIsDialogOpen,
     selectedService,
     handleEditService,
-    handleCreateService
+    handleCreateService,
+    handleCloseDialog,
+    cleanup
   } = useServiceDialogs();
+
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
 
   const tanstackColumns = getServiceTableColumns({
     onEdit: handleEditService,
     onDelete: handleDelete
   });
   
-  // Convert columns to the format expected by our DataTable
   const columns = adaptColumns<ServiceRequest>(tanstackColumns);
 
-  // Apply filters
   const filteredServices = services.filter(service => {
-    // Text search filter
     const matchesSearch = searchTerm === "" || 
       service.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       service.watch_brand.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -86,11 +83,9 @@ export function ServicesContent() {
       (service.customer_email && service.customer_email.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (service.customer_phone && service.customer_phone.toLowerCase().includes(searchTerm.toLowerCase()));
     
-    // Status filter - fixed to use case-insensitive comparison
     const matchesStatus = status === '' || 
                          service.status.toLowerCase() === status.toLowerCase();
     
-    // Service type filter - fixed to use case-insensitive comparison
     const matchesType = serviceType === '' || 
                        service.service_type.toLowerCase() === serviceType.toLowerCase();
     

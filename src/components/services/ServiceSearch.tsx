@@ -4,20 +4,13 @@ import { Search, Filter, ChevronDown, X } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { 
-  Sheet, 
-  SheetContent, 
-  SheetHeader, 
-  SheetTitle, 
-  SheetTrigger,
-  SheetFooter
-} from '@/components/ui/sheet';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+  DropdownMenu, 
+  DropdownMenuTrigger, 
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuCheckboxItem 
+} from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 
 interface ServiceSearchProps {
@@ -37,16 +30,34 @@ export function ServiceSearch({
   serviceType,
   setServiceType
 }: ServiceSearchProps) {
-  const [isFilterOpen, setIsFilterOpen] = useState(false);
+  const hasActiveFilters = status !== '' || serviceType !== '';
+  const activeFilterCount = (status !== '' ? 1 : 0) + (serviceType !== '' ? 1 : 0);
   
+  // Status options for the dropdown
+  const statusOptions = [
+    { label: 'All Statuses', value: '' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'In Progress', value: 'in progress' },
+    { label: 'Ready for Pickup', value: 'ready for pickup' },
+    { label: 'Completed', value: 'completed' },
+    { label: 'Cancelled', value: 'cancelled' }
+  ];
+
+  // Service type options for the dropdown
+  const serviceTypeOptions = [
+    { label: 'All Types', value: '' },
+    { label: 'Repair', value: 'repair' },
+    { label: 'Maintenance', value: 'maintenance' },
+    { label: 'Battery Replacement', value: 'battery_replacement' },
+    { label: 'Assessment', value: 'assessment' },
+    { label: 'Other', value: 'other' }
+  ];
+
+  // Function to reset all filters
   const resetFilters = () => {
     setStatus('');
     setServiceType('');
-    setIsFilterOpen(false);
   };
-
-  const hasActiveFilters = status !== '' || serviceType !== '';
-  const activeFilterCount = (status !== '' ? 1 : 0) + (serviceType !== '' ? 1 : 0);
 
   return (
     <div className="flex flex-col md:flex-row gap-4">
@@ -60,69 +71,66 @@ export function ServiceSearch({
         />
       </div>
       
-      <Sheet open={isFilterOpen} onOpenChange={setIsFilterOpen}>
-        <SheetTrigger asChild>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button variant="outline" size="sm" className="h-10 gap-1">
-            <Filter className="h-4 w-4" /> 
+            <Filter className="h-4 w-4 mr-1" /> 
             Filter
             {hasActiveFilters && (
               <Badge variant="secondary" className="ml-1 rounded-full text-xs">
                 {activeFilterCount}
               </Badge>
             )}
-            <ChevronDown className="h-3 w-3 opacity-50" />
+            <ChevronDown className="h-3 w-3 opacity-50 ml-1" />
           </Button>
-        </SheetTrigger>
-        <SheetContent>
-          <SheetHeader>
-            <SheetTitle>Filter Services</SheetTitle>
-          </SheetHeader>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent className="w-56">
+          <DropdownMenuLabel>Filter Services</DropdownMenuLabel>
+          <DropdownMenuSeparator />
           
-          <div className="py-6 space-y-6">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
-              <Select value={status} onValueChange={(value) => setStatus(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Statuses" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Statuses</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="in progress">In Progress</SelectItem>
-                  <SelectItem value="ready for pickup">Ready for Pickup</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Service Type</label>
-              <Select value={serviceType} onValueChange={(value) => setServiceType(value)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Types" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Types</SelectItem>
-                  <SelectItem value="repair">Repair</SelectItem>
-                  <SelectItem value="maintenance">Maintenance</SelectItem>
-                  <SelectItem value="battery_replacement">Battery Replacement</SelectItem>
-                  <SelectItem value="assessment">Assessment</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-            
-          <SheetFooter>
-            <Button variant="outline" size="sm" onClick={resetFilters}>
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground pt-2">
+            Status
+          </DropdownMenuLabel>
+          {statusOptions.map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option.value || 'empty'}
+              checked={status === option.value}
+              onCheckedChange={() => setStatus(option.value)}
+            >
+              {option.label}
+            </DropdownMenuCheckboxItem>
+          ))}
+          
+          <DropdownMenuSeparator />
+          
+          <DropdownMenuLabel className="text-xs font-normal text-muted-foreground pt-2">
+            Service Type
+          </DropdownMenuLabel>
+          {serviceTypeOptions.map((option) => (
+            <DropdownMenuCheckboxItem
+              key={option.value || 'empty-type'}
+              checked={serviceType === option.value}
+              onCheckedChange={() => setServiceType(option.value)}
+            >
+              {option.label}
+            </DropdownMenuCheckboxItem>
+          ))}
+          
+          <DropdownMenuSeparator />
+          
+          {hasActiveFilters && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start text-muted-foreground h-8 mt-2"
+              onClick={resetFilters}
+            >
               <X className="mr-1 h-4 w-4" />
               Reset Filters
             </Button>
-            <Button size="sm" onClick={() => setIsFilterOpen(false)}>Apply</Button>
-          </SheetFooter>
-        </SheetContent>
-      </Sheet>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

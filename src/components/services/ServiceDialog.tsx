@@ -79,7 +79,9 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
 
   // Memoize the customer selection function to prevent re-renders
   const selectCustomer = useCallback((customer: CustomerSuggestion) => {
-    form.setValue('customer_name', customer.name);
+    if (!form || !customer) return;
+    
+    form.setValue('customer_name', customer.name || '');
     form.setValue('customer_email', customer.email || '');
     form.setValue('customer_phone', customer.phone || '');
     setShowCustomerSuggestions(false);

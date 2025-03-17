@@ -15,10 +15,12 @@ import {
   DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
+import { useSettings } from '@/hooks/useSettings';
 
 export function Navbar() {
   const location = useLocation();
   const [title, setTitle] = useState('');
+  const { settings, isLoading } = useSettings();
 
   useEffect(() => {
     const getTitle = () => {
@@ -74,7 +76,9 @@ export function Navbar() {
                 <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
                   <User className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <span className="hidden md:inline-block font-medium">John Doe</span>
+                <span className="hidden md:inline-block font-medium">
+                  {!isLoading ? settings.company_name : 'Loading...'}
+                </span>
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
               </Button>
             </DropdownMenuTrigger>
