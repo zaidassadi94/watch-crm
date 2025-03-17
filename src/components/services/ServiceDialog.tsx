@@ -62,6 +62,11 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
     setShowCustomerSuggestions(false);
   };
 
+  // Only render the content when the dialog is open to prevent unnecessary calculations
+  if (!open) {
+    return null;
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
@@ -83,6 +88,7 @@ export function ServiceDialog({ open, onOpenChange, service, onSaved }: ServiceD
                 customerSuggestions={customerSuggestions}
                 showCustomerSuggestions={showCustomerSuggestions}
                 setShowCustomerSuggestions={setShowCustomerSuggestions}
+                searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 selectCustomer={selectCustomer}
               />

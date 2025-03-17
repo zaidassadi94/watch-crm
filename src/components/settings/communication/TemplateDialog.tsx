@@ -23,7 +23,12 @@ interface TemplateDialogProps {
   template: MessageTemplate | null;
   defaultChannel: MessageChannel;
   onSaved: () => void;
-  saveTemplate: (template: Partial<MessageTemplate>) => Promise<boolean>;
+  saveTemplate: (template: Partial<MessageTemplate> & { 
+    name: string; 
+    type: MessageChannel; 
+    template_text: string; 
+    event_type: EventType; 
+  }) => Promise<MessageTemplate | null>;
 }
 
 export function TemplateDialog({ 

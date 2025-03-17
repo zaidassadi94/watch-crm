@@ -77,17 +77,19 @@ export function useMessageTemplates() {
     id: string, 
     updates: Partial<Omit<MessageTemplate, 'id' | 'user_id' | 'created_at' | 'updated_at'>>
   ) => {
-    if (!user) return false;
+    if (!user) return null;
     
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('message_templates')
         .update({
           ...updates,
           updated_at: new Date().toISOString()
         })
         .eq('id', id)
-        .eq('user_id', user.id);
+        .eq('user_id', user.id)
+        .select()
+        .single();
         
       if (error) throw error;
       
@@ -105,7 +107,7 @@ export function useMessageTemplates() {
         description: 'Template updated successfully'
       });
       
-      return true;
+      return data as MessageTemplate;
     } catch (error: any) {
       console.error('Error updating template:', error);
       toast({
@@ -113,7 +115,7 @@ export function useMessageTemplates() {
         description: error.message || 'Failed to update template',
         variant: 'destructive'
       });
-      return false;
+      return null;
     }
   }, [user, toast]);
   
